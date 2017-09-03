@@ -583,13 +583,8 @@ def create_URI(addr, amount, message):
         if six.PY2 and type(message) == unicode:
             message = message.encode('utf8')
         query.append('message=%s'%urllib.quote(message))
-<<<<<<< HEAD
-    p = urlparse.ParseResult(scheme='monacoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
-    return urlparse.urlunparse(p)
-=======
-    p = urllib_parse.ParseResult(scheme='bitcoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
+    p = urllib_parse.ParseResult(scheme='monacoin', netloc='', path=addr, params='', query='&'.join(query), fragment='')
     return urllib_parse.urlunparse(p)
->>>>>>> upstream/master
 
 
 # Python bug (http://bugs.python.org/issue1927) causes raw_input

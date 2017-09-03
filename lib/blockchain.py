@@ -22,6 +22,7 @@
 # SOFTWARE.
 import os
 import threading
+import codecs
 
 from . import util
 from . import bitcoin
@@ -30,7 +31,7 @@ from .bitcoin import *
 try:
     import lyra2re2_hash
 except ImportError as e:
-    exit("Please run 'sudo pip install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
+    exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
 MAX_TARGET = 0xff9f1c0116d1a000000000000000000000000000000000000000000000000000
 
@@ -150,13 +151,13 @@ class Blockchain(util.PrintError):
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
         _hash = hash_header(header)
-        _powhash = rev_hex(lyra2re2_hash.getPoWHash(serialize_header(header).decode('hex')).encode('hex'))
+        _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         height = header.get('block_height')
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if bitcoin.TESTNET:
             return
-        if height < 450000 and height > 1055 and height % 50000 <> 0 :
+        if height < 450000 and height > 1055 and height % 50000 != 0 :
             return
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))        
@@ -167,7 +168,7 @@ class Blockchain(util.PrintError):
         num = len(data) // 80
         prev_header = None
         if index != 0:
-            prev_header = self.read_header(index*2016 - 1)
+            prev_header = self.read_header(index * 2016 - 1)
         headers = {}
         for i in range(num):
             raw_header = data[i*80:(i+1) * 80]
@@ -284,7 +285,7 @@ class Blockchain(util.PrintError):
 
     def target_to_bits(self, target):
         MM = 256*256*256
-        c = ("%064X"%target)[2:]
+        c = ("%064X"%int(target))[2:]
         i = 31
         while c[0:2]=="00":
             c = c[2:]
@@ -407,7 +408,6 @@ class Blockchain(util.PrintError):
         try:
             data = bfh(hexdata)
             self.verify_chunk(idx, data)
-            print idx
             #self.print_error("validated chunk %d" % idx)
             self.save_chunk(idx, data)
             return True

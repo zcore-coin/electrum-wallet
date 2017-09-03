@@ -12,7 +12,7 @@ import os
 import qrcode
 
 import electrum_mona
-from electrum.i18n import _
+from electrum_mona.i18n import _
 from .util import WindowModalDialog
 
 

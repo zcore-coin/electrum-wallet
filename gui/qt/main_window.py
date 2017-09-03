@@ -38,7 +38,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
-from electrum.util import bh2u, bfh
+from electrum_mona.util import bh2u, bfh
 from . import icons_rc
 
 from electrum_mona import keystore

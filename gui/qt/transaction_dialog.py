@@ -42,7 +42,7 @@ from electrum_mona.bitcoin import base_encode
 from electrum_mona.i18n import _
 from electrum_mona.plugins import run_hook
 
-from electrum.util import bfh
+from electrum_mona.util import bfh
 from .util import *
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...

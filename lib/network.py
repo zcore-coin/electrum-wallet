@@ -968,7 +968,7 @@ class Network(util.DaemonThread):
         def download_thread():
             urls = [bitcoin.HEADERS_URL_1st, bitcoin.HEADERS_URL_2nd, bitcoin.HEADERS_URL_3rd, None]
             for url in urls:
-                if url == None:
+                if url is None:
                     self.print_error("download failed. creating file", filename)
                     open(filename, 'wb+').close()
                     break
