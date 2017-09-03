@@ -9,7 +9,7 @@ from electrum_mona_gui.qt import EnterButton
 from electrum_mona_gui.qt.util import ThreadedButton, Buttons
 from electrum_mona_gui.qt.util import WindowModalDialog, OkButton
 
-from labels import LabelsPlugin
+from .labels import LabelsPlugin
 
 
 class Plugin(LabelsPlugin):

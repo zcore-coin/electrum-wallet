@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Electrum - lightweight Bitcoin client
 # Copyright (C) 2012 thomasv@ecdsa.org
 #
@@ -22,15 +20,12 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-
-
 import os
-import util
 import threading
 
-import bitcoin
-from bitcoin import *
+from . import util
+from . import bitcoin
+from .bitcoin import *
 
 try:
     import lyra2re2_hash
@@ -49,7 +44,7 @@ def serialize_header(res):
     return s
 
 def deserialize_header(s, height):
-    hex_to_int = lambda s: int('0x' + s[::-1].encode('hex'), 16)
+    hex_to_int = lambda s: int('0x' + bh2u(s[::-1]), 16)
     h = {}
     h['version'] = hex_to_int(s[0:4])
     h['prev_block_hash'] = hash_encode(s[4:36])
@@ -65,7 +60,7 @@ def hash_header(header):
         return '0' * 64
     if header.get('prev_block_hash') is None:
         header['prev_block_hash'] = '00'*32
-    return hash_encode(Hash(serialize_header(header).decode('hex')))
+    return hash_encode(Hash(bfh(serialize_header(header))))
 
 blockchains = {}
 
@@ -99,8 +94,9 @@ def can_connect(header):
 
 
 class Blockchain(util.PrintError):
-
-    '''Manages blockchain headers and their verification'''
+    """
+    Manages blockchain headers and their verification
+    """
 
     def __init__(self, config, checkpoint, parent_id):
         self.config = config
@@ -115,7 +111,7 @@ class Blockchain(util.PrintError):
         return blockchains[self.parent_id]
 
     def get_max_child(self):
-        children = filter(lambda y: y.parent_id==self.checkpoint, blockchains.values())
+        children = list(filter(lambda y: y.parent_id==self.checkpoint, blockchains.values()))
         return max([x.checkpoint for x in children]) if children else None
 
     def get_checkpoint(self):
@@ -149,7 +145,7 @@ class Blockchain(util.PrintError):
 
     def update_size(self):
         p = self.path()
-        self._size = os.path.getsize(p)/80 if os.path.exists(p) else 0
+        self._size = os.path.getsize(p)//80 if os.path.exists(p) else 0
 
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
@@ -168,7 +164,7 @@ class Blockchain(util.PrintError):
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
     def verify_chunk(self, index, data):
-        num = len(data) / 80
+        num = len(data) // 80
         prev_header = None
         if index != 0:
             prev_header = self.read_header(index*2016 - 1)
@@ -244,7 +240,7 @@ class Blockchain(util.PrintError):
 
     def save_header(self, header):
         delta = header.get('block_height') - self.checkpoint
-        data = serialize_header(header).decode('hex')
+        data = bfh(serialize_header(header))
         assert delta == self.size()
         assert len(data) == 80
         self.write(data, delta*80)
@@ -409,7 +405,7 @@ class Blockchain(util.PrintError):
 
     def connect_chunk(self, idx, hexdata):
         try:
-            data = hexdata.decode('hex')
+            data = bfh(hexdata)
             self.verify_chunk(idx, data)
             print idx
             #self.print_error("validated chunk %d" % idx)
