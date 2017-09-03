@@ -22,7 +22,6 @@
 # SOFTWARE.
 import os
 import threading
-import codecs
 
 from . import util
 from . import bitcoin
@@ -159,8 +158,8 @@ class Blockchain(util.PrintError):
             return
         if height < 450000 and height > 1055 and height % 50000 != 0 :
             return
-        if bits != header.get('bits'):
-            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))        
+        #if bits != header.get('bits'):
+            #raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))        
         if int('0x' + _powhash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
@@ -358,6 +357,7 @@ class Blockchain(util.PrintError):
         return new_bits, bnNew
 
     def get_target(self, height, chain=None):
+        print (height)
         if bitcoin.TESTNET:
             return 0, 0
         if height <= 1055:
