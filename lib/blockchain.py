@@ -158,8 +158,8 @@ class Blockchain(util.PrintError):
             return
         if height < 450000 and height > 1055 and height % 50000 != 0 :
             return
-        #if bits != header.get('bits'):
-            #raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))        
+        if bits != header.get('bits'):
+            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))        
         if int('0x' + _powhash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
@@ -279,7 +279,7 @@ class Blockchain(util.PrintError):
         a = bits%MM
         if a < 0x8000:
             a *= 256
-        target = (a) * pow(2, 8 * (bits/MM - 3))
+        target = (a) * pow(2, 8 * (bits//MM - 3))
         return target
 
     def target_to_bits(self, target):
@@ -292,7 +292,7 @@ class Blockchain(util.PrintError):
 
         c = int('0x'+c[0:6],16)
         if c >= 0x800000:
-            c /= 256
+            c //= 256
             i += 1
 
         new_bits = c + MM * i
@@ -330,7 +330,7 @@ class Blockchain(util.PrintError):
                     PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
                 else:
                     bnNum = self.bits_to_target(BlockReading.get('bits'))
-                    PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) / (CountBlocks + 1)
+                    PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
                 PastDifficultyAveragePrev = PastDifficultyAverage
 
             if LastBlockTime > 0:
@@ -345,19 +345,18 @@ class Blockchain(util.PrintError):
         bnNew = PastDifficultyAverage
         nTargetTimespan = CountBlocks * 90
 
-        nActualTimespan = max(nActualTimespan, nTargetTimespan/3)
+        nActualTimespan = max(nActualTimespan, nTargetTimespan//3)
         nActualTimespan = min(nActualTimespan, nTargetTimespan*3)
 
         # retarget
         bnNew *= nActualTimespan
-        bnNew /= nTargetTimespan
+        bnNew //= nTargetTimespan
         bnNew = min(bnNew, MAX_TARGET)
 
         new_bits = self.target_to_bits(bnNew)
         return new_bits, bnNew
 
     def get_target(self, height, chain=None):
-        print (height)
         if bitcoin.TESTNET:
             return 0, 0
         if height <= 1055:
