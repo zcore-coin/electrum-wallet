@@ -973,10 +973,10 @@ class Network(util.DaemonThread):
                     open(filename, 'wb+').close()
                     break
                 try:
-                    import urllib, socket
+                    import urllib.request, socket
                     socket.setdefaulttimeout(30)
                     self.print_error("downloading ", url)
-                    urllib.urlretrieve(url, filename + '.tmp')
+                    urllib.request.urlretrieve(url, filename + '.tmp')
                     os.rename(filename + '.tmp', filename)
                     self.print_error("done.")
                     break
