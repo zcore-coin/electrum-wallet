@@ -2,7 +2,7 @@
 
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
-BRANCH=master
+BRANCH=python3
 NAME_ROOT=electrum-mona
 
 if [ "$#" -gt 0 ]; then
@@ -11,7 +11,7 @@ fi
 
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
-export PYTHONHASHSEED=22
+#export PYTHONHASHSEED=22
 
 
 PYHOME=c:/python34

@@ -13,7 +13,7 @@ LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/arch
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
-export WINEARCH='win32'
+#export WINEARCH='win32'
 
 PYHOME=c:/python34
 PYTHON="wine $PYHOME/python.exe -OO -B"
