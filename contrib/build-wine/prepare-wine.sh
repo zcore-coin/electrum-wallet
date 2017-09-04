@@ -1,16 +1,19 @@
 #!/bin/bash
 
 # Please update these links carefully, some versions won't work under Wine
-PYTHON_URL=https://www.python.org/ftp/python/3.4.4/python-3.4.4.amd64.msi
-PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win-amd64-py3.4.exe
-PYQT4_URL=https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.11.4/PyQt4-4.11.4-gpl-Py3.4-Qt4.8.7-x64.exe
+#PYTHON_URL=https://www.python.org/ftp/python/3.4.4/python-3.4.4.amd64.msi
+PYTHON_URL=https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi
+#PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win-amd64-py3.4.exe
+PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win32-py3.4.exe
+#PYQT4_URL=https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.11.4/PyQt4-4.11.4-gpl-Py3.4-Qt4.8.7-x64.exe
+PYQT4_URL=https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.11.4/PyQt4-4.11.4-gpl-Py3.4-Qt4.8.7-x32.exe
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-2.46-setup.exe?download
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
 
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
-#export WINEARCH='win32'
+export WINEARCH='win32'
 
 PYHOME=c:/python34
 PYTHON="wine $PYHOME/python.exe -OO -B"
@@ -99,6 +102,6 @@ wine mingw-get install gcc
 wine mingw-get install mingw-utils
 wine mingw-get install mingw32-libz
 
-printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/Python27/Lib/distutils/distutils.cfg
+printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/Python34/Lib/distutils/distutils.cfg
 
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL

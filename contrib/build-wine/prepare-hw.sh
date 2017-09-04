@@ -9,7 +9,7 @@ BRANCH=master
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
 
-PYHOME=c:/python27
+PYHOME=c:/python34
 PYTHON="wine $PYHOME/python.exe "
 
 # Let's begin!
@@ -38,7 +38,7 @@ cd tmp
 $PYTHON -m pip install setuptools --upgrade
 $PYTHON -m pip install cython
 $PYTHON -m pip install trezor==0.7.16
-$PYTHON -m pip install keepkey
+#$PYTHON -m pip install keepkey
 $PYTHON -m pip install btchip-python
 
 #git clone https://github.com/trezor/cython-hidapi.git
