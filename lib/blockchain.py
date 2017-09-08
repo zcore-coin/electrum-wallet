@@ -149,7 +149,7 @@ class Blockchain(util.PrintError):
 
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
-        _hash = hash_header(header)
+        #_hash = hash_header(header)
         _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         height = header.get('block_height')
         if prev_hash != header.get('prev_block_hash'):
@@ -302,9 +302,11 @@ class Blockchain(util.PrintError):
         if chain is None:
             chain = {}
 
-        last = self.read_header(height - 1)
+        #last = self.read_header(height - 1)
+        last = chain.get(height - 1)
         if last is None:
-            last = chain.get(height - 1)
+            #last = chain.get(height - 1)
+            last = self.read_header(height - 1)
 
         # params
         BlockLastSolved = last
@@ -338,9 +340,11 @@ class Blockchain(util.PrintError):
                 nActualTimespan += Diff
             LastBlockTime = BlockReading.get('timestamp')
 
-            BlockReading = self.read_header((height-1) - CountBlocks)
+            #BlockReading = self.read_header((height-1) - CountBlocks)
+            BlockReading = chain.get((height-1) - CountBlocks)
             if BlockReading is None:
-                BlockReading = chain.get((height-1) - CountBlocks)
+                #BlockReading = chain.get((height-1) - CountBlocks)
+                BlockReading = self.read_header((height-1) - CountBlocks)
 
         bnNew = PastDifficultyAverage
         nTargetTimespan = CountBlocks * 90
