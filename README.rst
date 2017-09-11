@@ -4,9 +4,10 @@ Electrum-mona - Lightweight Monacoin client
 ::
 
   Licence: MIT Licence
-  Author: Thomas Voegtlin
+  Origin Author: Thomas Voegtlin
+  Port Maintainer: WakiyamaP
   Language: Python
-  Homepage: https://github.com/wakiyamap/electrum-mona/
+  Homepage: https://electrum-mona.org/
 
 
 .. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
@@ -30,7 +31,7 @@ Electrum-mona from its root directory, without installing it on your
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum-mona from its root directory, just do::
 
-    ./electrum
+    ./electrum-mona
 
 You can also install Electrum-mona on your system, by running this command::
 
@@ -55,7 +56,7 @@ Check out the code from Github::
 
 Need lyra2rev2_hash::
 
-    pip install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
+    pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
 
 Run install (this should install dependencies)::
 
