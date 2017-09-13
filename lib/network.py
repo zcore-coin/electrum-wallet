@@ -1,3 +1,4 @@
+
 # Electrum - Lightweight Bitcoin Client
 # Copyright (c) 2011-2016 Thomas Voegtlin
 #
@@ -35,7 +36,6 @@ import select
 import traceback
 from collections import defaultdict, deque
 import threading
-
 import socket
 import json
 
@@ -49,41 +49,6 @@ from .version import ELECTRUM_VERSION, PROTOCOL_VERSION
 
 DEFAULT_PORTS = {'t':'50001', 's':'50002'}
 
-#There is a schedule to move the default list to e-x (electrumx) by Jan 2018
-#Schedule is as follows:
-#move ~3/4 to e-x by 1.4.17
-#then gradually switch remaining nodes to e-x nodes
-
-DEFAULT_SERVERS = {
-    # http://askmona.org/5288
-    # https://mstdn.monappy.jp/@WakiyamaP/521192
-    'electrumx.tamami-foundation.org':DEFAULT_PORTS,
-
-    # https://mstdn.monappy.jp/@WakiyamaP/690841
-    'electrumx2.tamami-foundation.org':DEFAULT_PORTS,
-
-    'mona-cce-1.coinomi.net': {'t':'5022'},
-    'mona-cce-2.coinomi.net': {'t':'5022'},
-}
-
-def set_testnet():
-    global DEFAULT_PORTS, DEFAULT_SERVERS
-    DEFAULT_PORTS = {'t':'51001', 's':'51002'}
-    DEFAULT_SERVERS = {
-        'testnetnode.arihanc.com': DEFAULT_PORTS,
-        'testnet1.bauerj.eu': DEFAULT_PORTS,
-        '14.3.140.101': DEFAULT_PORTS,
-        'testnet.hsmiths.com': {'t':'53011', 's':'53012'},
-        'electrum.akinbo.org': DEFAULT_PORTS,
-        'ELEX05.blackpole.online': {'t':'52011', 's':'52002'},
-    }
-
-def set_nolnet():
-    global DEFAULT_PORTS, DEFAULT_SERVERS
-    DEFAULT_PORTS = {'t':'52001', 's':'52002'}
-    DEFAULT_SERVERS = {
-        '14.3.140.101': DEFAULT_PORTS,
-    }
 
 NODES_RETRY_INTERVAL = 60
 SERVER_RETRY_INTERVAL = 10
@@ -245,6 +210,7 @@ class Network(util.DaemonThread):
 
         # subscriptions and requests
         self.subscribed_addresses = set()
+        self.h2addr = {}
         # Requests from client we've not seen a response to
         self.unanswered_requests = {}
         # retry times
@@ -353,8 +319,8 @@ class Network(util.DaemonThread):
         for i in bitcoin.FEE_TARGETS:
             self.queue_request('blockchain.estimatefee', [i])
         self.queue_request('blockchain.relayfee', [])
-        for addr in self.subscribed_addresses:
-            self.queue_request('blockchain.address.subscribe', [addr])
+        for h in self.subscribed_addresses:
+            self.queue_request('blockchain.scripthash.subscribe', [h])
 
     def get_status_value(self, key):
         if key == 'status':
@@ -390,11 +356,10 @@ class Network(util.DaemonThread):
         return list(self.interfaces.keys())
 
     def get_servers(self):
+        out = DEFAULT_SERVERS
         if self.irc_servers:
-            out = self.irc_servers.copy()
-            out.update(DEFAULT_SERVERS)
+            out.update(filter_version(self.irc_servers.copy()))
         else:
-            out = DEFAULT_SERVERS
             for s in self.recent_servers:
                 try:
                     host, port, protocol = deserialize_server(s)
@@ -499,7 +464,8 @@ class Network(util.DaemonThread):
         '''Switch to a random connected server other than the current one'''
         servers = self.get_interfaces()    # Those in connected state
         if self.default_server in servers:
-            servers.remove(self.default_server)
+            servers.remov
+            e(self.default_server)
         if servers:
             self.switch_to_interface(random.choice(servers))
 
@@ -566,7 +532,7 @@ class Network(util.DaemonThread):
                 self.on_notify_header(interface, result)
         elif method == 'server.peers.subscribe':
             if error is None:
-                self.irc_servers = filter_version(parse_servers(result))
+                self.irc_servers = parse_servers(result)
                 self.notify('servers')
         elif method == 'server.banner':
             if error is None:
@@ -621,7 +587,7 @@ class Network(util.DaemonThread):
                 response['params'] = params
                 # Only once we've received a response to an addr subscription
                 # add it to the list; avoids double-sends on reconnection
-                if method == 'blockchain.address.subscribe':
+                if method == 'blockchain.scripthash.subscribe':
                     self.subscribed_addresses.add(params[0])
             else:
                 if not response:  # Closed remotely / misbehaving
@@ -634,7 +600,7 @@ class Network(util.DaemonThread):
                 if method == 'blockchain.headers.subscribe':
                     response['result'] = params[0]
                     response['params'] = []
-                elif method == 'blockchain.address.subscribe':
+                elif method == 'blockchain.scripthash.subscribe':
                     response['params'] = [params[0]]  # addr
                     response['result'] = params[1]
                 callbacks = self.subscriptions.get(k, [])
@@ -645,12 +611,28 @@ class Network(util.DaemonThread):
             # Response is now in canonical form
             self.process_response(interface, response, callbacks)
 
+    def addr_to_scripthash(self, addr):
+        h = bitcoin.address_to_scripthash(addr)
+        if h not in self.h2addr:
+            self.h2addr[h] = addr
+        return h
+
+    def overload_cb(self, callback):
+        def cb2(x):
+            p = x.pop('params')
+            addr = self.h2addr[p[0]]
+            x['params'] = [addr]
+            callback(x)
+        return cb2
+
     def subscribe_to_addresses(self, addresses, callback):
-        msgs = [('blockchain.address.subscribe', [x]) for x in addresses]
-        self.send(msgs, callback)
+        hashes = [self.addr_to_scripthash(addr) for addr in addresses]
+        msgs = [('blockchain.scripthash.subscribe', [x]) for x in hashes]
+        self.send(msgs, self.overload_cb(callback))
 
     def request_address_history(self, address, callback):
-        self.send([('blockchain.address.get_history', [address])], callback)
+        h = self.addr_to_scripthash(address)
+        self.send([('blockchain.scripthash.get_history', [h])], self.overload_cb(callback))
 
     def send(self, messages, callback):
         '''Messages is a list of (method, params) tuples'''
@@ -909,16 +891,6 @@ class Network(util.DaemonThread):
                 self.switch_lagging_interface()
                 self.notify('updated')
 
-        elif interface.mode == 'default':
-            if not ok:
-                interface.print_error("default: cannot connect %d"% height)
-                interface.mode = 'backward'
-                interface.bad = height
-                interface.bad_header = header
-                next_height = height - 1
-            else:
-                interface.print_error("we are ok", height, interface.request)
-                next_height = None
         else:
             raise BaseException(interface.mode)
         # If not finished, get the next header

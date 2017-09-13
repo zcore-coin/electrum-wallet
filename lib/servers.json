@@ -1,0 +1,14 @@
+{
+    "electrumx.tamami-foundation.org": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "electrumx2.tamami-foundation.org": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    }
+}
