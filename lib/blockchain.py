@@ -32,7 +32,7 @@ try:
 except ImportError as e:
     exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
-MAX_TARGET = 0xff9f1c0116d1a000000000000000000000000000000000000000000000000000
+MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
@@ -149,7 +149,6 @@ class Blockchain(util.PrintError):
 
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
-        #_hash = hash_header(header)
         _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         height = header.get('block_height')
         if prev_hash != header.get('prev_block_hash'):
@@ -159,7 +158,9 @@ class Blockchain(util.PrintError):
         if height < 450000 and height > 1055 and height % 50000 != 0 :
             return
         if bits != header.get('bits'):
-            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))        
+            raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        if height < 450000 :
+            return
         if int('0x' + _powhash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 

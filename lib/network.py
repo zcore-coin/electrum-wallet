@@ -194,7 +194,9 @@ class Network(util.DaemonThread):
     servers, each connected socket is handled by an Interface() object.
     Connections are initiated by a Connection() thread which stops once
     the connection succeeds or fails.
+
     Our external API:
+
     - Member functions get_header(), get_interfaces(), get_local_height(),
           get_parameters(), get_server_height(), get_status_value(),
           is_connected(), set_parameters(), stop()
