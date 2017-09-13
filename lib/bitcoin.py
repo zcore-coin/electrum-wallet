@@ -43,7 +43,6 @@ TESTNET = False
 NOLNET = False
 ADDRTYPE_P2PKH = 50
 ADDRTYPE_P2SH = 55
-ADDRTYPE_P2SH_ALT = 5
 SEGWIT_HRP = "mona"
 XPRV_HEADER = 0x0488ade4
 XPUB_HEADER = 0x0488b21e
@@ -56,7 +55,7 @@ HEADERS_URL_3rd = "https://sound.sighash.info/blockchain_headers" #thanks ohac!!
 GENESIS = "ff9f1c0116d19de7c9963845e129f9ed1bfc0b376eb54fd7afa42e0d418c8bb6"
 
 def set_testnet():
-    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT
+    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH
     global XPRV_HEADER, XPUB_HEADER
     global TESTNET, HEADERS_URL
     global GENESIS
@@ -64,7 +63,6 @@ def set_testnet():
     TESTNET = True
     ADDRTYPE_P2PKH = 111
     ADDRTYPE_P2SH = 117
-    ADDRTYPE_P2SH_ALT = 196
     SEGWIT_HRP = "tmona"
     XPRV_HEADER = 0x04358394
     XPUB_HEADER = 0x043587cf
@@ -336,7 +334,7 @@ def address_to_script(addr):
         script = '76a9'                                      # op_dup, op_hash_160
         script += push_script(bh2u(hash_160))
         script += '88ac'                                     # op_equalverify, op_checksig
-    elif addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
+    elif addrtype == ADDRTYPE_P2SH:
         script = 'a9'                                        # op_hash_160
         script += push_script(bh2u(hash_160))
         script += '87'                                       # op_equal
@@ -498,7 +496,7 @@ def is_b58_address(addr):
         addrtype, h = b58_address_to_hash160(addr)
     except Exception as e:
         return False
-    if addrtype not in [ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
+    if addrtype not in [ADDRTYPE_P2PKH, ADDRTYPE_P2SH]:
         return False
     return addr == hash160_to_b58_address(h, addrtype)
 
@@ -514,7 +512,7 @@ def is_p2pkh(addr):
 def is_p2sh(addr):
     if is_address(addr):
         addrtype, h = b58_address_to_hash160(addr)
-        return addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]
+        return addrtype == ADDRTYPE_P2SH
 
 def is_private_key(key):
     try:
