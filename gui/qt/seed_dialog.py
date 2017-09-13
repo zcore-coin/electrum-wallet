@@ -22,13 +22,18 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
+import six
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from electrum_mona.i18n import _
 
-from util import *
-from qrtextedit import ShowQRTextEdit, ScanQRTextEdit
+from .util import *
+from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
 
 
 def seed_warning_msg(seed):
@@ -45,7 +50,6 @@ def seed_warning_msg(seed):
         "<li>" + _("Do not store it electronically.") + "</li>",
         "</ul>"
     ]) % len(seed.split())
-
 
 
 class SeedLayout(QVBoxLayout):
@@ -67,12 +71,11 @@ class SeedLayout(QVBoxLayout):
                 self.is_bip39 = b
                 if b:
                     msg = ' '.join([
-                        '<b>' + _('Warning') + ': BIP39 seeds are dangerous!' + '</b><br/><br/>',
-                        _('BIP39 seeds can be imported in Electrum-mona so that users can access funds locked in other wallets.'),
-                        _('However, BIP39 seeds do not include a version number, which compromises compatibility with future wallet software.'),
-                        '<br/><br/>',
-                        _('We do not guarantee that BIP39 imports will always be supported in Electrum-mona.'),
-                        _('In addition, Electrum-mona does not verify the checksum of BIP39 seeds; make sure you type your seed correctly.'),
+                        '<b>' + _('Warning') + ':</b>  ',
+                        _('BIP39 seeds can be imported in Electrum, so that users can access funds locked in other wallets.'),
+                        _('However, we do not generate BIP39 seeds, because they do not meet our safety standard.'),
+                        _('BIP39 seeds do not include a version number, which compromises compatibility with future software.'),
+                        _('We do not guarantee that BIP39 imports will always be supported in Electrum.'),
                     ])
                 else:
                     msg = ''
@@ -86,7 +89,6 @@ class SeedLayout(QVBoxLayout):
             return None
         self.is_ext = cb_ext.isChecked() if 'ext' in self.options else False
         self.is_bip39 = cb_bip39.isChecked() if 'bip39' in self.options else False
-
 
     def __init__(self, seed=None, title=None, icon=True, msg=None, options=None, is_seed=None, passphrase=None, parent=None):
         QVBoxLayout.__init__(self)
@@ -135,7 +137,7 @@ class SeedLayout(QVBoxLayout):
         self.addWidget(self.seed_warning)
 
     def get_seed(self):
-        text = unicode(self.seed_e.text())
+        text = self.seed_e.text()
         return ' '.join(text.split())
 
     def on_edit(self):
@@ -154,7 +156,6 @@ class SeedLayout(QVBoxLayout):
         self.parent.next_button.setEnabled(b)
 
 
-
 class KeysLayout(QVBoxLayout):
     def __init__(self, parent=None, title=None, is_valid=None):
         QVBoxLayout.__init__(self)
@@ -166,7 +167,7 @@ class KeysLayout(QVBoxLayout):
         self.addWidget(self.text_e)
 
     def get_text(self):
-        return unicode(self.text_e.text())
+        return self.text_e.text()
 
     def on_edit(self):
         b = self.is_valid(self.get_text())

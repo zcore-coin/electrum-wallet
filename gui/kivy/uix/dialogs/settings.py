@@ -10,7 +10,7 @@ from electrum_mona.plugins import run_hook
 from electrum_mona import coinchooser
 from electrum_mona.util import fee_levels
 
-from choice_dialog import ChoiceDialog
+from .choice_dialog import ChoiceDialog
 
 Builder.load_string('''
 #:import partial functools.partial
