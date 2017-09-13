@@ -336,7 +336,7 @@ def address_to_script(addr):
         script = '76a9'                                      # op_dup, op_hash_160
         script += push_script(bh2u(hash_160))
         script += '88ac'                                     # op_equalverify, op_checksig
-    elif addrtype == ADDRTYPE_P2SH:
+    elif addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
         script = 'a9'                                        # op_hash_160
         script += push_script(bh2u(hash_160))
         script += '87'                                       # op_equal
