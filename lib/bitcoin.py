@@ -44,7 +44,6 @@ NOLNET = False
 ADDRTYPE_P2PKH = 50
 ADDRTYPE_P2SH = 55
 ADDRTYPE_P2SH_ALT = 5
-ADDRTYPE_P2WPKH = 176
 SEGWIT_HRP = "mona"
 XPRV_HEADER = 0x0488ade4
 XPUB_HEADER = 0x0488b21e
@@ -57,7 +56,7 @@ HEADERS_URL_3rd = "https://sound.sighash.info/blockchain_headers" #thanks ohac!!
 GENESIS = "ff9f1c0116d19de7c9963845e129f9ed1bfc0b376eb54fd7afa42e0d418c8bb6"
 
 def set_testnet():
-    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT, ADDRTYPE_P2WPKH
+    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT
     global XPRV_HEADER, XPUB_HEADER
     global TESTNET, HEADERS_URL
     global GENESIS
@@ -66,7 +65,6 @@ def set_testnet():
     ADDRTYPE_P2PKH = 111
     ADDRTYPE_P2SH = 117
     ADDRTYPE_P2SH_ALT = 196
-    ADDRTYPE_P2WPKH = 3
     SEGWIT_HRP = "tmona"
     XPRV_HEADER = 0x04358394
     XPUB_HEADER = 0x043587cf
@@ -82,7 +80,6 @@ def set_nolnet():
     TESTNET = True
     ADDRTYPE_P2PKH = 50
     ADDRTYPE_P2SH = 5
-    ADDRTYPE_P2WPKH = 6
     XPRV_HEADER = 0x019d9cfe
     XPUB_HEADER = 0x019da462
     HEADERS_URL = "https://example.com/nolnet_headers" # TODO
