@@ -47,8 +47,6 @@ from .interface import Connection, Interface
 from . import blockchain
 from .version import ELECTRUM_VERSION, PROTOCOL_VERSION
 
-DEFAULT_PORTS = {'t':'50001', 's':'50002'}
-
 
 NODES_RETRY_INTERVAL = 60
 SERVER_RETRY_INTERVAL = 10
