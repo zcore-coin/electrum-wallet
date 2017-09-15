@@ -9,7 +9,7 @@ from electrum_mona.util import bfh, bh2u
 from electrum_mona.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
                               public_key_to_p2pkh, EncodeBase58Check,
                               TYPE_ADDRESS, TYPE_SCRIPT,
-                              TESTNET, ADDRTYPE_P2PKH, ADDRTYPE_P2SH)
+                              TESTNET, ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT)
 from electrum_mona.i18n import _
 from electrum_mona.plugins import BasePlugin, hook
 from electrum_mona.transaction import deserialize, Transaction
@@ -368,7 +368,7 @@ class TrezorCompatiblePlugin(HW_PluginBase):
                     addrtype, hash_160 = b58_address_to_hash160(address)
                     if addrtype == ADDRTYPE_P2PKH:
                         txoutputtype.script_type = self.types.PAYTOADDRESS
-                    elif addrtype == ADDRTYPE_P2SH:
+                    elif addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
                         txoutputtype.script_type = self.types.PAYTOSCRIPTHASH
                     else:
                         raise BaseException('addrtype')

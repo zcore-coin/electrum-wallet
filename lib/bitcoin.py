@@ -68,6 +68,7 @@ TESTNET = False
 NOLNET = False
 ADDRTYPE_P2PKH = 50
 ADDRTYPE_P2SH = 55
+ADDRTYPE_P2SH_ALT = 5
 SEGWIT_HRP = "mona"
 XPRV_HEADER = 0x0488ade4
 XPUB_HEADER = 0x0488b21e
@@ -82,17 +83,18 @@ DEFAULT_PORTS = {'t':'50001', 's':'50002'}
 DEFAULT_SERVERS = read_json_dict('servers.json')
 
 def set_testnet():
-    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH
+    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT
     global TESTNET, HEADERS_URL
     global GENESIS
     global SEGWIT_HRP
     global DEFAULT_PORTS, SERVERLIST, DEFAULT_SERVERS
     TESTNET = True
     ADDRTYPE_P2PKH = 111
-    ADDRTYPE_P2SH = 196
+    ADDRTYPE_P2SH = 117
+    ADDRTYPE_P2SH_ALT = 196
     SEGWIT_HRP = "tmona"
-    HEADERS_URL = "https://headers.electrum.org/testnet_headers"
-    GENESIS = "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"
+    HEADERS_URL = "https://headers.example.org/testnet_headers"
+    GENESIS = "a2b106ceba3be0c6d097b2a6a6aacf9d638ba8258ae478158f449c321061e0b2"
     SERVERLIST = 'servers_testnet.json'
     DEFAULT_PORTS = {'t':'51001', 's':'51002'}
     DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
@@ -352,7 +354,7 @@ def address_to_script(addr):
         script = '76a9'                                      # op_dup, op_hash_160
         script += push_script(bh2u(hash_160))
         script += '88ac'                                     # op_equalverify, op_checksig
-    elif addrtype == ADDRTYPE_P2SH:
+    elif addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
         script = 'a9'                                        # op_hash_160
         script += push_script(bh2u(hash_160))
         script += '87'                                       # op_equal
@@ -514,7 +516,7 @@ def is_b58_address(addr):
         addrtype, h = b58_address_to_hash160(addr)
     except Exception as e:
         return False
-    if addrtype not in [ADDRTYPE_P2PKH, ADDRTYPE_P2SH]:
+    if addrtype not in [ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
         return False
     return addr == hash160_to_b58_address(h, addrtype)
 
@@ -530,7 +532,7 @@ def is_p2pkh(addr):
 def is_p2sh(addr):
     if is_address(addr):
         addrtype, h = b58_address_to_hash160(addr)
-        return addrtype == ADDRTYPE_P2SH
+        return addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]
 
 def is_private_key(key):
     try:
