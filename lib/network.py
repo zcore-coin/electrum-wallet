@@ -939,6 +939,7 @@ class Network(util.DaemonThread):
             return
         filename = b.path()
         def download_thread():
+            import requests
             urls = [bitcoin.HEADERS_URL_1st, bitcoin.HEADERS_URL_2nd, bitcoin.HEADERS_URL_3rd, None]
             for url in urls:
                 if url is None:
@@ -946,11 +947,14 @@ class Network(util.DaemonThread):
                     open(filename, 'wb+').close()
                     break
                 try:
-                    import urllib.request, socket
-                    socket.setdefaulttimeout(30)
                     self.print_error("downloading ", url)
-                    urllib.request.urlretrieve(url, filename + '.tmp')
-                    os.rename(filename + '.tmp', filename)
+                    response = requests.get(url, timeout=5.0)
+                    if response.status_code != 200: raise
+                    with open(filename, 'wb+') as fout: fout.write(response.content)
+                    #import urllib.request, socket
+                    #socket.setdefaulttimeout(30)
+                    #urllib.request.urlretrieve(url, filename + '.tmp')
+                    #os.rename(filename + '.tmp', filename)
                     self.print_error("done.")
                     break
                 except Exception:
