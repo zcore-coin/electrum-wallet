@@ -38,7 +38,7 @@ if sys.platform == 'darwin':
                                  packages=['lib', 'gui', 'plugins'],
                                  iconfile='electrum.icns',
                                  plist=plist,
-                                 resources=['icons', 'cacert.pem'])),
+                                 resources=['icons', 'packages/certifi/cacert.pem'])),
     )
 elif sys.platform == 'win32':
     extra_options = dict(
