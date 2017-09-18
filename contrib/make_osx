@@ -2,6 +2,7 @@
 rm -rf dist
 VERSION=`git describe --tags`
 python3 setup-release.py py2app
+sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/requests/utils.py
 sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/paymentrequest.py
 sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/interface.py
 sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/x509.py
