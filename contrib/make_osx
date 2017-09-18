@@ -2,10 +2,10 @@
 rm -rf dist
 VERSION=`git describe --tags`
 python3 setup-release.py py2app
-cp -f packages/certifi/certifi/cacert.pem dist/Electrum-mona.app/Contents/Resources/lib/python3.6/
+cp -f packages/certifi/cacert.pem dist/Electrum-mona.app/Contents/Resources/lib/python3.6/
 chmod 755 dist/Electrum-mona.app/Contents/Resources/lib/python3.6/cacert.pem
-sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../cacert.pem'))")/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/paymentrequest.py
-sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../cacert.pem'))")/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/interface.py
-sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../cacert.pem'))")/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/x509.py
+sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/paymentrequest.py
+sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/interface.py
+sed -i.bak "s/requests.certs.where()/os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../cacert.pem'))/g" dist/Electrum-mona.app/Contents/Resources/lib/python3.6/lib/x509.py
 hdiutil create -fs HFS+ -volname "Electrum-MONA" -srcfolder dist/Electrum-MONA.app dist/electrum-mona-$VERSION.dmg
 
