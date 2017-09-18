@@ -2,11 +2,11 @@
 
 # Please update these links carefully, some versions won't work under Wine
 #PYTHON_URL=https://www.python.org/ftp/python/3.4.4/python-3.4.4.amd64.msi
-PYTHON_URL=https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi
+PYTHON_URL=https://www.python.org/ftp/python/3.6.2/python-3.6.2.exe
 #PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win-amd64-py3.4.exe
-PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win32-py3.4.exe
+PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win32-py3.6.exe
 #PYQT4_URL=https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.11.4/PyQt4-4.11.4-gpl-Py3.4-Qt4.8.7-x64.exe
-PYQT4_URL=https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.11.4/PyQt4-4.11.4-gpl-Py3.4-Qt4.8.7-x32.exe
+PYQT4_URL=http://www.lfd.uci.edu/~gohlke/pythonlibs/hkfh9m5o/PyQt4-4.11.4-cp36-cp36m-win32.whl
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-2.46-setup.exe?download
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
 
@@ -45,8 +45,8 @@ wget -O pywin32.exe "$PYWIN32_URL"
 wine pywin32.exe
 
 # Install PyQt4
-wget -O PyQt.exe "$PYQT4_URL"
-wine PyQt.exe
+wget "$PYQT4_URL"
+$PYTHON -m pip install PyQt4-4.11.4-cp36-cp36m-win32.whl
 
 # upgrade pip
 $PYTHON -m pip install pip --upgrade
