@@ -111,7 +111,6 @@ class Zaif(ExchangeBase):
         json = self.get_json('api.zaif.jp', '/api/1/last_price/mona_jpy')
         return {'JPY': Decimal(json['last_price'])}
 
-
 def dictinvert(d):
     inv = {}
     for k, vlist in d.items():
