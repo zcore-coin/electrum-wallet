@@ -9,6 +9,7 @@ PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/p
 PYQT4_URL=http://www.lfd.uci.edu/~gohlke/pythonlibs/hkfh9m5o/PyQt4-4.11.4-cp36-cp36m-win32.whl
 PYINSTALLER_URL=https://github.com/pyinstaller/pyinstaller/archive/develop.zip
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-2.46-setup.exe?download
+VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
 
 
@@ -87,9 +88,8 @@ wine nsis.exe
 #cp upx*/upx.exe .
 
 # add dlls needed for pyinstaller:
-cp $WINEPREFIX/drive_c/windows/system32/msvcp90.dll $WINEPREFIX/drive_c/Python36/
-cp $WINEPREFIX/drive_c/windows/system32/msvcm90.dll $WINEPREFIX/drive_c/Python36/
-
+#cp $WINEPREFIX/drive_c/windows/system32/msvcp90.dll $WINEPREFIX/drive_c/Python36/
+#cp $WINEPREFIX/drive_c/windows/system32/msvcm90.dll $WINEPREFIX/drive_c/Python36/
 
 # Install MinGW
 wget http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-setup.exe
@@ -104,6 +104,10 @@ wine mingw-get install mingw-utils
 wine mingw-get install mingw32-libz
 
 printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/Python36/Lib/distutils/distutils.cfg
+
+# Install VC2015++
+wget -O vc_redist.x86.exe "$VC2015_URL"
+wine vc_redist.x86.exe /quiet
 
 # build msvcr140.dll
 cp ../msvcr140.patch $WINEPREFIX/drive_c/Python36/Lib/distutils

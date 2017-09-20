@@ -31,8 +31,9 @@ a = Analysis([home+'electrum-mona',
               #home+'packages/requests/utils.py'
               ],
              datas = [
-                 (home+'lib/currencies.json', 'electrum'),
-                 (home+'lib/wordlist/english.txt', 'electrum/wordlist'),
+                 (home+'lib/currencies.json', 'electrum_mona'),
+                 (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
+                 (home+'lib/locale', 'electrum_mona/locale'),
                  #(home+'packages/requests/cacert.pem', 'requests/cacert.pem')
              ],
              #pathex=[home+'lib', home+'gui', home+'plugins'],
