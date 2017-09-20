@@ -14,7 +14,7 @@ export WINEPREFIX=/opt/wine64
 #export PYTHONHASHSEED=22
 
 
-PYHOME=c:/python34
+PYHOME=c:/python36
 PYTHON="wine $PYHOME/python.exe -OO -B"
 
 
@@ -51,7 +51,7 @@ cp electrum-mona-git/LICENCE .
 cp -r ../../../lib/locale $WINEPREFIX/drive_c/electrum-mona/lib/
 
 # Build Qt resources
-wine $WINEPREFIX/drive_c/Python34/Lib/site-packages/PyQt4/pyrcc4.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py -py3
+wine $WINEPREFIX/drive_c/Python36/Lib/site-packages/PyQt4/pyrcc4.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py -py3
 
 
 pushd $WINEPREFIX/drive_c/electrum-mona
@@ -64,7 +64,7 @@ cd ..
 rm -rf dist/
 
 # build standalone version
-wine "C:/python34/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION.exe -w deterministic.spec 
+wine "C:/python36/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION.exe -w deterministic.spec 
 
 # build NSIS installer
 # $VERSION could be passed to the electrum.nsi script, but this would require some rewriting in the script iself.
@@ -79,6 +79,6 @@ cp portable.patch $WINEPREFIX/drive_c/electrum-mona
 pushd $WINEPREFIX/drive_c/electrum-mona
 patch < portable.patch 
 popd
-wine "C:/python34/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
+wine "C:/python36/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
 
 echo "Done."
