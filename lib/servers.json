@@ -10,15 +10,5 @@
         "s": "50002",
         "t": "50001",
         "version": "1.1"
-    },
-    "electrumx1.movsign.info": {
-        "pruning": "-",
-        "t": "50001",
-        "version": "1.1"
-    },
-    "electrumx2.movsign.info": {
-        "pruning": "-",
-        "t": "50001",
-        "version": "1.1"
     }
 }
