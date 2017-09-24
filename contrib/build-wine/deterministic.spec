@@ -32,6 +32,7 @@ a = Analysis([home+'electrum-mona',
               ],
              datas = [
                  (home+'lib/currencies.json', 'electrum_mona'),
+                 (home+'lib/servers.json', 'electrum_mona'),
                  (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
                  (home+'lib/locale', 'electrum_mona/locale'),
                  #(home+'packages/requests/cacert.pem', 'requests/cacert.pem')

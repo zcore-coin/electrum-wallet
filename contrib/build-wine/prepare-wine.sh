@@ -1,23 +1,19 @@
 #!/bin/bash
 
 # Please update these links carefully, some versions won't work under Wine
-#PYTHON_URL=https://www.python.org/ftp/python/3.4.4/python-3.4.4.amd64.msi
 PYTHON_URL=https://www.python.org/ftp/python/3.6.2/python-3.6.2.exe
-#PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win-amd64-py3.4.exe
 PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win32-py3.6.exe
-#PYQT4_URL=https://sourceforge.net/projects/pyqt/files/PyQt4/PyQt-4.11.4/PyQt4-4.11.4-gpl-Py3.4-Qt4.8.7-x64.exe
-PYQT4_URL=http://www.lfd.uci.edu/~gohlke/pythonlibs/hkfh9m5o/PyQt4-4.11.4-cp36-cp36m-win32.whl
 PYINSTALLER_URL=https://github.com/pyinstaller/pyinstaller/archive/develop.zip
-NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-2.46-setup.exe?download
+NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
-
+PYTHON_VERSION=3.6.2
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
 #export WINEARCH='win32'
 
-PYHOME=c:/python36
+PYHOME=c:/python$PYTHON_VERSION
 PYTHON="wine $PYHOME/python.exe -OO -B"
 
 # Let's begin!
@@ -39,19 +35,17 @@ echo "done"
 cd tmp
 
 # Install Python
-wget -O python-3.6.2.exe "$PYTHON_URL"
-wine python-3.6.2.exe /quiet TargetDir=C:\Python36 PrependPath=1
-
-# Install PyWin32
-wget -O pywin32.exe "$PYWIN32_URL"
-wine pywin32.exe
-
-# Install PyQt4
-wget --user-agent="Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)" -O PyQt4-4.11.4-cp36-cp36m-win32.whl "$PYQT4_URL"
-$PYTHON -m pip install PyQt4-4.11.4-cp36-cp36m-win32.whl
+wget -O python$PYTHON_VERSION.exe "$PYTHON_URL"
+wine python$PYTHON_VERSION.exe /quiet TargetDir=C:\Python$PYTHON_VERSION PrependPath=1
 
 # upgrade pip
 $PYTHON -m pip install pip --upgrade
+
+# Install PyWin32
+$PYTHON -m pip install pypiwin32
+
+# Install PyQt
+$PYTHON -m pip install PyQt5
 
 # Install pyinstaller
 $PYTHON -m pip install "$PYINSTALLER_URL"
@@ -88,8 +82,9 @@ wine nsis.exe
 #cp upx*/upx.exe .
 
 # add dlls needed for pyinstaller:
-#cp $WINEPREFIX/drive_c/windows/system32/msvcp90.dll $WINEPREFIX/drive_c/Python36/
-#cp $WINEPREFIX/drive_c/windows/system32/msvcm90.dll $WINEPREFIX/drive_c/Python36/
+cp $WINEPREFIX/drive_c/windows/system32/msvcp90.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/
+cp $WINEPREFIX/drive_c/windows/system32/msvcm90.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/
+cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $WINEPREFIX/drive_c/python$PYTHON_VERSION/
 
 # Install MinGW
 wget http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-setup.exe
@@ -103,21 +98,21 @@ wine mingw-get install gcc
 wine mingw-get install mingw-utils
 wine mingw-get install mingw32-libz
 
-printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/Python36/Lib/distutils/distutils.cfg
+printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/Python$PYTHON_VERSION/Lib/distutils/distutils.cfg
 
 # Install VC2015++
 wget -O vc_redist.x86.exe "$VC2015_URL"
 wine vc_redist.x86.exe /quiet
 
 # build msvcr140.dll
-cp ../msvcr140.patch $WINEPREFIX/drive_c/Python36/Lib/distutils
-pushd $WINEPREFIX/drive_c/Python36/Lib/distutils
+cp ../msvcr140.patch $WINEPREFIX/drive_c/Python$PYTHON_VERSION/Lib/distutils
+pushd $WINEPREFIX/drive_c/Python$PYTHON_VERSION/Lib/distutils
 patch < msvcr140.patch
 popd
 
 wine mingw-get install pexports
-wine pexports $WINEPREFIX/drive_c/Python36/vcruntime140.dll >vcruntime140.def
-wine dlltool -dllname $WINEPREFIX/drive_c/Python36/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
+wine pexports $WINEPREFIX/drive_c/Python$PYTHON_VERSION/vcruntime140.dll >vcruntime140.def
+wine dlltool -dllname $WINEPREFIX/drive_c/Python$PYTHON_VERSION/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
 cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
 
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL

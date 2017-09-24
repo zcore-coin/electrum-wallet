@@ -349,8 +349,8 @@ def address_to_script(addr):
     if witprog is not None:
         assert (0 <= witver <= 16)
         OP_n = witver + 0x50 if witver > 0 else 0
-        script = bytes([OP_n]).hex()
-        script += push_script(bytes(witprog).hex())
+        script = bh2u(bytes([OP_n]))
+        script += push_script(bh2u(bytes(witprog)))
         return script
     addrtype, hash_160 = b58_address_to_hash160(addr)
     if addrtype == ADDRTYPE_P2PKH:
@@ -368,7 +368,7 @@ def address_to_script(addr):
 def address_to_scripthash(addr):
     script = address_to_script(addr)
     h = sha256(bytes.fromhex(script))[0:32]
-    return bytes(reversed(h)).hex()
+    return bh2u(bytes(reversed(h)))
 
 def public_key_to_p2pk_script(pubkey):
     script = push_script(pubkey)
@@ -516,7 +516,7 @@ def address_from_private_key(sec):
 
 def is_segwit_address(addr):
     witver, witprog = segwit_addr.decode(SEGWIT_HRP, addr)
-    return witprog is not None and witver == 0
+    return witprog is not None
 
 def is_b58_address(addr):
     try:
@@ -983,9 +983,3 @@ def bip32_private_key(sequence, k, chain):
         k, chain = CKD_priv(k, chain, i)
     return SecretToASecret(k, True)
 
-
-def xkeys_from_seed(seed, passphrase, derivation):
-    from .mnemonic import Mnemonic
-    xprv, xpub = bip32_root(Mnemonic.mnemonic_to_seed(seed, passphrase), 0)
-    xprv, xpub = bip32_private_derivation(xprv, "m/", derivation)
-    return xprv, xpub
