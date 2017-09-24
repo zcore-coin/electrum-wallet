@@ -36,7 +36,7 @@ cd tmp
 
 # Install Python
 wget -O python$PYTHON_VERSION.exe "$PYTHON_URL"
-wine python$PYTHON_VERSION.exe /quiet TargetDir=C:\Python$PYTHON_VERSION PrependPath=1
+wine python$PYTHON_VERSION.exe /quiet TargetDir=C:\python$PYTHON_VERSION PrependPath=1
 
 # upgrade pip
 $PYTHON -m pip install pip --upgrade
@@ -98,21 +98,21 @@ wine mingw-get install gcc
 wine mingw-get install mingw-utils
 wine mingw-get install mingw32-libz
 
-printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/Python$PYTHON_VERSION/Lib/distutils/distutils.cfg
+printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils/distutils.cfg
 
 # Install VC2015++
 wget -O vc_redist.x86.exe "$VC2015_URL"
 wine vc_redist.x86.exe /quiet
 
 # build msvcr140.dll
-cp ../msvcr140.patch $WINEPREFIX/drive_c/Python$PYTHON_VERSION/Lib/distutils
-pushd $WINEPREFIX/drive_c/Python$PYTHON_VERSION/Lib/distutils
+cp ../msvcr140.patch $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils
+pushd $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils
 patch < msvcr140.patch
 popd
 
 wine mingw-get install pexports
-wine pexports $WINEPREFIX/drive_c/Python$PYTHON_VERSION/vcruntime140.dll >vcruntime140.def
-wine dlltool -dllname $WINEPREFIX/drive_c/Python$PYTHON_VERSION/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
+wine pexports $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll >vcruntime140.def
+wine dlltool -dllname $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
 cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
 
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL

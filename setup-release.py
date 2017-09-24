@@ -34,13 +34,8 @@ if sys.platform == 'darwin':
         setup_requires=['py2app'],
         app=[mainscript],
         options=dict(py2app=dict(argv_emulation=False,
-<<<<<<< HEAD
-                                 includes=['PyQt4.QtCore', 'PyQt4.QtGui', 'PyQt4.QtWebKit', 'PyQt4.QtNetwork', 'sip'],
-                                 packages=['lib', 'gui', 'plugins', 'requests'],
-=======
                                  includes=['PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWebKit', 'PyQt5.QtNetwork', 'sip'],
                                  packages=['lib', 'gui', 'plugins'],
->>>>>>> upstream/master
                                  iconfile='electrum.icns',
                                  plist=plist,
                                  resources=['icons', 'packages/certifi/cacert.pem'])),

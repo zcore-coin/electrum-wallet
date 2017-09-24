@@ -52,7 +52,7 @@ cp electrum-mona-git/LICENCE .
 cp -r ../../../lib/locale $WINEPREFIX/drive_c/electrum-mona/lib/
 
 # Build Qt resources
-wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum/icons.qrc -o C:/electrum/gui/qt/icons_rc.py
+wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py
 
 
 pushd $WINEPREFIX/drive_c/electrum-mona
