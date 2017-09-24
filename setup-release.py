@@ -35,7 +35,7 @@ if sys.platform == 'darwin':
         app=[mainscript],
         options=dict(py2app=dict(argv_emulation=False,
                                  includes=['PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWebKit', 'PyQt5.QtNetwork', 'sip'],
-                                 packages=['lib', 'gui', 'plugins'],
+                                 packages=['lib', 'gui', 'plugins', 'requests'],
                                  iconfile='electrum.icns',
                                  plist=plist,
                                  resources=['icons', 'packages/certifi/cacert.pem'])),
