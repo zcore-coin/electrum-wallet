@@ -2,8 +2,6 @@
 
 # Please update these links carefully, some versions won't work under Wine
 PYTHON_URL=https://www.python.org/ftp/python/3.6.2/python-3.6.2.exe
-PYWIN32_URL=https://sourceforge.net/projects/pywin32/files/pywin32/Build%20221/pywin32-221.win32-py3.6.exe
-PYINSTALLER_URL=https://github.com/pyinstaller/pyinstaller/archive/develop.zip
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
@@ -36,7 +34,7 @@ cd tmp
 
 # Install Python
 wget -O python$PYTHON_VERSION.exe "$PYTHON_URL"
-wine python$PYTHON_VERSION.exe /quiet TargetDir=C:\python$PYTHON_VERSION PrependPath=1
+wine python$PYTHON_VERSION.exe /quiet TargetDir=C:\python$PYTHON_VERSION
 
 # upgrade pip
 $PYTHON -m pip install pip --upgrade
@@ -48,7 +46,7 @@ $PYTHON -m pip install pypiwin32
 $PYTHON -m pip install PyQt5
 
 # Install pyinstaller
-$PYTHON -m pip install "$PYINSTALLER_URL"
+$PYTHON -m pip install pyinstaller==3.3
 
 # Install ZBar
 #wget -q -O zbar.exe "http://sourceforge.net/projects/zbar/files/zbar/0.10/zbar-0.10-setup.exe/download"
