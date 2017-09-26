@@ -4,6 +4,7 @@
 PYTHON_URL=https://www.python.org/ftp/python/3.6.2/python-3.6.2.exe
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
+WINETRICKS_MASTER_URL=https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
 PYTHON_VERSION=3.6.2
 
@@ -98,9 +99,11 @@ wine mingw-get install mingw32-libz
 
 printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils/distutils.cfg
 
-# Install VC2015++
-wget -O vc_redist.x86.exe "$VC2015_URL"
-wine vc_redist.x86.exe /quiet
+# Install VC++2015
+#wget -O vc_redist.x86.exe "$VC2015_URL"
+#wine vc_redist.x86.exe /quiet
+wget $WINETRICKS_MASTER_URL
+bash winetricks vcrun2015
 
 # build msvcr140.dll
 cp ../msvcr140.patch $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils
