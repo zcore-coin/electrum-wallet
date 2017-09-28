@@ -31,10 +31,18 @@ a = Analysis([home+'electrum-mona',
               #home+'packages/requests/utils.py'
               ],
              datas = [
+<<<<<<< HEAD
                  (home+'lib/currencies.json', 'electrum_mona'),
                  (home+'lib/servers.json', 'electrum_mona'),
                  (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
                  (home+'lib/locale', 'electrum_mona/locale'),
+=======
+                 (home+'lib/currencies.json', 'electrum'),
+                 (home+'lib/servers.json', 'electrum'),
+                 (home+'lib/wordlist/english.txt', 'electrum/wordlist'),
+                 (home+'lib/locale', 'electrum/locale'),
+                 (home+'plugins', 'electrum_plugins'),
+>>>>>>> upstream/master
                  #(home+'packages/requests/cacert.pem', 'requests/cacert.pem')
              ],
              #pathex=[home+'lib', home+'gui', home+'plugins'],
