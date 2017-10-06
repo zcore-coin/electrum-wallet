@@ -138,9 +138,11 @@ def aes_decrypt_with_iv(key, iv, data):
     if AES:
         cipher = AES.new(key, AES.MODE_CBC, iv)
         data = cipher.decrypt(data)
-        padlen = ord(data[-1])
+        #padlen = ord(data[-1])
+        padlen = data[-1]
         for i in data[-padlen:]:
-            if ord(i) != padlen:
+            #if ord(i) != padlen:
+            if i != padlen:
                 raise InvalidPassword()
         return data[0:-padlen]
     else:

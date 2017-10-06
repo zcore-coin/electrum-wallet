@@ -32,6 +32,11 @@ try:
 except ImportError as e:
     exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
+try:
+    import ltc_scrypt
+except ImportError as e:
+    exit("Please run 'sudo pip3 install https://github.com/wakiyamap/ltc-scrypt/archive/master.zip'")
+
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
 def serialize_header(res):
@@ -149,18 +154,17 @@ class Blockchain(util.PrintError):
 
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
-        _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         height = header.get('block_height')
+        if height < 450000 :
+            _powhash = rev_hex(bh2u(ltc_scrypt.getPoWHash(bfh(serialize_header(header)))))
+        else:
+            _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if bitcoin.TESTNET:
             return
-        #if height < 450000 and height >= 140000 and height % 50000 != 0 :
-            #return
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        if height < 450000 :
-            return
         if int('0x' + _powhash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 

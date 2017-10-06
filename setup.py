@@ -42,6 +42,7 @@ setup(
         'requests',
         'qrcode',
         'lyra2re2_hash',
+        'ltc_scrypt',
         'protobuf',
         'dnspython',
         'jsonrpclib-pelix',
