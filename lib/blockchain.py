@@ -155,8 +155,8 @@ class Blockchain(util.PrintError):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if bitcoin.TESTNET:
             return
-        if height < 450000 and height >= 140000 and height % 50000 != 0 :
-            return
+        #if height < 450000 and height >= 140000 and height % 50000 != 0 :
+            #return
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         if height < 450000 :
@@ -276,64 +276,6 @@ class Blockchain(util.PrintError):
         return sum([self.BIP9(h-i, 2) for i in range(N)])*10000/N/100.
 
 
-    def get_target_dgwv3(self, height, chain=None):
-        if chain is None:
-            chain = {}
-
-        last = chain.get(height - 1)
-        if last is None:
-            last = self.read_header(height - 1)
-
-        # params
-        BlockLastSolved = last
-        BlockReading = last
-        BlockCreating = height
-        nActualTimespan = 0
-        LastBlockTime = 0
-        PastBlocksMin = 24
-        PastBlocksMax = 24
-        CountBlocks = 0
-        PastDifficultyAverage = 0
-        PastDifficultyAveragePrev = 0
-        bnNum = 0
-
-        #thanks watanabe!! http://askmona.org/5288#res_61
-        if BlockLastSolved is None or height-1 < 450024:
-            return 0x1e0fffff, MAX_TARGET
-        for i in range(1, PastBlocksMax + 1):
-            CountBlocks += 1
-
-            if CountBlocks <= PastBlocksMin:
-                if CountBlocks == 1:
-                    PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
-                else:
-                    bnNum = self.bits_to_target(BlockReading.get('bits'))
-                    PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
-                PastDifficultyAveragePrev = PastDifficultyAverage
-
-            if LastBlockTime > 0:
-                Diff = (LastBlockTime - BlockReading.get('timestamp'))
-                nActualTimespan += Diff
-            LastBlockTime = BlockReading.get('timestamp')
-
-            BlockReading = chain.get((height-1) - CountBlocks)
-            if BlockReading is None:
-                BlockReading = self.read_header((height-1) - CountBlocks)
-
-        bnNew = PastDifficultyAverage
-        nTargetTimespan = CountBlocks * 90 #1.5 miniutes
-
-        nActualTimespan = max(nActualTimespan, nTargetTimespan//3)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan*3)
-
-        # retarget
-        bnNew *= nActualTimespan
-        bnNew //= nTargetTimespan
-        bnNew = min(bnNew, MAX_TARGET)
-
-        new_bits = self.target_to_bits(bnNew)
-        return new_bits, bnNew
-
     def bits_to_target(self, bits):
         MM = 256*256*256
         a = bits%MM
@@ -355,6 +297,27 @@ class Blockchain(util.PrintError):
             i += 1
         new_bits = c + MM * i
         return new_bits
+
+    def convbits(self, new_target):
+        c = ("%064x" % int(new_target))[2:]
+        while c[:2] == '00' and len(c) > 6:
+            c = c[2:]
+        bitsN, bitsBase = len(c) // 2, int('0x' + c[:6], 16)
+        if bitsBase >= 0x800000:
+            bitsN += 1
+            bitsBase >>= 8
+        new_bits = bitsN << 24 | bitsBase
+        return new_bits
+        
+    def convbignum(self, bits):
+        bitsN = (bits >> 24) & 0xff
+        if not (bitsN >= 0x03 and bitsN <= 0x1e):
+            raise BaseException("First part of bits should be in [0x03, 0x1e]")
+        bitsBase = bits & 0xffffff
+        if not (bitsBase >= 0x8000 and bitsBase <= 0x7fffff):
+            raise BaseException("Second part of bits should be in [0x8000, 0x7fffff]")
+        target = bitsBase << (8 * (bitsN-3))
+        return target
 
 
     def get_target_ltc(self, height, chain=None):
@@ -396,30 +359,8 @@ class Blockchain(util.PrintError):
         new_bits = bitsN << 24 | bitsBase
         return new_bits, bitsBase << (8 * (bitsN-3))
 
-
-    def convbits(self, new_target):
-        c = ("%064x" % int(new_target))[2:]
-        while c[:2] == '00' and len(c) > 6:
-            c = c[2:]
-        bitsN, bitsBase = len(c) // 2, int('0x' + c[:6], 16)
-        if bitsBase >= 0x800000:
-            bitsN += 1
-            bitsBase >>= 8
-        new_bits = bitsN << 24 | bitsBase
-        return new_bits
         
-    def convbignum(self, bits):
-        bitsN = (bits >> 24) & 0xff
-        if not (bitsN >= 0x03 and bitsN <= 0x1e):
-            raise BaseException("First part of bits should be in [0x03, 0x1e]")
-        bitsBase = bits & 0xffffff
-        if not (bitsBase >= 0x8000 and bitsBase <= 0x7fffff):
-            raise BaseException("Second part of bits should be in [0x8000, 0x7fffff]")
-        target = bitsBase << (8 * (bitsN-3))
-        return target
-        
-        
-    def get_target_kgw(self, height, chain={}):	
+    def get_target_kgw(self, height, chain={}):	#from vertcoin thanks https://github.com/vertcoin/electrum-vtc
         BlocksTargetSpacing			= 1.5 * 60; # 1.5 minutes
         TimeDaySeconds				= 60 * 60 * 24;
         PastSecondsMin				= TimeDaySeconds * 0.25;
@@ -498,25 +439,23 @@ class Blockchain(util.PrintError):
         if chain is None:
             chain = {}
 
-        nTargetTimespan = 95040 #1.1 days 1.1*24*60*60
-        nTargetTimespanNEW = 90 #1.5 minutes
+        nPowTargetTimespan = 95040 #1.1 days 1.1*24*60*60
 
-        nTargetSpacing = 90 #1.5 minute
-        nInterval = nTargetTimespan // nTargetSpacing #1056
+        nPowTargetSpacing = 90 #1.5 minute
+        nPowTargetSpacingDigisheld = 90 #1.5 minute
 
-        retargetTimespan = nTargetTimespan #95040
-        retargetInterval = nInterval #1056
+        DifficultyAdjustmentIntervalDigisheld = nPowTargetSpacingDigisheld // nPowTargetSpacing #1
 
-        retargetInterval = nTargetTimespanNEW // nTargetSpacing #1
-        retargetTimespan = nTargetTimespanNEW #90
+        AdjustmentInterval = DifficultyAdjustmentIntervalDigisheld
 
-        blockstogoback = retargetInterval - 1 #0
-        if (height != retargetInterval):
-            blockstogoback = retargetInterval #1
+        blockstogoback = AdjustmentInterval - 1
+        if (height != AdjustmentInterval):
+            blockstogoback = AdjustmentInterval
 
-        latest_retarget_height = (height // retargetInterval) * retargetInterval
-        last_height = latest_retarget_height - 1
+        last_height = height - 1
         first_height = last_height - blockstogoback
+
+        TargetTimespan = nPowTargetSpacingDigisheld
 
         first = chain.get(first_height)
         if first is None:
@@ -525,19 +464,79 @@ class Blockchain(util.PrintError):
         if last is None:
             last = self.read_header(last_height)
 
-        nActualTimespan = last.get('timestamp') - first.get('timestamp') #70
-        nModulatedTimespan = nActualTimespan #70
+        nActualTimespan = last.get('timestamp') - first.get('timestamp')
 
-        nModulatedTimespan = retargetTimespan + int((float(nModulatedTimespan - retargetTimespan) / float(8)))
-        nModulatedTimespan = max(nModulatedTimespan, int(float(retargetTimespan - retargetTimespan) / float(4)))
-        nModulatedTimespan = min(nModulatedTimespan, int(float(retargetTimespan + retargetTimespan) / float(2)))
+        nActualTimespan = TargetTimespan + int(float(nActualTimespan - TargetTimespan) / float(8))
+        nActualTimespan = max(nActualTimespan, TargetTimespan - int(float(TargetTimespan) / float(4)))
+        nActualTimespan = min(nActualTimespan, TargetTimespan + int(float(TargetTimespan) / float(2)))
 
         bits = last.get('bits')
         bnNew = self.bits_to_target(bits)
+        if height % AdjustmentInterval != 0:
+            return bits, bnNew
 
         # retarget
-        bnNew *= float(nActualTimespan)
-        bnNew /= float(nTargetTimespan)
+        bnNew *= nActualTimespan
+        bnNew //= TargetTimespan
+        bnNew = min(bnNew, MAX_TARGET)
+
+        new_bits = self.target_to_bits(bnNew)
+        return new_bits, bnNew
+
+
+    def get_target_dgwv3(self, height, chain=None):
+        if chain is None:
+            chain = {}
+
+        last = chain.get(height - 1)
+        if last is None:
+            last = self.read_header(height - 1)
+
+        # params
+        BlockLastSolved = last
+        BlockReading = last
+        BlockCreating = height
+        nActualTimespan = 0
+        LastBlockTime = 0
+        PastBlocksMin = 24
+        PastBlocksMax = 24
+        CountBlocks = 0
+        PastDifficultyAverage = 0
+        PastDifficultyAveragePrev = 0
+        bnNum = 0
+
+        #thanks watanabe!! http://askmona.org/5288#res_61
+        if BlockLastSolved is None or height-1 < 450024:
+            return 0x1e0fffff, MAX_TARGET
+        for i in range(1, PastBlocksMax + 1):
+            CountBlocks += 1
+
+            if CountBlocks <= PastBlocksMin:
+                if CountBlocks == 1:
+                    PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
+                else:
+                    bnNum = self.bits_to_target(BlockReading.get('bits'))
+                    PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
+                PastDifficultyAveragePrev = PastDifficultyAverage
+
+            if LastBlockTime > 0:
+                Diff = (LastBlockTime - BlockReading.get('timestamp'))
+                nActualTimespan += Diff
+            LastBlockTime = BlockReading.get('timestamp')
+
+            BlockReading = chain.get((height-1) - CountBlocks)
+            if BlockReading is None:
+                BlockReading = self.read_header((height-1) - CountBlocks)
+
+        bnNew = PastDifficultyAverage
+        nTargetTimespan = CountBlocks * 90 #1.5 miniutes
+
+        nActualTimespan = max(nActualTimespan, nTargetTimespan//3)
+        nActualTimespan = min(nActualTimespan, nTargetTimespan*3)
+
+        # retarget
+        bnNew *= nActualTimespan
+        bnNew //= nTargetTimespan
         bnNew = min(bnNew, MAX_TARGET)
 
         new_bits = self.target_to_bits(bnNew)
@@ -551,20 +550,8 @@ class Blockchain(util.PrintError):
             return self.get_target_ltc(height, chain)
         if height < 140000:
             return self.get_target_kgw(height, chain)
-        #if height < 450000:
-            #return self.get_target_dgsld(height, chain)
-        if height == 150000:
-            return 0x1c0c7215, MAX_TARGET
-        if height == 200000:
-            return 0x1c00caa1, MAX_TARGET
-        if height == 250000:
-            return 0x1b662f96, MAX_TARGET
-        if height == 300000:
-            return 0x1c00b806, MAX_TARGET
-        if height == 350000:
-            return 0x1b198ec0, MAX_TARGET
-        if height == 400000:
-            return 0x1b1fb776, MAX_TARGET
+        if height < 450000:
+            return self.get_target_dgsld(height, chain)
         if height >= 450000:
             return self.get_target_dgwv3(height, chain)
         else:
