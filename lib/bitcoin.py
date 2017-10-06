@@ -124,7 +124,7 @@ def aes_encrypt_with_iv(key, iv, data):
         padlen = 16 - (len(data) % 16)
         if padlen == 0:
             padlen = 16
-        data += chr(padlen) * padlen
+        data += chr(padlen).encode('utf-8') * padlen
         e = AES.new(key, AES.MODE_CBC, iv).encrypt(data)
         return e
     else:
@@ -138,10 +138,8 @@ def aes_decrypt_with_iv(key, iv, data):
     if AES:
         cipher = AES.new(key, AES.MODE_CBC, iv)
         data = cipher.decrypt(data)
-        #padlen = ord(data[-1])
         padlen = data[-1]
         for i in data[-padlen:]:
-            #if ord(i) != padlen:
             if i != padlen:
                 raise InvalidPassword()
         return data[0:-padlen]
