@@ -339,6 +339,13 @@ def public_key_to_p2wpkh(public_key):
 def script_to_p2wsh(script):
     return hash_to_segwit_addr(sha256(bfh(script)))
 
+def p2wpkh_nested_script(pubkey):
+    pkh = bh2u(hash_160(bfh(pubkey)))
+    return '00' + push_script(pkh)
+
+def p2wsh_nested_script(witness_script):
+    wsh = bh2u(sha256(bfh(witness_script)))
+    return '00' + push_script(wsh)
 
 def pubkey_to_address(txin_type, pubkey):
     if txin_type == 'p2pkh':
@@ -346,7 +353,7 @@ def pubkey_to_address(txin_type, pubkey):
     elif txin_type == 'p2wpkh':
         return hash_to_segwit_addr(hash_160(bfh(pubkey)))
     elif txin_type == 'p2wpkh-p2sh':
-        scriptSig = transaction.p2wpkh_nested_script(pubkey)
+        scriptSig = p2wpkh_nested_script(pubkey)
         return hash160_to_p2sh(hash_160(bfh(scriptSig)))
     else:
         raise NotImplementedError(txin_type)
@@ -357,7 +364,7 @@ def redeem_script_to_address(txin_type, redeem_script):
     elif txin_type == 'p2wsh':
         return script_to_p2wsh(redeem_script)
     elif txin_type == 'p2wsh-p2sh':
-        scriptSig = transaction.p2wsh_nested_script(redeem_script)
+        scriptSig = p2wsh_nested_script(redeem_script)
         return hash160_to_p2sh(hash_160(bfh(scriptSig)))
     else:
         raise NotImplementedError(txin_type)
@@ -509,7 +516,7 @@ def deserialize_privkey(key):
         compressed = len(vch) == 34
         return txin_type, vch[1:33], compressed
     else:
-        return False
+        raise BaseException("cannot deserialize", key)
 
 def regenerate_key(pk):
     assert len(pk) == 32
@@ -536,8 +543,7 @@ def public_key_from_private_key(pk, compressed):
 def address_from_private_key(sec):
     txin_type, privkey, compressed = deserialize_privkey(sec)
     public_key = public_key_from_private_key(privkey, compressed)
-    address = pubkey_to_address(txin_type, public_key)
-    return address
+    return pubkey_to_address(txin_type, public_key)
 
 def is_segwit_address(addr):
     witver, witprog = segwit_addr.decode(SEGWIT_HRP, addr)
@@ -607,8 +613,11 @@ def verify_message(address, sig, message):
         public_key, compressed = pubkey_from_signature(sig, h)
         # check public key using the address
         pubkey = point_to_ser(public_key.pubkey.point, compressed)
-        addr = public_key_to_p2pkh(pubkey)
-        if address != addr:
+        for txin_type in ['p2pkh','p2wpkh','p2wpkh-p2sh']:
+            addr = pubkey_to_address(txin_type, bh2u(pubkey))
+            if address == addr:
+                break
+        else:
             raise Exception("Bad signature")
         # check message
         public_key.verify_digest(sig[1:], h, sigdecode = ecdsa.util.sigdecode_string)
@@ -617,10 +626,6 @@ def verify_message(address, sig, message):
         print_error("Verification error: {0}".format(e))
         return False
 
-def sign_message_with_wif_privkey(sec, message):
-    txin_type, privkey, compressed = deserialize_privkey(sec)
-    key = regenerate_key(privkey)
-    return key.sign_message(message, compressed)
 
 def encrypt_message(message, pubkey):
     return EC_KEY.encrypt_message(message, bfh(pubkey))
