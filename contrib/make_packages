@@ -24,6 +24,7 @@ if __name__ == '__main__':
         'six',
         'jsonrpclib',
         'socks',
+        'lyra2re2_hash',
     ]
     for module in deps:
         f, pathname, descr = imp.find_module(module)

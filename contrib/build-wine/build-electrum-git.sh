@@ -2,7 +2,7 @@
 
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
-BRANCH=master
+BRANCH=2933
 NAME_ROOT=electrum-mona
 
 
@@ -61,7 +61,7 @@ $PYTHON "C:/pyinstaller/pyinstaller.py" --noconfirm --ascii --name $NAME_ROOT-$V
 
 # build NSIS installer
 # $VERSION could be passed to the electrum.nsi script, but this would require some rewriting in the script iself.
-wine "$WINEPREFIX/drive_c/Program Files (x86)/NSIS/makensis.exe" /DPRODUCT_VERSION=$VERSION electrum.nsi
+wine "$WINEPREFIX/drive_c/Program Files/NSIS/makensis.exe" /DPRODUCT_VERSION=$VERSION electrum.nsi
 
 cd dist
 mv electrum-mona-setup.exe $NAME_ROOT-$VERSION-setup.exe
