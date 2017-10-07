@@ -57,7 +57,10 @@ DEFAULT_SERVERS = {
 
     # https://mstdn.monappy.jp/@WakiyamaP/690841
     'electrumx2.tamami-foundation.org':DEFAULT_PORTS,
-
+    'electrumx3.tamami-foundation.org':DEFAULT_PORTS,
+    'electrum-mona.bitbank.cc':DEFAULT_PORTS,
+    'electrumx1.movsign.info':{'t':'50001'},
+    'electrumx2.movsign.info':{'t':'50001'},
     'mona-cce-1.coinomi.net': {'t':'5022'},
     'mona-cce-2.coinomi.net': {'t':'5022'},
 }
