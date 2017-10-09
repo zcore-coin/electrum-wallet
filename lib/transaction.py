@@ -474,6 +474,7 @@ def deserialize(raw):
         for i in range(n_vin):
             txin = d['inputs'][i]
             parse_witness(vds, txin)
+            # segwit-native script
             if not txin.get('scriptSig'):
                 if txin['num_sig'] == 1:
                     txin['type'] = 'p2wpkh'
@@ -882,8 +883,7 @@ class Transaction:
                     break
                 if x_pubkey in keypairs.keys():
                     print_error("adding signature for", x_pubkey)
-                    sec = keypairs.get(x_pubkey)
-                    compressed = True
+                    sec, compressed = keypairs.get(x_pubkey)
                     pubkey = public_key_from_private_key(sec, compressed)
                     # add signature
                     pre_hash = Hash(bfh(self.serialize_preimage(i)))
