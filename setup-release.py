@@ -37,10 +37,10 @@ if sys.platform == 'darwin':
         app=[mainscript],
         options=dict(py2app=dict(argv_emulation=False,
                                  includes=['PyQt4.QtCore', 'PyQt4.QtGui', 'PyQt4.QtWebKit', 'PyQt4.QtNetwork', 'PyQt4._qt', 'sip'],
-                                 packages=['lib', 'gui', 'plugins', 'packages'],
+                                 packages=['lib', 'gui', 'plugins', 'requests'],
                                  iconfile='electrum.icns',
                                  plist=plist,
-                                 resources=["icons"])),
+                                 resources=['icons', 'packages/certifi/cacert.pem'])),
     )
 elif sys.platform == 'win32':
     extra_options = dict(
