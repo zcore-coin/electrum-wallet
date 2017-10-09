@@ -3,6 +3,7 @@
 *.swp
 build/
 dist/
+tmp/
 *.egg/
 /electrum.py
 contrib/pyinstaller/

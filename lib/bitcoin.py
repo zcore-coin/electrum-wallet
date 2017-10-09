@@ -43,12 +43,13 @@ ADDRTYPE_P2PKH = 50
 ADDRTYPE_P2SH = 55
 ADDRTYPE_P2SH_ALT = 5
 ADDRTYPE_P2WPKH = 176
+ADDRTYPE_P2WPKH_ALT = 6 #TODO
 XPRV_HEADER = 0x0488ade4
 XPUB_HEADER = 0x0488b21e
 XPRV_HEADER_ALT = 0x019d9cfe
 XPUB_HEADER_ALT = 0x019da462
-HEADERS_URL_1st = "https://electrumx2.tamami-foundation.org/blockchain_headers"
-HEADERS_URL_2nd = "https://gateway.ipfs.io/ipfs/QmcizN5G7aQgR3Uj91QkwW5YQnx8z8kgfpYjqMXUrUnanS"
+HEADERS_URL_1st = "https://electrum-mona.org/blockchain_headers"
+HEADERS_URL_2nd = "https://gateway.ipfs.io/ipfs/QmWRzyMArRuPZo8JmcCxSCodPEvkh6D9kTB9ybaqe3EURv"
 HEADERS_URL_3rd = "https://sound.sighash.info/blockchain_headers" #thanks ohac!!
 GENESIS = "ff9f1c0116d19de7c9963845e129f9ed1bfc0b376eb54fd7afa42e0d418c8bb6"
 
@@ -283,7 +284,7 @@ def hash_160(public_key):
 
 def hash_160_to_bc_address(h160, addrtype = 50, witness_program_version=1):
     s = chr(addrtype)
-    if addrtype == ADDRTYPE_P2WPKH:
+    if addrtype in [ADDRTYPE_P2WPKH, ADDRTYPE_P2WPKH_ALT]:
         s += chr(witness_program_version) + chr(0)
     s += h160
     return base_encode(s+Hash(s)[0:4], base=58)
