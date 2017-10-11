@@ -47,6 +47,7 @@ from .transaction import Transaction
 from .import paymentrequest
 from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .import contacts
+from .plugins import run_hook
 
 known_commands = {}
 
@@ -428,6 +429,7 @@ class Commands:
         if rbf:
             tx.set_rbf(True)
         if not unsigned:
+            run_hook('sign_tx', self.wallet, tx)
             self.wallet.sign_transaction(tx, password)
         return tx
 
@@ -603,21 +605,21 @@ class Commands:
         return list(map(self._format_request, out))
 
     @command('w')
-    def getunusedaddress(self,force=False):
-        """Returns the first unused address."""
-        addr = self.wallet.get_unused_address()
-        if addr is None and force:
-            addr = self.wallet.create_new_address(False)
+    def createnewaddress(self):
+        """Create a new receiving address, beyond the gap limit of the wallet"""
+        return self.wallet.create_new_address(False)
 
-        if addr:
-            return addr
-        else:
-            return False
-
+    @command('w')
+    def getunusedaddress(self):
+        """Returns the first unused address of the wallet, or None if all addresses are used.
+        An address is considered as used if it has received a transaction, or if it is used in a payment request."""
+        return self.wallet.get_unused_address()
 
     @command('w')
     def addrequest(self, amount, memo='', expiration=None, force=False):
-        """Create a payment request."""
+        """Create a payment request, using the first unused address of the wallet.
+        The address will be condidered as used after this operation.
+        If no payment is received, the address will be considered as unused if the payment request is deleted from the wallet."""
         addr = self.wallet.get_unused_address()
         if addr is None:
             if force:

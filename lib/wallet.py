@@ -856,8 +856,7 @@ class Abstract_Wallet(PrintError):
         # Sort the inputs and outputs deterministically
         tx.BIP_LI01_sort()
         # Timelock tx to current height.
-        # Disabled until keepkey firmware update
-        tx.locktime = self.get_local_height() #TODO
+        tx.locktime = self.get_local_height()
         run_hook('make_unsigned_transaction', self, tx)
         return tx
 
@@ -914,6 +913,7 @@ class Abstract_Wallet(PrintError):
 
         outputs = [(TYPE_ADDRESS, recipient, total - fee)]
         tx = Transaction.from_io(inputs, outputs)
+        tx.set_rbf(True)
         tx.sign(keypairs)
         return tx
 
@@ -1378,7 +1378,7 @@ class Imported_Wallet(Abstract_Wallet):
         return self.is_watching_only()
 
     def can_delete_address(self):
-        return self.is_watching_only()
+        return True
 
     def has_seed(self):
         return False
@@ -1422,7 +1422,11 @@ class Imported_Wallet(Abstract_Wallet):
     def delete_address(self, address):
         if address not in self.addresses:
             return
+        pubkey = self.get_public_key(address)
         self.addresses.pop(address)
+        if pubkey:
+            self.keystore.delete_imported_key(pubkey)
+            self.save_keystore()
         self.storage.put('addresses', self.addresses)
         self.storage.write()
 
@@ -1471,7 +1475,7 @@ class Imported_Wallet(Abstract_Wallet):
             txin['x_pubkeys'] = [x_pubkey]
             txin['signatures'] = [None]
             return
-        if txin['type'] in ['p2pkh', 'p2wkh', 'p2wkh-p2sh']:
+        if txin['type'] in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh']:
             pubkey = self.addresses[address]['pubkey']
             txin['num_sig'] = 1
             txin['x_pubkeys'] = [pubkey]
@@ -1683,13 +1687,6 @@ class Simple_Deterministic_Wallet(Deterministic_Wallet):
     def save_keystore(self):
         self.storage.put('keystore', self.keystore.dump())
 
-    def delete_address(self, address):
-        pubkey = self.get_public_key(address)
-        self.keystore.delete_imported_key(pubkey)
-        self.save_keystore()
-        self.receiving_addresses.remove(address)
-        self.save_addresses()
-        self.storage.write()
 
 
 
