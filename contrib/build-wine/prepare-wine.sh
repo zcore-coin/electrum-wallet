@@ -1,13 +1,13 @@
 #!/bin/bash
 
+PYTHON_VERSION=3.6.3
 # Please update these links carefully, some versions won't work under Wine
-PYTHON_URL=https://www.python.org/ftp/python/3.6.2/python-3.6.2.exe
+PYTHON_URL=https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION.exe
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
 WINETRICKS_MASTER_URL=https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
 LTC_SCRYPT_PYTHON_URL=https://github.com/wakiyamap/ltc-scrypt/archive/master.zip
-PYTHON_VERSION=3.6.2
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64

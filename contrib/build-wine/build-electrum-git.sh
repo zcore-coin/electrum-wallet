@@ -4,7 +4,7 @@
 ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
 BRANCH=master
 NAME_ROOT=electrum-mona
-PYTHON_VERSION=3.6.2
+PYTHON_VERSION=3.6.3
 
 if [ "$#" -gt 0 ]; then
     BRANCH="$1"

@@ -5,7 +5,7 @@ KEEPKEY_GIT_URL=git://github.com/keepkey/python-keepkey.git
 BTCHIP_GIT_URL=git://github.com/LedgerHQ/btchip-python.git
 
 BRANCH=master
-PYTHON_VERSION=3.6.2
+PYTHON_VERSION=3.6.3
 
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
