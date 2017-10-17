@@ -124,7 +124,7 @@ def aes_encrypt_with_iv(key, iv, data):
         padlen = 16 - (len(data) % 16)
         if padlen == 0:
             padlen = 16
-        data += chr(padlen).encode('utf-8') * padlen
+        data += bytes([padlen]) * padlen
         e = AES.new(key, AES.MODE_CBC, iv).encrypt(data)
         return e
     else:
@@ -152,9 +152,6 @@ def aes_decrypt_with_iv(key, iv, data):
 def EncodeAES(secret, s):
     assert_bytes(s)
     iv = bytes(os.urandom(16))
-    # aes_cbc = pyaes.AESModeOfOperationCBC(secret, iv=iv)
-    # aes = pyaes.Encrypter(aes_cbc)
-    # e = iv + aes.feed(s) + aes.feed()
     ct = aes_encrypt_with_iv(secret, iv, s)
     e = iv + ct
     return base64.b64encode(e)
@@ -162,9 +159,6 @@ def EncodeAES(secret, s):
 def DecodeAES(secret, e):
     e = bytes(base64.b64decode(e))
     iv, e = e[:16], e[16:]
-    # aes_cbc = pyaes.AESModeOfOperationCBC(secret, iv=iv)
-    # aes = pyaes.Decrypter(aes_cbc)
-    # s = aes.feed(e) + aes.feed()
     s = aes_decrypt_with_iv(secret, iv, e)
     return s
 
@@ -370,6 +364,11 @@ def redeem_script_to_address(txin_type, redeem_script):
         raise NotImplementedError(txin_type)
 
 
+def script_to_address(script):
+    from .transaction import get_address_from_output_script
+    t, addr = get_address_from_output_script(bfh(script))
+    assert t == TYPE_ADDRESS
+    return addr
 
 def address_to_script(addr):
     witver, witprog = segwit_addr.decode(SEGWIT_HRP, addr)
@@ -579,8 +578,8 @@ def is_minikey(text):
     # suffixed with '?' have its SHA256 hash begin with a zero byte.
     # They are widely used in Casascius physical bitoins.
     return (len(text) >= 20 and text[0] == 'S'
-            and all(c in __b58chars for c in text)
-            and ord(sha256(text + '?')[0]) == 0)
+            and all(ord(c) in __b58chars for c in text)
+            and sha256(text + '?')[0] == 0x00)
 
 def minikey_to_private_key(text):
     return sha256(text)

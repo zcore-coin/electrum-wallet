@@ -1338,7 +1338,37 @@ class Abstract_Wallet(PrintError):
         return self.keystore.decrypt_message(index, message, password)
 
 
-class Imported_Wallet(Abstract_Wallet):
+class Simple_Wallet(Abstract_Wallet):
+    # wallet with a single keystore
+
+    def get_keystore(self):
+        return self.keystore
+
+    def get_keystores(self):
+        return [self.keystore]
+
+    def is_watching_only(self):
+        return self.keystore.is_watching_only()
+
+    def can_change_password(self):
+        return self.keystore.can_change_password()
+
+    def check_password(self, password):
+        self.keystore.check_password(password)
+
+    def update_password(self, old_pw, new_pw, encrypt=False):
+        if old_pw is None and self.has_password():
+            raise InvalidPassword()
+        self.keystore.update_password(old_pw, new_pw)
+        self.save_keystore()
+        self.storage.set_password(new_pw, encrypt)
+        self.storage.write()
+
+    def save_keystore(self):
+        self.storage.put('keystore', self.keystore.dump())
+
+
+class Imported_Wallet(Simple_Wallet):
     # wallet made of imported addresses
 
     wallet_type = 'imported'
@@ -1367,6 +1397,9 @@ class Imported_Wallet(Abstract_Wallet):
 
     def load_addresses(self):
         self.addresses = self.storage.get('addresses', {})
+        # fixme: a reference to addresses is needed
+        if self.keystore:
+            self.keystore.addresses = self.addresses
 
     def save_addresses(self):
         self.storage.put('addresses', self.addresses)
@@ -1470,8 +1503,7 @@ class Imported_Wallet(Abstract_Wallet):
 
     def add_input_sig_info(self, txin, address):
         if self.is_watching_only():
-            addrtype, hash160 = b58_address_to_hash160(address)
-            x_pubkey = 'fd' + bh2u(bytes([addrtype]) + hash160)
+            x_pubkey = 'fd' + address_to_script(address)
             txin['x_pubkeys'] = [x_pubkey]
             txin['signatures'] = [None]
             return
@@ -1615,7 +1647,7 @@ class Deterministic_Wallet(Abstract_Wallet):
         return self.txin_type
 
 
-class Simple_Deterministic_Wallet(Deterministic_Wallet):
+class Simple_Deterministic_Wallet(Simple_Wallet, Deterministic_Wallet):
 
     """ Deterministic Wallet with a single pubkey per address """
 
@@ -1661,31 +1693,6 @@ class Simple_Deterministic_Wallet(Deterministic_Wallet):
     def derive_pubkeys(self, c, i):
         return self.keystore.derive_pubkey(c, i)
 
-    def get_keystore(self):
-        return self.keystore
-
-    def get_keystores(self):
-        return [self.keystore]
-
-    def is_watching_only(self):
-        return self.keystore.is_watching_only()
-
-    def can_change_password(self):
-        return self.keystore.can_change_password()
-
-    def check_password(self, password):
-        self.keystore.check_password(password)
-
-    def update_password(self, old_pw, new_pw, encrypt=False):
-        if old_pw is None and self.has_password():
-            raise InvalidPassword()
-        self.keystore.update_password(old_pw, new_pw)
-        self.save_keystore()
-        self.storage.set_password(new_pw, encrypt)
-        self.storage.write()
-
-    def save_keystore(self):
-        self.storage.put('keystore', self.keystore.dump())
 
 
 

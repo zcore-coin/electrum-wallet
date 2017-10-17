@@ -130,7 +130,7 @@ class Commands:
         return ' '.join(sorted(known_commands.keys()))
 
     @command('')
-    def create(self):
+    def create(self, segwit=False):
         """Create a new wallet"""
         raise BaseException('Not a JSON-RPC command')
 
@@ -145,7 +145,8 @@ class Commands:
     @command('wp')
     def password(self, password=None, new_password=None):
         """Change wallet password. """
-        self.wallet.update_password(password, new_password)
+        b = self.wallet.storage.is_encrypted()
+        self.wallet.update_password(password, new_password, b)
         self.wallet.storage.write()
         return {'password':self.wallet.has_password()}
 
