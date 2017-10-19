@@ -60,8 +60,8 @@ class Test_bitcoin(unittest.TestCase):
         EC_KEY.verify_message(eck, signature, message)
 
     def test_msg_signing(self):
-        msg1 = b'Chancellor on brink of second bailout for banks'
-        msg2 = b'Electrum'
+        msg1 = b'wakiyama tamami chan'
+        msg2 = b'tottemo kawaii'
 
         def sign_message_with_wif_privkey(wif_privkey, msg):
             txin_type, privkey, compressed = deserialize_privkey(wif_privkey)
@@ -69,17 +69,17 @@ class Test_bitcoin(unittest.TestCase):
             return key.sign_message(msg, compressed)
 
         sig1 = sign_message_with_wif_privkey(
-            'L1TnU2zbNaAqMoVh65Cyvmcjzbrj41Gs9iTLcWbpJCMynXuap6UN', msg1)
-        addr1 = '15hETetDmcXm1mM4sEf7U2KXC9hDHFMSzz'
+            'L19BcbHWsctdEFV6xsP6t31yZYqrXH6s7vWGiSA3zPZbLhP8xhHj', msg1)
+        addr1 = 'MMdVZJ3aCH2phnNwPJEGwGSbVhvuiZFNDT'
         sig2 = sign_message_with_wif_privkey(
-            '5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD', msg2)
-        addr2 = '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6'
+            'Kx9F8XW2sM4ngHtSabieTvbRAbUh6uMgJ3Q7s3W4pmoHsn3XNaRo', msg2)
+        addr2 = 'MQGDpkEf4J3xG2Hdx2FoAoRQMNrGFWquqi'
 
         sig1_b64 = base64.b64encode(sig1)
         sig2_b64 = base64.b64encode(sig2)
 
-        self.assertEqual(sig1_b64, b'H/9jMOnj4MFbH3d7t4yCQ9i7DgZU/VZ278w3+ySv2F4yIsdqjsc5ng3kmN8OZAThgyfCZOQxZCWza9V5XzlVY0Y=')
-        self.assertEqual(sig2_b64, b'G84dmJ8TKIDKMT9qBRhpX2sNmR0y5t+POcYnFFJCs66lJmAs3T8A6Sbpx7KA6yTQ9djQMabwQXRrDomOkIKGn18=')
+        self.assertEqual(sig1_b64, b'H4WZjfhbje78p32RIKIddWo5f4JtDNFhovtweIZ5WCPdOryyrwKTPCs0LdkIm1g09YDTT5tuXubxblvfFqSUFTc=')
+        self.assertEqual(sig2_b64, b'IP7e1lHS5IUcO1mJfqrG5JCNL5HPZVpxZ0cR13lqZXP1Pgt/4bqO44+VZopToBoYIwPb6veNONWrRMLRDNQZces=')
 
         self.assertTrue(verify_message(addr1, sig1, msg1))
         self.assertTrue(verify_message(addr2, sig2, msg2))
@@ -243,8 +243,8 @@ class Test_xprv_xpub(unittest.TestCase):
     def test_is_bip32_derivation(self):
         self.assertTrue(is_bip32_derivation("m/0'/1"))
         self.assertTrue(is_bip32_derivation("m/0'/0'"))
-        self.assertTrue(is_bip32_derivation("m/44'/0'/0'/0/0"))
-        self.assertTrue(is_bip32_derivation("m/49'/0'/0'/0/0"))
+        self.assertTrue(is_bip32_derivation("m/44'/22'/0'/0/0"))
+        self.assertTrue(is_bip32_derivation("m/49'/22'/0'/0/0"))
         self.assertFalse(is_bip32_derivation("mmmmmm"))
         self.assertFalse(is_bip32_derivation("n/"))
         self.assertFalse(is_bip32_derivation(""))
@@ -256,7 +256,7 @@ class Test_keyImport(unittest.TestCase):
     priv_pub_addr = (
            {'priv': 'KzMFjMC2MPadjvX5Cd7b8AKKjjpBSoRKUTpoAtN6B3J9ezWYyXS6',
             'pub': '02c6467b7e621144105ed3e4835b0b4ab7e35266a2ae1c4f8baa19e9ca93452997',
-            'address': '17azqT8T16coRmWKYFj3UjzJuxiYrYFRBR',
+            'address': 'MEVA4t2rW7ncKSUemENyj1bePBbiJdscSC',
             'minikey' : False,
             'txin_type': 'p2pkh',
             'compressed': True,
@@ -264,7 +264,7 @@ class Test_keyImport(unittest.TestCase):
             'scripthash': 'c9aecd1fef8d661a42c560bf75c8163e337099800b8face5ca3d1393a30508a7'},
            {'priv': '5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD',
             'pub': '04e5fe91a20fac945845a5518450d23405ff3e3e1ce39827b47ee6d5db020a9075422d56a59195ada0035e4a52a238849f68e7a325ba5b2247013e0481c5c7cb3f',
-            'address': '1GPHVTY8UD9my6jyP4tb2TYJwUbDetyNC6',
+            'address': 'MPHSitSXyEKarmiJc3YXGj9eQhUP97gom3',
             'minikey': False,
             'txin_type': 'p2pkh',
             'compressed': False,
@@ -272,7 +272,7 @@ class Test_keyImport(unittest.TestCase):
             'scripthash': 'f5914651408417e1166f725a5829ff9576d0dbf05237055bf13abd2af7f79473'},
            {'priv': 'LHJnnvRzsdrTX2j5QeWVsaBkabK7gfMNqNNqxnbBVRaJYfk24iJz',
             'pub': '0279ad237ca0d812fb503ab86f25e15ebd5fa5dd95c193639a8a738dcd1acbad81',
-            'address': '3GeVJB3oKr7psgKR6BTXSxKtWUkfsHHhk7',
+            'address': 'PPYeXbxCpsHdmMHkKA7ThDwDyhdqSE95rN',
             'minikey': False,
             'txin_type': 'p2wpkh-p2sh',
             'compressed': True,
@@ -280,7 +280,7 @@ class Test_keyImport(unittest.TestCase):
             'scripthash': 'd7b04e882fa6b13246829ac552a2b21461d9152eb00f0a6adb58457a3e63d7c5'},
            {'priv': 'L8g5V8kFFeg2WbecahRSdobARbHz2w2STH9S8ePHVSY4fmia7Rsj',
             'pub': '03e9f948421aaa89415dc5f281a61b60dde12aae3181b3a76cd2d849b164fc6d0b',
-            'address': 'bc1qqmpt7u5e9hfznljta5gnvhyvfd2kdd0r90hwue',
+            'address': 'mona1qqmpt7u5e9hfznljta5gnvhyvfd2kdd0rpupv3c',
             'minikey': False,
             'txin_type': 'p2wpkh',
             'compressed': True,
@@ -289,7 +289,7 @@ class Test_keyImport(unittest.TestCase):
            # from http://bitscan.com/articles/security/spotlight-on-mini-private-keys
            {'priv': 'SzavMBLoXU6kDrqtUVmffv',
             'pub': '02588d202afcc1ee4ab5254c7847ec25b9a135bbda0f2bc69ee1a714749fd77dc9',
-            'address': '19GuvDvMMUZ8vq84wT79fvnvhMd5MnfTkR',
+            'address': 'MGB59epkrViwpW6QARm5vCQGAaWErLrsUx',
             'minikey': True,
             'txin_type': 'p2pkh',
             'compressed': True,  # this is actually ambiguous... issue #2748
