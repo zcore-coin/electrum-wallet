@@ -1,3 +1,0 @@
-electrum_mona
-electrum_mona_gui
-electrum_mona_plugins

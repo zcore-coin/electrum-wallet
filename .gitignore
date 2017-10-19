@@ -7,7 +7,7 @@ tmp/
 *.egg/
 /electrum.py
 contrib/pyinstaller/
-Electrum.egg-info/
+Electrum_mona.egg-info/
 gui/qt/icons_rc.py
 locale/
 .devlocaltmp/
