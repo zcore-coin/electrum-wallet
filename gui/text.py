@@ -9,7 +9,7 @@ import curses, datetime, locale
 from decimal import Decimal
 import getpass
 
-import electrum_mona
+import electrum_mona as electrum
 from electrum_mona.util import format_satoshis, set_verbosity
 from electrum_mona.bitcoin import is_address, COIN, TYPE_ADDRESS
 from electrum_mona import Wallet, WalletStorage
