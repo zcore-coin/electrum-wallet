@@ -280,28 +280,6 @@ class Blockchain(util.PrintError):
         return sum([self.BIP9(h-i, 2) for i in range(N)])*10000/N/100.
 
 
-    def bits_to_target(self, bits):
-        MM = 256*256*256
-        a = bits%MM
-        if a < 0x8000:
-            a *= 256
-        target = (a) * pow(2, 8 * (bits//MM - 3))
-        return target
-
-    def target_to_bits(self, target):
-        MM = 256*256*256
-        c = ("%064X"%int(target))[2:]
-        i = 31
-        while c[0:2]=="00":
-            c = c[2:]
-            i -= 1
-        c = int('0x'+c[0:6],16)
-        if c >= 0x800000:
-            c //= 256
-            i += 1
-        new_bits = c + MM * i
-        return new_bits
-
     def convbits(self, new_target):
         c = ("%064x" % int(new_target))[2:]
         while c[:2] == '00' and len(c) > 6:
@@ -314,13 +292,11 @@ class Blockchain(util.PrintError):
         return new_bits
         
     def convbignum(self, bits):
-        bitsN = (bits >> 24) & 0xff
-        if not (bitsN >= 0x03 and bitsN <= 0x1e):
-            raise BaseException("First part of bits should be in [0x03, 0x1e]")
-        bitsBase = bits & 0xffffff
-        if not (bitsBase >= 0x8000 and bitsBase <= 0x7fffff):
-            raise BaseException("Second part of bits should be in [0x8000, 0x7fffff]")
-        target = bitsBase << (8 * (bitsN-3))
+        MM = 256*256*256
+        a = bits%MM
+        if a < 0x8000:
+            a *= 256
+        target = (a) * pow(2, 8 * (bits//MM - 3))
         return target
 
 
@@ -337,13 +313,7 @@ class Blockchain(util.PrintError):
         assert last is not None
         # bits to target
         bits = last.get('bits')
-        bitsN = (bits >> 24) & 0xff
-        if not (bitsN >= 0x03 and bitsN <= 0x1e):
-            raise BaseException("First part of bits should be in [0x03, 0x1e]")
-        bitsBase = bits & 0xffffff
-        if not (bitsBase >= 0x8000 and bitsBase <= 0x7fffff):
-            raise BaseException("Second part of bits should be in [0x8000, 0x7fffff]")
-        target = bitsBase << (8 * (bitsN-3))
+        target = self.convbignum(bits)
         if height % 1056 != 0:
             return bits, target
         # new target
@@ -353,15 +323,8 @@ class Blockchain(util.PrintError):
         nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
         new_target = min(MAX_TARGET, (target*nActualTimespan) // nTargetTimespan)
         # convert new target to bits
-        c = ("%064x" % int(new_target))[2:]
-        while c[:2] == '00' and len(c) > 6:
-            c = c[2:]
-        bitsN, bitsBase = len(c) // 2, int('0x' + c[:6], 16)
-        if bitsBase >= 0x800000:
-            bitsN += 1
-            bitsBase >>= 8
-        new_bits = bitsN << 24 | bitsBase
-        return new_bits, bitsBase << (8 * (bitsN-3))
+        new_bits = self.convbits(new_target)
+        return new_bits, new_target
 
         
     def get_target_kgw(self, height, chain={}):	#from vertcoin thanks https://github.com/vertcoin/electrum-vtc
@@ -475,7 +438,7 @@ class Blockchain(util.PrintError):
         nActualTimespan = min(nActualTimespan, TargetTimespan + int(float(TargetTimespan) / float(2)))
 
         bits = last.get('bits')
-        bnNew = self.bits_to_target(bits)
+        bnNew = self.convbignum(bits)
         if height % AdjustmentInterval != 0:
             return bits, bnNew
 
@@ -484,7 +447,7 @@ class Blockchain(util.PrintError):
         bnNew //= TargetTimespan
         bnNew = min(bnNew, MAX_TARGET)
 
-        new_bits = self.target_to_bits(bnNew)
+        new_bits = self.convbits(bnNew)
         return new_bits, bnNew
 
 
@@ -517,9 +480,9 @@ class Blockchain(util.PrintError):
 
             if CountBlocks <= PastBlocksMin:
                 if CountBlocks == 1:
-                    PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
+                    PastDifficultyAverage = self.convbignum(BlockReading.get('bits'))
                 else:
-                    bnNum = self.bits_to_target(BlockReading.get('bits'))
+                    bnNum = self.convbignum(BlockReading.get('bits'))
                     PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
                 PastDifficultyAveragePrev = PastDifficultyAverage
 
@@ -543,7 +506,7 @@ class Blockchain(util.PrintError):
         bnNew //= nTargetTimespan
         bnNew = min(bnNew, MAX_TARGET)
 
-        new_bits = self.target_to_bits(bnNew)
+        new_bits = self.convbits(bnNew)
         return new_bits, bnNew
 
 
