@@ -4,6 +4,7 @@ PYTHON_VERSION=3.6.3
 # Please update these links carefully, some versions won't work under Wine
 PYTHON_URL=https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION.exe
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
+NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
 WINETRICKS_MASTER_URL=https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
@@ -15,6 +16,18 @@ export WINEPREFIX=/opt/wine64
 
 PYHOME=c:/python$PYTHON_VERSION
 PYTHON="wine $PYHOME/python.exe -OO -B"
+
+
+verify_hash() {
+    local file=$1 expected_hash=$2 out=
+    actual_hash=$(sha256sum $file | awk '{print $1}')
+    if [ "$actual_hash" == "$expected_hash" ]; then
+        return 0
+    else
+        echo "$file $actual_hash (unexpected hash)" >&2
+        exit 0
+    fi
+}
 
 # Let's begin!
 cd `dirname $0`
@@ -51,7 +64,7 @@ $PYTHON -m pip install PyQt5
 $PYTHON -m pip install pyinstaller==3.3
 
 # Install ZBar
-#wget -q -O zbar.exe "http://sourceforge.net/projects/zbar/files/zbar/0.10/zbar-0.10-setup.exe/download"
+#wget -q -O zbar.exe "https://sourceforge.net/projects/zbar/files/zbar/0.10/zbar-0.10-setup.exe/download"
 #wine zbar.exe
 
 # install Cryptodome
@@ -72,12 +85,12 @@ $PYTHON -m pip install websocket-client
 $PYTHON -m pip install setuptools --upgrade
 
 # Install NSIS installer
-echo "Make sure to untick 'Start NSIS' and 'Show release notes'" 
 wget -q -O nsis.exe "$NSIS_URL"
-wine nsis.exe
+verify_hash nsis.exe $NSIS_SHA256
+wine nsis.exe /S
 
 # Install UPX
-#wget -O upx.zip "http://upx.sourceforge.net/download/upx308w.zip"
+#wget -O upx.zip "https://downloads.sourceforge.net/project/upx/upx/3.08/upx308w.zip"
 #unzip -o upx.zip
 #cp upx*/upx.exe .
 
