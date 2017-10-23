@@ -783,14 +783,14 @@ class Abstract_Wallet(PrintError):
         return status, status_str
 
     def relayfee(self):
-        RELAY_FEE = bitcoin.MIN_RELAY_TX_FEE
-        MAX_RELAY_FEE = 10 * RELAY_FEE
+        RELAY_FEE = 5000
+        MAX_RELAY_FEE = 50000
         f = self.network.relay_fee if self.network and self.network.relay_fee else RELAY_FEE
         return min(f, MAX_RELAY_FEE)
 
     def dust_threshold(self):
         # Change <= dust threshold is added to the tx fee
-        return DUST_SOFT_LIMIT
+        return 182 * 3 * self.relayfee() / 1000
 
     def make_unsigned_transaction(self, inputs, outputs, config, fixed_fee=None, change_addr=None):
         # check outputs
@@ -799,7 +799,7 @@ class Abstract_Wallet(PrintError):
             _type, data, value = o
             if _type == TYPE_ADDRESS:
                 if not is_address(data):
-                    raise BaseException("Invalid monacoin address:" + data)
+                    raise BaseException("Invalid bitcoin address:" + data)
             if value == '!':
                 if i_max is not None:
                     raise BaseException("More than one output set to spend max")
@@ -833,7 +833,7 @@ class Abstract_Wallet(PrintError):
 
         # Fee estimator
         if fixed_fee is None:
-            fee_estimator = partial(self.estimate_fee, config, outputs=outputs)
+            fee_estimator = partial(self.estimate_fee, config)
         else:
             fee_estimator = lambda size: fixed_fee
 
@@ -860,11 +860,8 @@ class Abstract_Wallet(PrintError):
         run_hook('make_unsigned_transaction', self, tx)
         return tx
 
-    def estimate_fee(self, config, size, outputs=[]):
-        fee = int(config.fee_per_kb() * (1 + size // 1000))
-        for _, _, value in outputs:
-            if value > 0 and value < DUST_SOFT_LIMIT:
-                fee += DUST_SOFT_LIMIT
+    def estimate_fee(self, config, size):
+        fee = int(config.fee_per_kb() * size / 1000.)
         return fee
 
     def mktx(self, outputs, password, config, fee=None, change_addr=None, domain=None):

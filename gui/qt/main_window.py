@@ -1349,7 +1349,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if use_rbf:
             tx.set_rbf(True)
 
-        if fee < tx.requires_fee(self.wallet):
+        if fee < self.wallet.relayfee() * tx.estimated_size() / 1000 and tx.requires_fee(self.wallet):
             self.show_error(_("This transaction requires a higher fee, or it will not be propagated by the network"))
             return
 
@@ -2420,15 +2420,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         nz.valueChanged.connect(on_nz)
         gui_widgets.append((nz_label, nz))
 
-        #def on_dynfee(x):
-        #    self.config.set_key('dynamic_fees', x == Qt.Checked)
-        #    self.fee_slider.update()
-        #    update_maxfee()
-        #dynfee_cb = QCheckBox(_('Use dynamic fees'))
-        #dynfee_cb.setChecked(self.config.is_dynfee())
-        #dynfee_cb.setToolTip(_("Use fees recommended by the server."))
-        #fee_widgets.append((dynfee_cb, None))
-        #dynfee_cb.stateChanged.connect(on_dynfee)
+        def on_dynfee(x):
+            self.config.set_key('dynamic_fees', x == Qt.Checked)
+            self.fee_slider.update()
+            update_maxfee()
+        dynfee_cb = QCheckBox(_('Use dynamic fees'))
+        dynfee_cb.setChecked(self.config.is_dynfee())
+        dynfee_cb.setToolTip(_("Use fees recommended by the server."))
+        fee_widgets.append((dynfee_cb, None))
+        dynfee_cb.stateChanged.connect(on_dynfee)
 
         def on_maxfee(x):
             m = maxfee_e.get_amount()
