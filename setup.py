@@ -47,6 +47,7 @@ setup(
         'dnspython',
         'jsonrpclib-pelix',
         'PySocks>=1.6.6',
+        'cython',
     ],
     packages=[
         'electrum_mona',
@@ -78,6 +79,7 @@ setup(
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
+            'target.*',
         ]
     },
     scripts=['electrum-mona'],

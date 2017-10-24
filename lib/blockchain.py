@@ -26,8 +26,8 @@ import threading
 from . import util
 from . import bitcoin
 from .bitcoin import *
-#import pyximport; pyximport.install(pyimport = True)
-import target
+import pyximport; pyximport.install()
+from . import target
 
 try:
     import lyra2re2_hash

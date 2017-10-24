@@ -17,11 +17,3 @@ pip3 install PySocks -t ./packages
 pip3 install cython -t ./packages
 pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip -t ./packages
 pip3 install https://github.com/wakiyamap/ltc-scrypt/archive/master.zip -t ./packages
-
-cd lib
-python3 setup.py build_ext --inplace
-mv lib/target*.* ../packages
-rm -r lib
-rm -r build
-rm target.c
-cd ../
