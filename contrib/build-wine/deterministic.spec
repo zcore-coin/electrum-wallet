@@ -25,6 +25,7 @@ datas = [
     (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
     (home+'lib/locale', 'electrum_mona/locale'),
     (home+'plugins', 'electrum_mona_plugins'),
+    (home+'lib/lib/target.cp36-win32.pyd', 'electrum_mona'),
     #(home+'packages/requests/cacert.pem', 'requests/cacert.pem')
 ]
 datas += collect_data_files('trezorlib')

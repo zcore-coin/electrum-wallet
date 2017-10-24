@@ -59,6 +59,11 @@ pushd $WINEPREFIX/drive_c/electrum-mona
 $PYTHON setup.py install
 popd
 
+# Build target
+pushd $WINEPREFIX/drive_c/electrum-mona/lib
+$PYTHON setup.py build_ext --inplace
+popd
+
 
 cd ..
 
