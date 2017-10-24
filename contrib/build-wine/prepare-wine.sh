@@ -76,7 +76,6 @@ $PYTHON -m pip install win_inet_pton
 # install websocket (python2)
 $PYTHON -m pip install websocket-client
 
-
 # Install setuptools
 #wget -O setuptools.exe "$SETUPTOOLS_URL"
 #wine setuptools.exe
@@ -132,3 +131,4 @@ cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
 
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL
 $PYTHON -m pip install $LTC_SCRYPT_PYTHON_URL
+$PYTHON -m pip install cython

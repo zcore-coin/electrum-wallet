@@ -26,7 +26,8 @@ import threading
 from . import util
 from . import bitcoin
 from .bitcoin import *
-import get_target
+#import pyximport; pyximport.install(pyimport = True)
+import target
 
 try:
     import lyra2re2_hash
@@ -282,16 +283,8 @@ class Blockchain(util.PrintError):
     def get_target(self, height, chain=None):
         if bitcoin.TESTNET:
             return 0, 0
-        if height < 80000:
-            return get_target.Target.ltc(self, height, chain)
-        if height < 140000:
-            return get_target.Target.kgw(self, height, chain)
-        if height < 450000:
-            return get_target.Target.dgsld(self, height, chain)
-        if height >= 450000:
-            return get_target.Target.dgwv3(self, height, chain)
         else:
-            return 0, 0
+            return target.selectAlgo(self, height, chain)
 
     def can_connect(self, header, check_height=True):
         height = header['block_height']

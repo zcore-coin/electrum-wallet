@@ -14,12 +14,14 @@ pip3 install protobuf -t ./packages
 pip3 install dnspython -t ./packages
 pip3 install jsonrpclib-pelix -t ./packages
 pip3 install PySocks -t ./packages
+pip3 install cython -t ./packages
 pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip -t ./packages
 pip3 install https://github.com/wakiyamap/ltc-scrypt/archive/master.zip -t ./packages
+
 cd lib
 python3 setup.py build_ext --inplace
-mv lib/get_target*.* ../packages
+mv lib/target*.* ../packages
 rm -r lib
 rm -r build
-rm get_target.c
+rm target.c
 cd ../
