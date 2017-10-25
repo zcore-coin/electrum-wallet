@@ -33,7 +33,7 @@ cdef convbignum(bits):
     return target
 
 
-cdef ltc(self, height, chain=None):
+cdef ltc(self, long height, chain=None):
     if height < 1056:
         return 0x1e0ffff0, MAX_TARGET
     # Litecoin: go back the full period unless it's the first retarget
@@ -65,10 +65,10 @@ cdef kgw(self, height, chain=None):	#from vertcoin thanks https://github.com/ver
     if chain is None:
         chain = {}
 
-    BlocksTargetSpacing			= 1.5 * 60; # 1.5 minutes
-    TimeDaySeconds				= 60 * 60 * 24;
-    PastSecondsMin				= TimeDaySeconds * 0.25;
-    PastSecondsMax				= TimeDaySeconds * 7;
+    BlocksTargetSpacing			= 90; # 1.5 minutes
+    TimeDaySeconds				= 86400; #60 * 60 * 24
+    PastSecondsMin				= 21600; #TimeDaySeconds * 0.25
+    PastSecondsMax				= 604800; #TimeDaySeconds * 7
     PastBlocksMin				    = PastSecondsMin // BlocksTargetSpacing;
     PastBlocksMax				    = PastSecondsMax // BlocksTargetSpacing;
 
