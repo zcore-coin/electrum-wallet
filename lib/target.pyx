@@ -33,7 +33,7 @@ cdef convbignum(bits):
     return target
 
 
-cdef ltc(self, long height, chain=None):
+cdef ltc(self, height, chain=None):
     if height < 1056:
         return 0x1e0ffff0, MAX_TARGET
     # Litecoin: go back the full period unless it's the first retarget

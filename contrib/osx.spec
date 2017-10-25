@@ -12,11 +12,11 @@ hiddenimports += collect_submodules('btchip')
 hiddenimports += collect_submodules('keepkeylib')
 
 datas = [
-    (home+'lib/currencies.json', 'electrum'),
-    (home+'lib/servers.json', 'electrum'),
-    (home+'lib/wordlist/english.txt', 'electrum/wordlist'),
-    (home+'lib/locale', 'electrum/locale'),
-    (home+'plugins', 'electrum_plugins'),
+    (home+'lib/currencies.json', 'electrum_mona'),
+    (home+'lib/servers.json', 'electrum_mona'),
+    (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
+    (home+'lib/locale', 'electrum_mona/locale'),
+    (home+'plugins', 'electrum_mona_plugins'),
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')
@@ -30,6 +30,7 @@ a = Analysis([home+'electrum',
               home+'lib/wallet.py',
               home+'lib/simple_config.py',
               home+'lib/bitcoin.py',
+              home+'lib/blockchain.py',
               home+'lib/dnssec.py',
               home+'lib/commands.py',
               home+'plugins/cosigner_pool/qt.py',
@@ -55,7 +56,7 @@ exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.datas,
-          name='Electrum',
+          name='Electrum-mona',
           debug=False,
           strip=False,
           upx=True,
@@ -63,7 +64,7 @@ exe = EXE(pyz,
           console=False)
 
 app = BUNDLE(exe,
-             name='Electrum.app',
+             name='Electrum-mona.app',
              icon=home+'electrum.icns',
              bundle_identifier=None)
 
