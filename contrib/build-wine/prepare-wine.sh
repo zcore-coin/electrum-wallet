@@ -8,7 +8,6 @@ NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
 WINETRICKS_MASTER_URL=https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
 LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
-LTC_SCRYPT_PYTHON_URL=https://github.com/wakiyamap/ltc-scrypt/archive/master.zip
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
@@ -130,5 +129,5 @@ wine dlltool -dllname $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll
 cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
 
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL
-$PYTHON -m pip install $LTC_SCRYPT_PYTHON_URL
+$PYTHON -m pip install scrypt
 $PYTHON -m pip install cython
