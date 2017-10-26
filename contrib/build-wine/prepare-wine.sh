@@ -82,6 +82,9 @@ $PYTHON -m pip install websocket-client
 # Upgrade setuptools (so Electrum can be installed later)
 $PYTHON -m pip install setuptools --upgrade
 
+# install cython
+$PYTHON -m pip install cython
+
 # Install NSIS installer
 wget -q -O nsis.exe "$NSIS_URL"
 verify_hash nsis.exe $NSIS_SHA256
@@ -101,7 +104,7 @@ cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $W
 wget http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-setup.exe
 wine mingw-get-setup.exe
 
-echo "add c:\MinGW\bin to PATH using regedit"
+echo "add C:\MinGW\bin to PATH using regedit"
 echo "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
 regedit
 
@@ -128,6 +131,6 @@ wine pexports $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll >vcrunt
 wine dlltool -dllname $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
 cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
 
+# install lyra2re2_hash
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL
-$PYTHON -m pip install scrypt
-$PYTHON -m pip install cython
+

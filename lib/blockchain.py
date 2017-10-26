@@ -39,11 +39,10 @@ except ImportError as e:
     exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
 try:
+    from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
+except ImportError:
     import scrypt
     scryptGetHash = lambda x: scrypt.hash(x, x, N=1024, r=1, p=1, buflen=32)
-except ImportError:
-    util.print_msg("Warning: package scrypt not available, using fallback")
-    from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
 
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
