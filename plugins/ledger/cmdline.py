@@ -1,4 +1,4 @@
-from electrum_mona.util import print_msg
+from electrum_mona.plugins import hook
 from .ledger import LedgerPlugin
 from ..hw_wallet import CmdLineHandler
 
