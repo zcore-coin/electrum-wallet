@@ -61,8 +61,10 @@ popd
 
 # Build target
 pushd $WINEPREFIX/drive_c/electrum-mona/lib
-$PYTHON setup.py build_ext --inplace
+$PYTHON setup_target.py build_ext --inplace
 cp $WINEPREFIX/drive_c/electrum-mona/lib/lib/target.*.pyd $WINEPREFIX/drive_c/python$PYTHON_VERSION/
+$PYTHON setup_scrypt.py build_ext --inplace
+cp $WINEPREFIX/drive_c/electrum-mona/lib/lib/scrypt.*.pyd $WINEPREFIX/drive_c/python$PYTHON_VERSION/
 popd
 
 
