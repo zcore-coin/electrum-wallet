@@ -39,10 +39,11 @@ except ImportError as e:
     exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
 try:
-    from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
-except ImportError:
     import scrypt
     scryptGetHash = lambda x: scrypt.hash(x, x, N=1024, r=1, p=1, buflen=32)
+except ImportError:
+    util.print_msg("Warning: package scrypt not available, using fallback")
+    from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
 
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
@@ -160,6 +161,7 @@ class Blockchain(util.PrintError):
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
         height = header.get('block_height')
+        print (height)
         if height < 450000 :
             _powhash = rev_hex(bh2u(scryptGetHash(bfh(serialize_header(header)))))
         else:
