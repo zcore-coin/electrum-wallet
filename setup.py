@@ -79,7 +79,6 @@ setup(
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
             'target*.*',
-            'scrypt*.*',
         ]
     },
     scripts=['electrum-mona'],

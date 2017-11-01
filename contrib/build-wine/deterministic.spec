@@ -26,7 +26,6 @@ datas = [
     (home+'lib/locale', 'electrum_mona/locale'),
     (home+'plugins', 'electrum_mona_plugins'),
     (home+'lib/lib/target.*.pyd', 'electrum_mona'),
-    (home+'lib/lib/scrypt.*.pyd', 'electrum_mona'),
     #(home+'packages/requests/cacert.pem', 'requests/cacert.pem')
 ]
 datas += collect_data_files('trezorlib')

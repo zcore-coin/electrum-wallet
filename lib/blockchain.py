@@ -42,7 +42,6 @@ try:
     import scrypt
     scrypt.scrypt_1024_1_1_80 = lambda x: scrypt.hash(x, x, N=1024, r=1, p=1, buflen=32)
 except ImportError:
-    import pyximport; pyximport.install()
     from . import scrypt
 
 def serialize_header(res):
