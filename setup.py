@@ -78,7 +78,8 @@ setup(
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
-            'target.*',
+            'target*.*',
+            'scrypt*.*',
         ]
     },
     scripts=['electrum-mona'],

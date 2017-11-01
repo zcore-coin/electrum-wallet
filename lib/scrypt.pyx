@@ -58,7 +58,7 @@ def scrypt_1024_1_1_80(header):
     mac.update(bytes(B))
     return mac.digest()
 
-def _xor_salsa8_2(X):
+cdef _xor_salsa8_2(X):
     [
         x00, x01, x02, x03, x04, x05, x06, x07,
         x08, x09, x10, x11, x12, x13, x14, x15,

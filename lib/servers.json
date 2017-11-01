@@ -37,6 +37,30 @@
         "t": "50001",
         "version": "1.1"
     },
+    "electrumx1.monacoin.nl": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "electrumx2.monacoin.nl": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "electrumx1.monacoin.ninja": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
+    "electrumx2.monacoin.ninja": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.1"
+    },
     "electrum-mona.bitbank.cc": {
         "pruning": "-",
         "s": "50002",
