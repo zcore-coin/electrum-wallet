@@ -54,17 +54,15 @@ cp -r ../../../lib/locale $WINEPREFIX/drive_c/electrum-mona/lib/
 # Build Qt resources
 wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py
 
-
-pushd $WINEPREFIX/drive_c/electrum-mona
-$PYTHON setup.py install
-popd
-
 # Build target
 pushd $WINEPREFIX/drive_c/electrum-mona/lib
 $PYTHON setup.py build_ext --inplace
 cp $WINEPREFIX/drive_c/electrum-mona/lib/lib/target.*.pyd $WINEPREFIX/drive_c/python$PYTHON_VERSION/
 popd
 
+pushd $WINEPREFIX/drive_c/electrum-mona
+$PYTHON setup.py install
+popd
 
 cd ..
 
