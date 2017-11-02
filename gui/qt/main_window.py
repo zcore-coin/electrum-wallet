@@ -1567,16 +1567,16 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.utxo_list.update()
         self.update_fee()
 
-    def create_list_tab(self, l, buttons=None):
+    def create_list_tab(self, l, list_header=None):
         w = QWidget()
         w.searchable_list = l
         vbox = QVBoxLayout()
         w.setLayout(vbox)
         vbox.setContentsMargins(0, 0, 0, 0)
         vbox.setSpacing(0)
-        if buttons:
+        if list_header:
             hbox = QHBoxLayout()
-            for b in buttons:
+            for b in list_header:
                 hbox.addWidget(b)
             hbox.addStretch()
             vbox.addLayout(hbox)
@@ -1586,7 +1586,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def create_addresses_tab(self):
         from .address_list import AddressList
         self.address_list = l = AddressList(self)
-        return self.create_list_tab(l, l.get_buttons())
+        return self.create_list_tab(l, l.get_list_header())
 
     def create_utxo_tab(self):
         from .utxo_list import UTXOList
@@ -1932,7 +1932,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             rds_e.addCopyButton(self.app)
             vbox.addWidget(rds_e)
         if xtype in ['p2wpkh', 'p2wsh', 'p2wpkh-p2sh', 'p2wsh-p2sh']:
-            vbox.addWidget(WWLabel(_("Warning: the format of segwit private keys may not be compatible with other wallets")))
+            vbox.addWidget(WWLabel(_("Warning: the format of private keys associated to segwit addresses may not be compatible with other wallets")))
         vbox.addLayout(Buttons(CloseButton(d)))
         d.setLayout(vbox)
         d.exec_()

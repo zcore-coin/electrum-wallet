@@ -56,14 +56,14 @@ def read_json_dict(filename):
 XPRV_HEADERS = {
     'standard': 0x0488ade4,
     'p2wpkh-p2sh': 0x049d7878,
-    'p2wsh-p2sh': 0x295b004,
+    'p2wsh-p2sh': 0x295b005,
     'p2wpkh': 0x4b2430c,
     'p2wsh': 0x2aa7a99
 }
 XPUB_HEADERS = {
     'standard': 0x0488b21e,
     'p2wpkh-p2sh': 0x049d7cb2,
-    'p2wsh-p2sh': 0x295b43e,
+    'p2wsh-p2sh': 0x295b43f,
     'p2wpkh': 0x4b24746,
     'p2wsh': 0x2aa7ed3
 }
@@ -71,7 +71,7 @@ XPUB_HEADERS = {
 
 # Bitcoin network constants
 TESTNET = False
-NOLNET = False
+WIF_PREFIX = 0xB0
 ADDRTYPE_P2PKH = 50
 ADDRTYPE_P2SH = 55
 ADDRTYPE_P2SH_ALT = 5
@@ -90,7 +90,9 @@ def set_testnet():
     global GENESIS
     global SEGWIT_HRP
     global DEFAULT_PORTS, SERVERLIST, DEFAULT_SERVERS
+    global WIF_PREFIX
     TESTNET = True
+    WIF_PREFIX = 0xef
     ADDRTYPE_P2PKH = 111
     ADDRTYPE_P2SH = 117
     ADDRTYPE_P2SH_ALT = 196
@@ -526,7 +528,7 @@ SCRIPT_TYPES = {
 
 
 def serialize_privkey(secret, compressed, txin_type):
-    prefix = bytes([(SCRIPT_TYPES[txin_type]+128)&255])
+    prefix = bytes([(SCRIPT_TYPES[txin_type]+WIF_PREFIX)&255])
     suffix = b'\01' if compressed else b''
     vchIn = prefix + secret + suffix
     return EncodeBase58Check(vchIn)
@@ -538,7 +540,7 @@ def deserialize_privkey(key):
     if is_minikey(key):
         return 'p2pkh', minikey_to_private_key(key), True
     elif vch:
-        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - 128]
+        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - WIF_PREFIX]
         assert len(vch) in [33, 34]
         compressed = len(vch) == 34
         return txin_type, vch[1:33], compressed
@@ -931,7 +933,6 @@ def deserialize_xkey(xkey, prv):
 
 def deserialize_xpub(xkey):
     return deserialize_xkey(xkey, False)
-
 
 def deserialize_xprv(xkey):
     return deserialize_xkey(xkey, True)
