@@ -63,6 +63,9 @@ for d in a.datas:
         a.datas.remove(d)
         break
 
+# hotfix for #3171 (pre-Win10 binaries)
+a.binaries = [x for x in a.binaries if not x[1].lower().startswith(r'c:\windows')]
+
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
           a.scripts,
@@ -73,7 +76,7 @@ exe = EXE(pyz,
           strip=None,
           upx=False,
           icon=home+'icons/electrum.ico',
-          console=True)
+          console=False)
           # The console True makes an annoying black box pop up, but it does make Electrum output command line commands, with this turned off no output will be given but commands can still be used
 
 coll = COLLECT(exe,
