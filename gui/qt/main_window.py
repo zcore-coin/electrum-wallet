@@ -2357,7 +2357,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             text = str(keys_e.toPlainText())
             return keystore.get_private_keys(text)
 
-        f = lambda: button.setEnabled(get_address() is not None and get_pk() is not None)
+        def get_pk_old():
+            text = str(keys_e.toPlainText())
+            return keystore.get_private_keys_old(text)
+
+        f = lambda: button.setEnabled(get_address() is not None and (get_pk() is not None or get_pk_old() is not None))
         on_address = lambda text: address_e.setStyleSheet((ColorScheme.DEFAULT if get_address() else ColorScheme.RED).as_stylesheet())
         keys_e.textChanged.connect(f)
         address_e.textChanged.connect(f)
@@ -2366,7 +2370,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
 
         try:
-            tx = self.wallet.sweep(get_pk(), self.network, self.config, get_address(), None)
+            if get_pk() is not None:
+                tx = self.wallet.sweep(get_pk(), self.network, self.config, get_address(), None)
+            else:
+                tx = self.wallet.sweep(get_pk_old(), self.network, self.config, get_address(), None)
         except BaseException as e:
             self.show_message(str(e))
             return

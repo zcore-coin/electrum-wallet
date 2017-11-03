@@ -664,6 +664,12 @@ def get_private_keys(text):
     if bool(parts) and all(bitcoin.is_private_key(x) for x in parts):
         return parts
 
+def get_private_keys_old(text):
+    parts = text.split('\n')
+    parts = map(lambda x: ''.join(x.split()), parts)
+    parts = list(filter(bool, parts))
+    if bool(parts) and all(bitcoin.is_private_key_old(x) for x in parts):
+        return parts
 
 def is_private_key_list(text):
     return bool(get_private_keys(text))

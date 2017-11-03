@@ -904,7 +904,17 @@ class Abstract_Wallet(PrintError):
             keypairs[pubkey] = privkey, compressed
 
         if not inputs:
-            raise BaseException(_('No inputs found. (Note that inputs need to be confirmed)'))
+            inputs = []
+            keypairs = {}
+            for sec in privkeys:
+                txin_type, privkey, compressed = bitcoin.deserialize_privkey_old(sec)
+                pubkey = bitcoin.public_key_from_private_key(privkey, compressed)
+                self._append_utxos_to_inputs(inputs, network, pubkey, txin_type, imax)
+                if txin_type == 'p2pkh':  # WIF serialization is ambiguous :(
+                    self._append_utxos_to_inputs(inputs, network, pubkey, 'p2pk', imax)
+                keypairs[pubkey] = privkey, compressed
+            if not inputs:
+                raise BaseException(_('No inputs found. (Note that inputs need to be confirmed)'))
 
         total = sum(i.get('value') for i in inputs)
         if fee is None:

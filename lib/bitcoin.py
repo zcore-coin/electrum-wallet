@@ -72,6 +72,7 @@ XPUB_HEADERS = {
 # Bitcoin network constants
 TESTNET = False
 WIF_PREFIX = 0xB0
+WIF_PREFIX_OLD = 0xB2
 ADDRTYPE_P2PKH = 50
 ADDRTYPE_P2SH = 55
 ADDRTYPE_P2SH_ALT = 5
@@ -547,6 +548,19 @@ def deserialize_privkey(key):
     else:
         raise BaseException("cannot deserialize", key)
 
+def deserialize_privkey_old(key):
+    # whether the pubkey is compressed should be visible from the keystore
+    vch = DecodeBase58Check(key)
+    if is_minikey(key):
+        return 'p2pkh', minikey_to_private_key(key), True
+    elif vch:
+        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - WIF_PREFIX_OLD]
+        assert len(vch) in [33, 34]
+        compressed = len(vch) == 34
+        return txin_type, vch[1:33], compressed
+    else:
+        raise BaseException("cannot deserialize", key)
+
 def regenerate_key(pk):
     assert len(pk) == 32
     return EC_KEY(pk)
@@ -594,6 +608,13 @@ def is_address(addr):
 def is_private_key(key):
     try:
         k = deserialize_privkey(key)
+        return k is not False
+    except:
+        return False
+
+def is_private_key_old(key):
+    try:
+        k = deserialize_privkey_old(key)
         return k is not False
     except:
         return False
