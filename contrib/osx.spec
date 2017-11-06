@@ -2,7 +2,7 @@
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-home = '/Users/voegtlin/electrum/'
+home = '/Users/wakiyamap/electrum-mona/'
 block_cipher=None
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
@@ -23,7 +23,7 @@ datas += collect_data_files('btchip')
 datas += collect_data_files('keepkeylib')
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([home+'electrum',
+a = Analysis([home+'electrum-mona',
               home+'gui/qt/main_window.py',
               home+'gui/text.py',
               home+'lib/util.py',

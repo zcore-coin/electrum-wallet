@@ -3,5 +3,5 @@ rm -rf dist
 export PYTHONHASHSEED=22
 VERSION=`git describe --tags`
 pyinstaller --noconfirm --ascii contrib/osx.spec
-hdiutil create -fs HFS+ -volname "Electrum" -srcfolder dist/Electrum.app dist/electrum-$VERSION.dmg
+hdiutil create -fs HFS+ -volname "Electrum-MONA" -srcfolder dist/Electrum-MONA.app dist/electrum-mona-$VERSION.dmg
 
