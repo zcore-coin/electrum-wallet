@@ -67,5 +67,9 @@ exe = EXE(pyz,
 app = BUNDLE(exe,
              name='Electrum-mona.app',
              icon=home+'electrum.icns',
-             bundle_identifier=None)
+             bundle_identifier=None,
+             info_plist={
+                 'NSHighResolutionCapable': 'True'
+                 },
+             )
 
