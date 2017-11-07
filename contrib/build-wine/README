@@ -1,7 +1,7 @@
 These scripts can be used for cross-compilation of Windows Electrum executables from Linux/Wine.
 
 Usage:
-1. Install Wine (tested with wine-2.17 (Staging))
+1. Install Wine (tested with wine-2.17 (Staging)) on Ubuntu16.04 x86
 
 2. Run "./prepare-wine.sh", it will download all dependencies. When you'll be asked, always leave default settings and press "Next >".
 3. Run "./prepare-hw.sh" to build support for hardware wallets (TREZOR)

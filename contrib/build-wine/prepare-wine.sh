@@ -3,6 +3,7 @@
 PYTHON_VERSION=3.6.3
 # Please update these links carefully, some versions won't work under Wine
 PYTHON_URL=https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION.exe
+PYTHON_SHA256=cb3bfe1e6b0d1254cebf9bb1fc095fe74396af8baf65f244d5f9b349d232b280
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
 VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
@@ -48,6 +49,7 @@ cd tmp
 
 # Install Python
 wget -O python$PYTHON_VERSION.exe "$PYTHON_URL"
+verify_hash python$PYTHON_VERSION.exe $PYTHON_SHA256
 wine python$PYTHON_VERSION.exe /quiet TargetDir=C:\python$PYTHON_VERSION
 
 # upgrade pip
@@ -104,7 +106,8 @@ wine mingw-get-setup.exe
 
 echo "add C:\MinGW\bin to PATH using regedit"
 echo "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
-regedit
+#regedit
+wine reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d C:\\MinGW\\bin\;C\:\\windows\\system32\;C:\\windows\;C:\\windows\\system32\\wbem /f
 
 wine mingw-get install gcc
 wine mingw-get install mingw-utils
@@ -124,7 +127,6 @@ pushd $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils
 patch < msvcr140.patch
 popd
 
-wine mingw-get install pexports
 wine pexports $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll >vcruntime140.def
 wine dlltool -dllname $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
 cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
