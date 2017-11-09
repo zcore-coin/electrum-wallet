@@ -11,7 +11,7 @@ Electrum-mona - Lightweight Monacoin client
 
 
 .. image:: https://travis-ci.org/wakiyamap/electrum-mona.svg?branch=master
-    :target: https://github.com/wakiyamap/electrum-mona/
+    :target: https://travis-ci.org/wakiyamap/electrum-mona
     :alt: Build Status
 .. image:: https://coveralls.io/repos/github/wakiyamap/electrum-mona/badge.svg?branch=master
     :target: https://coveralls.io/github/wakiyamap/electrum-mona?branch=master
