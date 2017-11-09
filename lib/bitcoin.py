@@ -87,7 +87,7 @@ DEFAULT_SERVERS = read_json_dict('servers.json')
 
 def set_testnet():
     global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT
-    global TESTNET, HEADERS_URL
+    global TESTNET, HEADERS_URL_1st, HEADERS_URL_2nd, HEADERS_URL_3rd
     global GENESIS
     global SEGWIT_HRP
     global DEFAULT_PORTS, SERVERLIST, DEFAULT_SERVERS
@@ -98,7 +98,9 @@ def set_testnet():
     ADDRTYPE_P2SH = 117
     ADDRTYPE_P2SH_ALT = 196
     SEGWIT_HRP = "tmona"
-    HEADERS_URL = "https://headers.example.org/testnet_headers"
+    HEADERS_URL_1st = "https://electrum-mona.org/testnet_headers"
+    HEADERS_URL_2nd = None
+    HEADERS_URL_3rd = None
     GENESIS = "a2b106ceba3be0c6d097b2a6a6aacf9d638ba8258ae478158f449c321061e0b2"
     SERVERLIST = 'servers_testnet.json'
     DEFAULT_PORTS = {'t':'51001', 's':'51002'}

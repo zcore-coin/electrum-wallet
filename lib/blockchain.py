@@ -160,15 +160,15 @@ class Blockchain(util.PrintError):
 
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = hash_header(prev_header)
+        if prev_hash != header.get('prev_block_hash'):
+            raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+        if bitcoin.TESTNET:
+            return
         height = header.get('block_height')
         if height < 450000 :
             _powhash = rev_hex(bh2u(scryptGetHash(bfh(serialize_header(header)))))
         else:
             _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
-        if prev_hash != header.get('prev_block_hash'):
-            raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-        if bitcoin.TESTNET:
-            return
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         if int('0x' + _powhash, 16) > target:
