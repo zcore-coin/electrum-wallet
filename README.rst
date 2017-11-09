@@ -10,11 +10,11 @@ Electrum-mona - Lightweight Monacoin client
   Homepage: https://electrum-mona.org/
 
 
-.. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
+.. image:: https://travis-ci.org/wakiyamap/electrum-mona.svg?branch=master
     :target: https://github.com/wakiyamap/electrum-mona/
     :alt: Build Status
-.. image:: https://coveralls.io/repos/github/spesmilo/electrum/badge.svg?branch=master
-    :target: https://coveralls.io/github/spesmilo/electrum?branch=master
+.. image:: https://coveralls.io/repos/github/wakiyamap/electrum-mona/badge.svg?branch=master
+    :target: https://coveralls.io/github/wakiyamap/electrum-mona?branch=master
     :alt: Test coverage statistics
 
 
