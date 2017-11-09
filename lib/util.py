@@ -448,8 +448,8 @@ mainnet_block_explorers = {
 }
 
 testnet_block_explorers = {
-    'Blocktrail.com': ('https://www.blocktrail.com/tBTC',
-                       {'tx': 'tx', 'addr': 'address'}),
+    'insight.monaco-ex.org': ('https://testnet-mona.insight.monaco-ex.org/insight',
+                        {'tx': 'tx', 'addr': 'address'}),
     'system default': ('blockchain:',
                        {'tx': 'tx', 'addr': 'address'}),
 }
