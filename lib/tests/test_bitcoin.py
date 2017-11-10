@@ -63,17 +63,17 @@ class Test_bitcoin(unittest.TestCase):
             return key.sign_message(msg, compressed)
 
         sig1 = sign_message_with_wif_privkey(
-            'L19BcbHWsctdEFV6xsP6t31yZYqrXH6s7vWGiSA3zPZbLhP8xhHj', msg1)
-        addr1 = 'MMdVZJ3aCH2phnNwPJEGwGSbVhvuiZFNDT'
+            'T8UqLXgii9iBbQAoypL8Yz7Zta7w8QTt2qq66ViLSGXGQCGbo7rv', msg1)
+        addr1 = 'MRHx4jW2KAQeEDMuK7pGLUGWvPRQT1Epmj'
         sig2 = sign_message_with_wif_privkey(
-            'Kx9F8XW2sM4ngHtSabieTvbRAbUh6uMgJ3Q7s3W4pmoHsn3XNaRo', msg2)
-        addr2 = 'MQGDpkEf4J3xG2Hdx2FoAoRQMNrGFWquqi'
+            'T3o9vVd82bASRouYDpSHo2KyFR82LB7FezpZAFDpLcbNd7AGuEJQ', msg2)
+        addr2 = 'MLBCmvG4A7AqCD6MMYjf7YdV96YK5teZ5N'
 
         sig1_b64 = base64.b64encode(sig1)
         sig2_b64 = base64.b64encode(sig2)
 
-        self.assertEqual(sig1_b64, b'H4WZjfhbje78p32RIKIddWo5f4JtDNFhovtweIZ5WCPdOryyrwKTPCs0LdkIm1g09YDTT5tuXubxblvfFqSUFTc=')
-        self.assertEqual(sig2_b64, b'IP7e1lHS5IUcO1mJfqrG5JCNL5HPZVpxZ0cR13lqZXP1Pgt/4bqO44+VZopToBoYIwPb6veNONWrRMLRDNQZces=')
+        self.assertEqual(sig1_b64, b'H6xd6TvFWTozs2RggXrItARkvZ3/7iQijgP5j7+KpiVgP2z1JuGQqkdhaDXyVgtKehTaTamf1/uVa+2uDszWxbE=')
+        self.assertEqual(sig2_b64, b'H/9iSTCgZZ1h34cKQ9nhGlb6VLy5vyeha15Zgu+KQQzZa7s/+xV2QXD3Sd9smvptHlFC8VIu52miup7vQ82gD3k=')
 
         self.assertTrue(verify_message(addr1, sig1, msg1))
         self.assertTrue(verify_message(addr2, sig2, msg2))
@@ -244,38 +244,38 @@ class Test_xprv_xpub(unittest.TestCase):
 class Test_keyImport(unittest.TestCase):
 
     priv_pub_addr = (
-           {'priv': 'KzMFjMC2MPadjvX5Cd7b8AKKjjpBSoRKUTpoAtN6B3J9ezWYyXS6',
-            'pub': '02c6467b7e621144105ed3e4835b0b4ab7e35266a2ae1c4f8baa19e9ca93452997',
-            'address': 'MEVA4t2rW7ncKSUemENyj1bePBbiJdscSC',
+           {'priv': 'T9ZV9h1ZkYfgh2E2h5CZbEzrc32nz3uK2KjhA1Amu7JzNo99YGxg',
+            'pub': '0251ce5368b2ac47b6e7fb7222c1180ea0012e4891b56cefb8d9d187bc7ad11659',
+            'address': 'MN3qk8taHHcLp52tf6v9V4CyfiJuCpwz4B',
             'minikey' : False,
             'txin_type': 'p2pkh',
             'compressed': True,
             'addr_encoding': 'base58',
-            'scripthash': 'c9aecd1fef8d661a42c560bf75c8163e337099800b8face5ca3d1393a30508a7'},
-           {'priv': '5Hxn5C4SQuiV6e62A1MtZmbSeQyrLFhu5uYks62pU5VBUygK2KD',
-            'pub': '04e5fe91a20fac945845a5518450d23405ff3e3e1ce39827b47ee6d5db020a9075422d56a59195ada0035e4a52a238849f68e7a325ba5b2247013e0481c5c7cb3f',
-            'address': 'MPHSitSXyEKarmiJc3YXGj9eQhUP97gom3',
+            'scripthash': '33c5367b611c9183b2eedf0a32de2fa57f399f75e6b884fdaaf95a655f706d7c'},
+           {'priv': '6ymMe23cQJpFbeURHAk55m6iQDP2BNNFwmempMtpGxKj9idvR8K',
+            'pub': '041958d7b0db55e8c42912231ade8713aa1127603c78ce91fa3be5a8386d24b4a03efe44e3c5f56362a268f84a8a42f75a50fbb6f976198dae2cea926df1439f87',
+            'address': 'PT7Y9pqWHZHfsnk1dw9ejq3Yp2pQ6qBSCf',
             'minikey': False,
-            'txin_type': 'p2pkh',
+            'txin_type': 'p2wpkh-p2sh',
             'compressed': False,
             'addr_encoding': 'base58',
-            'scripthash': 'f5914651408417e1166f725a5829ff9576d0dbf05237055bf13abd2af7f79473'},
-           {'priv': 'LHJnnvRzsdrTX2j5QeWVsaBkabK7gfMNqNNqxnbBVRaJYfk24iJz',
-            'pub': '0279ad237ca0d812fb503ab86f25e15ebd5fa5dd95c193639a8a738dcd1acbad81',
-            'address': 'PPYeXbxCpsHdmMHkKA7ThDwDyhdqSE95rN',
+            'scripthash': '8a11cc149d7dce867caccf61e5481d00acf782f790b169bf808b4a6ab32a5efb'},
+           {'priv': 'TNAttqWnTUoRfgduAasFX7oZNj3oC28euS3nQCmt5rfy6Uk5FBEr',
+            'pub': '0273a3c1bd660286dc632400f8ecaaf9d782b8941e0cc5e1bc73308e658510021c',
+            'address': 'PN7E5z6oUHf6aQQivCmmn8haFe6FtYshAJ',
             'minikey': False,
             'txin_type': 'p2wpkh-p2sh',
             'compressed': True,
             'addr_encoding': 'base58',
-            'scripthash': 'd7b04e882fa6b13246829ac552a2b21461d9152eb00f0a6adb58457a3e63d7c5'},
-           {'priv': 'L8g5V8kFFeg2WbecahRSdobARbHz2w2STH9S8ePHVSY4fmia7Rsj',
-            'pub': '03e9f948421aaa89415dc5f281a61b60dde12aae3181b3a76cd2d849b164fc6d0b',
-            'address': 'mona1qqmpt7u5e9hfznljta5gnvhyvfd2kdd0rpupv3c',
+            'scripthash': '8945b92543e13adc7c3d35d2be7924c00a125a25741f15fe5df8275a7c15cd42'},
+           {'priv': 'TH9hBPJWPL7n63oN2QkQFRLWYsFDUKd7sqjuauvmU3H5KxKR4vZG',
+            'pub': '03b9ace321eddd5037f35bc141a9f6cbd54d5064b917da1ef02e1b575f410f5e11',
+            'address': 'mona1quunc907zfyj7cyxhnp9584rj0wmdka2ec9w3af',
             'minikey': False,
             'txin_type': 'p2wpkh',
             'compressed': True,
             'addr_encoding': 'bech32',
-            'scripthash': '1929acaaef3a208c715228e9f1ca0318e3a6b9394ab53c8d026137f847ecf97b'},
+            'scripthash': 'bdd0b86d7c9290b25b8528f01739358445cd9d050e8aef8099eb74f8e34db082'},
            # from http://bitscan.com/articles/security/spotlight-on-mini-private-keys
            {'priv': 'SzavMBLoXU6kDrqtUVmffv',
             'pub': '02588d202afcc1ee4ab5254c7847ec25b9a135bbda0f2bc69ee1a714749fd77dc9',
