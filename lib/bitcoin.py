@@ -69,43 +69,41 @@ XPUB_HEADERS = {
 }
 
 
-# Bitcoin network constants
-TESTNET = False
-WIF_PREFIX = 0xB0
-WIF_PREFIX_OLD = 0xB2
-ADDRTYPE_P2PKH = 50
-ADDRTYPE_P2SH = 55
-ADDRTYPE_P2SH_ALT = 5
-SEGWIT_HRP = "mona"
-HEADERS_URL_1st = "https://electrum-mona.org/blockchain_headers"
-HEADERS_URL_2nd = "https://gateway.ipfs.io/ipfs/QmWRzyMArRuPZo8JmcCxSCodPEvkh6D9kTB9ybaqe3EURv"
-HEADERS_URL_3rd = "https://sound.sighash.info/blockchain_headers" #thanks ohac!!
-GENESIS = "ff9f1c0116d19de7c9963845e129f9ed1bfc0b376eb54fd7afa42e0d418c8bb6"
-SERVERLIST = 'servers.json'
-DEFAULT_PORTS = {'t':'50001', 's':'50002'}
-DEFAULT_SERVERS = read_json_dict('servers.json')
+class NetworkConstants:
 
-def set_testnet():
-    global ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT
-    global TESTNET, HEADERS_URL_1st, HEADERS_URL_2nd, HEADERS_URL_3rd
-    global GENESIS
-    global SEGWIT_HRP
-    global DEFAULT_PORTS, SERVERLIST, DEFAULT_SERVERS
-    global WIF_PREFIX
-    TESTNET = True
-    WIF_PREFIX = 0xef
-    ADDRTYPE_P2PKH = 111
-    ADDRTYPE_P2SH = 117
-    ADDRTYPE_P2SH_ALT = 196
-    SEGWIT_HRP = "tmona"
-    HEADERS_URL_1st = "https://electrum-mona.org/testnet_headers"
-    HEADERS_URL_2nd = None
-    HEADERS_URL_3rd = None
-    GENESIS = "a2b106ceba3be0c6d097b2a6a6aacf9d638ba8258ae478158f449c321061e0b2"
-    SERVERLIST = 'servers_testnet.json'
-    DEFAULT_PORTS = {'t':'51001', 's':'51002'}
-    DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
+    @classmethod
+    def set_mainnet(cls):
+        cls.TESTNET = False
+        cls.WIF_PREFIX = 0xB0
+        cls.WIF_PREFIX_OLD = 0xB2
+        cls.ADDRTYPE_P2PKH = 50
+        cls.ADDRTYPE_P2SH = 55
+        cls.ADDRTYPE_P2SH_ALT = 5
+        cls.SEGWIT_HRP = "mona"
+        cls.HEADERS_URL_1st = "https://electrum-mona.org/blockchain_headers"
+        cls.HEADERS_URL_2nd = "https://gateway.ipfs.io/ipfs/QmWRzyMArRuPZo8JmcCxSCodPEvkh6D9kTB9ybaqe3EURv"
+        cls.HEADERS_URL_3rd = "https://sound.sighash.info/blockchain_headers" #thanks ohac!!
+        cls.GENESIS = "ff9f1c0116d19de7c9963845e129f9ed1bfc0b376eb54fd7afa42e0d418c8bb6"
+        cls.DEFAULT_PORTS = {'t': '50001', 's': '50002'}
+        cls.DEFAULT_SERVERS = read_json_dict('servers.json')
 
+    @classmethod
+    def set_testnet(cls):
+        cls.TESTNET = True
+        cls.WIF_PREFIX = 0xef
+        cls.ADDRTYPE_P2PKH = 111
+        cls.ADDRTYPE_P2SH = 117
+        cls.ADDRTYPE_P2SH_ALT = 196
+        cls.SEGWIT_HRP = "tmona"
+        cls.HEADERS_URL_1st = "https://electrum-mona.org/testnet_headers"
+        cls.HEADERS_URL_2nd = None
+        cls.HEADERS_URL_3rd = None
+        cls.GENESIS = "a2b106ceba3be0c6d097b2a6a6aacf9d638ba8258ae478158f449c321061e0b2"
+        cls.DEFAULT_PORTS = {'t':'51001', 's':'51002'}
+        cls.DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
+
+
+NetworkConstants.set_mainnet()
 
 ################################## transactions
 
@@ -346,16 +344,16 @@ def b58_address_to_hash160(addr):
 
 
 def hash160_to_p2pkh(h160):
-    return hash160_to_b58_address(h160, ADDRTYPE_P2PKH)
+    return hash160_to_b58_address(h160, NetworkConstants.ADDRTYPE_P2PKH)
 
 def hash160_to_p2sh(h160):
-    return hash160_to_b58_address(h160, ADDRTYPE_P2SH)
+    return hash160_to_b58_address(h160, NetworkConstants.ADDRTYPE_P2SH)
 
 def public_key_to_p2pkh(public_key):
     return hash160_to_p2pkh(hash_160(public_key))
 
 def hash_to_segwit_addr(h):
-    return segwit_addr.encode(SEGWIT_HRP, 0, h)
+    return segwit_addr.encode(NetworkConstants.SEGWIT_HRP, 0, h)
 
 def public_key_to_p2wpkh(public_key):
     return hash_to_segwit_addr(hash_160(public_key))
@@ -401,7 +399,7 @@ def script_to_address(script):
     return addr
 
 def address_to_script(addr):
-    witver, witprog = segwit_addr.decode(SEGWIT_HRP, addr)
+    witver, witprog = segwit_addr.decode(NetworkConstants.SEGWIT_HRP, addr)
     if witprog is not None:
         assert (0 <= witver <= 16)
         OP_n = witver + 0x50 if witver > 0 else 0
@@ -409,11 +407,11 @@ def address_to_script(addr):
         script += push_script(bh2u(bytes(witprog)))
         return script
     addrtype, hash_160 = b58_address_to_hash160(addr)
-    if addrtype == ADDRTYPE_P2PKH:
+    if addrtype == NetworkConstants.ADDRTYPE_P2PKH:
         script = '76a9'                                      # op_dup, op_hash_160
         script += push_script(bh2u(hash_160))
         script += '88ac'                                     # op_equalverify, op_checksig
-    elif addrtype in [ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
+    elif addrtype in [NetworkConstants.ADDRTYPE_P2SH, NetworkConstants.ADDRTYPE_P2SH_ALT]:
         script = 'a9'                                        # op_hash_160
         script += push_script(bh2u(hash_160))
         script += '87'                                       # op_equal
@@ -531,7 +529,7 @@ SCRIPT_TYPES = {
 
 
 def serialize_privkey(secret, compressed, txin_type):
-    prefix = bytes([(SCRIPT_TYPES[txin_type]+WIF_PREFIX)&255])
+    prefix = bytes([(SCRIPT_TYPES[txin_type]+NetworkConstants.WIF_PREFIX)&255])
     suffix = b'\01' if compressed else b''
     vchIn = prefix + secret + suffix
     return EncodeBase58Check(vchIn)
@@ -543,7 +541,7 @@ def deserialize_privkey(key):
     if is_minikey(key):
         return 'p2pkh', minikey_to_private_key(key), True
     elif vch:
-        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - WIF_PREFIX]
+        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - NetworkConstants.WIF_PREFIX]
         assert len(vch) in [33, 34]
         compressed = len(vch) == 34
         return txin_type, vch[1:33], compressed
@@ -556,7 +554,7 @@ def deserialize_privkey_old(key):
     if is_minikey(key):
         return 'p2pkh', minikey_to_private_key(key), True
     elif vch:
-        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - WIF_PREFIX_OLD]
+        txin_type = inv_dict(SCRIPT_TYPES)[vch[0] - NetworkConstants.WIF_PREFIX_OLD]
         assert len(vch) in [33, 34]
         compressed = len(vch) == 34
         return txin_type, vch[1:33], compressed
@@ -591,7 +589,7 @@ def address_from_private_key(sec):
     return pubkey_to_address(txin_type, public_key)
 
 def is_segwit_address(addr):
-    witver, witprog = segwit_addr.decode(SEGWIT_HRP, addr)
+    witver, witprog = segwit_addr.decode(NetworkConstants.SEGWIT_HRP, addr)
     return witprog is not None
 
 def is_b58_address(addr):
@@ -599,7 +597,7 @@ def is_b58_address(addr):
         addrtype, h = b58_address_to_hash160(addr)
     except Exception as e:
         return False
-    if addrtype not in [ADDRTYPE_P2PKH, ADDRTYPE_P2SH, ADDRTYPE_P2SH_ALT]:
+    if addrtype not in [NetworkConstants.ADDRTYPE_P2PKH, NetworkConstants.ADDRTYPE_P2SH, NetworkConstants.ADDRTYPE_P2SH_ALT]:
         return False
     return addr == hash160_to_b58_address(h, addrtype)
 
