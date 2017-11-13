@@ -2,12 +2,8 @@
 # create a BIP70 payment request signed with a certificate
 
 import tlslite
-import time
-import hashlib
 
 from electrum_mona.transaction import Transaction
-from electrum_mona import bitcoin
-from electrum_mona import x509
 from electrum_mona import paymentrequest
 from electrum_mona import paymentrequest_pb2 as pb2
 

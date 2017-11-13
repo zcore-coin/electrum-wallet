@@ -1,19 +1,16 @@
 from struct import pack, unpack
 import hashlib
-import time
 import sys
-import os
 import traceback
 
-import electrum_mona as electrum
 from electrum_mona import bitcoin
-from electrum_mona.bitcoin import TYPE_ADDRESS, int_to_hex, var_int, ADDRTYPE_P2PKH, ADDRTYPE_P2SH
+from electrum_mona.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
 from electrum_mona.i18n import _
-from electrum_mona.plugins import BasePlugin, hook
-from electrum_mona.keystore import Hardware_KeyStore, parse_xpubkey
-from electrum_mona.transaction import push_script, Transaction
+from electrum_mona.plugins import BasePlugin
+from electrum_mona.keystore import Hardware_KeyStore
+from electrum_mona.transaction import Transaction
 from ..hw_wallet import HW_PluginBase
-from electrum_mona.util import format_satoshis_plain, print_error, is_verbose, bfh, bh2u
+from electrum.util import print_error, is_verbose, bfh, bh2u
 
 try:
     import hid

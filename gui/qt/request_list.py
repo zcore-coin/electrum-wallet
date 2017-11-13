@@ -24,9 +24,9 @@
 # SOFTWARE.
 
 from electrum_mona.i18n import _
-from electrum_mona.util import block_explorer_URL, format_satoshis, format_time, age
+from electrum_mona.util import format_time, age
 from electrum_mona.plugins import run_hook
-from electrum_mona.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum_mona.paymentrequest import PR_UNKNOWN
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QTreeWidgetItem, QMenu

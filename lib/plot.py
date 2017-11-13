@@ -4,8 +4,6 @@ from electrum_mona.i18n import _
 
 import datetime
 from collections import defaultdict
-
-from electrum_mona.util import format_satoshis
 from electrum_mona.bitcoin import COIN
 
 import matplotlib

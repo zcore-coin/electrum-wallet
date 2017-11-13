@@ -1,4 +1,4 @@
-from electrum_mona.util import print_msg, raw_input
+from electrum_mona.plugins import hook
 from .keepkey import KeepKeyPlugin
 from ..hw_wallet import CmdLineHandler
 

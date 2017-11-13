@@ -27,11 +27,11 @@ import socket
 
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 import PyQt5.QtCore as QtCore
 
 from electrum_mona.i18n import _
 from electrum_mona.bitcoin import NetworkConstants
-from electrum_mona.network import serialize_server, deserialize_server
 from electrum_mona.util import print_error
 
 from .util import *

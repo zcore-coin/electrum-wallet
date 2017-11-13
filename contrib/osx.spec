@@ -2,6 +2,14 @@
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
+import sys
+for i, x in enumerate(sys.argv):
+    if x == '--name':
+        VERSION = sys.argv[i+1]
+        break
+else:
+    raise BaseException('no version')
+
 home = '/Users/wakiyamap/electrum-mona/'
 block_cipher=None
 
@@ -65,11 +73,12 @@ exe = EXE(pyz,
           console=False)
 
 app = BUNDLE(exe,
+             version = VERSION,
              name='Electrum-mona.app',
              icon=home+'electrum.icns',
              bundle_identifier=None,
-             info_plist={
-                 'NSHighResolutionCapable': 'True'
-                 },
-             )
+             info_plist = {
+                 'NSHighResolutionCapable':'True'
+             }
+)
 

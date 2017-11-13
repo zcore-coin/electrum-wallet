@@ -87,7 +87,7 @@ if is_local or is_android:
     imp.load_module('electrum_mona_plugins', *imp.find_module('plugins'))
 
 
-from electrum_mona import bitcoin, network
+from electrum_mona import bitcoin
 from electrum_mona import SimpleConfig, Network
 from electrum_mona.wallet import Wallet, Imported_Wallet
 from electrum_mona.storage import WalletStorage
