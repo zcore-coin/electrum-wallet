@@ -178,7 +178,7 @@ class SendScreen(CScreen):
     def set_URI(self, text):
         import electrum_mona as electrum
         try:
-            uri = electrum.util.parse_URI(text, self.app.on_pr)
+            uri = electrum_mona.util.parse_URI(text, self.app.on_pr)
         except:
             self.app.show_info(_("Not a Bitcoin URI"))
             return

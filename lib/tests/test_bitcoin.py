@@ -11,7 +11,7 @@ from lib.bitcoin import (
     var_int, op_push, address_to_script, regenerate_key,
     verify_message, deserialize_privkey, serialize_privkey, is_segwit_address,
     is_b58_address, address_to_scripthash, is_minikey, is_compressed, is_xpub,
-    xpub_type, is_xprv, is_bip32_derivation, seed_type)
+    xpub_type, is_xprv, is_bip32_derivation, seed_type, deserialize_privkey_old)
 from lib.util import bfh
 
 try:
@@ -56,9 +56,15 @@ class Test_bitcoin(unittest.TestCase):
     def test_msg_signing(self):
         msg1 = b'wakiyama tamami chan'
         msg2 = b'tottemo kawaii'
+        msg3 = b'yone'
 
         def sign_message_with_wif_privkey(wif_privkey, msg):
             txin_type, privkey, compressed = deserialize_privkey(wif_privkey)
+            key = regenerate_key(privkey)
+            return key.sign_message(msg, compressed)
+
+        def sign_message_with_wif_privkey_old(wif_privkey, msg):
+            txin_type, privkey, compressed = deserialize_privkey_old(wif_privkey)
             key = regenerate_key(privkey)
             return key.sign_message(msg, compressed)
 
@@ -68,15 +74,21 @@ class Test_bitcoin(unittest.TestCase):
         sig2 = sign_message_with_wif_privkey(
             'T3o9vVd82bASRouYDpSHo2KyFR82LB7FezpZAFDpLcbNd7AGuEJQ', msg2)
         addr2 = 'MLBCmvG4A7AqCD6MMYjf7YdV96YK5teZ5N'
+        sig3 = sign_message_with_wif_privkey_old(
+            'TM3TwXiEnEmKs64zCvXw2Jr9mkwgUgxNSvGyVC2nTYQMn2LcxM5C', msg3)
+        addr3 = 'MEexKwbCkfepLkRPi6EfWReurzxL9eBvkU'
 
         sig1_b64 = base64.b64encode(sig1)
         sig2_b64 = base64.b64encode(sig2)
+        sig3_b64 = base64.b64encode(sig3)
 
         self.assertEqual(sig1_b64, b'H6xd6TvFWTozs2RggXrItARkvZ3/7iQijgP5j7+KpiVgP2z1JuGQqkdhaDXyVgtKehTaTamf1/uVa+2uDszWxbE=')
         self.assertEqual(sig2_b64, b'H/9iSTCgZZ1h34cKQ9nhGlb6VLy5vyeha15Zgu+KQQzZa7s/+xV2QXD3Sd9smvptHlFC8VIu52miup7vQ82gD3k=')
+        self.assertEqual(sig3_b64, b'H9AgGi/VN4kbi48KFD8UvFlx1x/PxmxZmIzmM5ffK0hDFwxVo9n47elRhfryoUznpkm1bKJA4n0L/t1wRShlBrE=')
 
         self.assertTrue(verify_message(addr1, sig1, msg1))
         self.assertTrue(verify_message(addr2, sig2, msg2))
+        self.assertTrue(verify_message(addr3, sig3, msg3))
 
         self.assertFalse(verify_message(addr1, b'wrong', msg1))
         self.assertFalse(verify_message(addr1, sig2, msg1))
