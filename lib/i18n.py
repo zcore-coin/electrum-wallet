@@ -29,10 +29,6 @@ language = gettext.translation('electrum', LOCALE_DIR, fallback = True)
 
 def _(x):
     global language
-    return language.gettext(x)
-
-def _(x):
-    global language
     dic = [('Bitcoin', 'Monacoin'), ('bitcoin', 'monacoin'), ('比特币', '萌奈币')]
     for b, m in dic:
         x = x.replace(m, b)
@@ -41,7 +37,11 @@ def _(x):
         t = t.replace(b, m)
     return t
 
+def set_language(x):
+    global language
+    if x: language = gettext.translation('electrum', LOCALE_DIR, fallback = True, languages=[x])
 
+        
 languages = {
     '':_('Default'),
     'ar_SA':_('Arabic'),
