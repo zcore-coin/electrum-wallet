@@ -57,6 +57,7 @@ class Test_bitcoin(unittest.TestCase):
         msg1 = b'wakiyama tamami chan'
         msg2 = b'tottemo kawaii'
         msg3 = b'yone'
+        msg4 = b'watanabe thanks'
 
         def sign_message_with_wif_privkey(wif_privkey, msg):
             txin_type, privkey, compressed = deserialize_privkey(wif_privkey)
@@ -77,21 +78,29 @@ class Test_bitcoin(unittest.TestCase):
         sig3 = sign_message_with_wif_privkey_old(
             'TM3TwXiEnEmKs64zCvXw2Jr9mkwgUgxNSvGyVC2nTYQMn2LcxM5C', msg3)
         addr3 = 'MEexKwbCkfepLkRPi6EfWReurzxL9eBvkU'
+        sig4 = sign_message_with_wif_privkey_old(
+            'TPNSUD1m5JUFLRKZ5agm5H9JVACJDEPxwS1fYjiHB6khvvbefUR5', msg4)
+        addr4 = 'MNUye8sS7A5yeZVfgZD3XUwwcBgX9f27AS'
 
         sig1_b64 = base64.b64encode(sig1)
         sig2_b64 = base64.b64encode(sig2)
         sig3_b64 = base64.b64encode(sig3)
+        sig4_b64 = base64.b64encode(sig4)
 
         self.assertEqual(sig1_b64, b'H6xd6TvFWTozs2RggXrItARkvZ3/7iQijgP5j7+KpiVgP2z1JuGQqkdhaDXyVgtKehTaTamf1/uVa+2uDszWxbE=')
         self.assertEqual(sig2_b64, b'H/9iSTCgZZ1h34cKQ9nhGlb6VLy5vyeha15Zgu+KQQzZa7s/+xV2QXD3Sd9smvptHlFC8VIu52miup7vQ82gD3k=')
         self.assertEqual(sig3_b64, b'H9AgGi/VN4kbi48KFD8UvFlx1x/PxmxZmIzmM5ffK0hDFwxVo9n47elRhfryoUznpkm1bKJA4n0L/t1wRShlBrE=')
+        self.assertEqual(sig4_b64, b'IDiwhqCV0wiQ+NyoBArfYoU3gZG+E1BYd0Zq8XZvqlMkXcZcePzbgMnn08h8tpVAXnsvhA0HbvqxKrkzl/gfvB8=')
 
         self.assertTrue(verify_message(addr1, sig1, msg1))
         self.assertTrue(verify_message(addr2, sig2, msg2))
         self.assertTrue(verify_message(addr3, sig3, msg3))
+        self.assertTrue(verify_message(addr4, sig4, msg4))
 
         self.assertFalse(verify_message(addr1, b'wrong', msg1))
         self.assertFalse(verify_message(addr1, sig2, msg1))
+        self.assertFalse(verify_message(addr3, b'wrong', msg3))
+        self.assertFalse(verify_message(addr3, sig4, msg3))
 
     def test_aes_homomorphic(self):
         """Make sure AES is homomorphic."""
