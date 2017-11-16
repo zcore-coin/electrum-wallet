@@ -60,6 +60,12 @@ $PYTHON setup.py build_ext --inplace
 cp $WINEPREFIX/drive_c/electrum-mona/lib/lib/target.*.pyd $WINEPREFIX/drive_c/python$PYTHON_VERSION/
 popd
 
+# build japanese version
+cp ../default-ja.patch $WINEPREFIX/drive_c/electrum-mona/gui/qt
+pushd $WINEPREFIX/drive_c/electrum-mona/gui/qt
+patch < default-ja.patch
+popd
+
 pushd $WINEPREFIX/drive_c/electrum-mona
 $PYTHON setup.py install
 popd
@@ -68,14 +74,8 @@ cd ..
 
 rm -rf dist/
 
-# build japanese version
-cp default-ja.patch $WINEPREFIX/drive_c/electrum-mona/gui/qt
-pushd $WINEPREFIX/drive_c/electrum-mona/gui/qt
-patch < default-ja.patch
-popd
-
 # build standalone version
-wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION.exe -w deterministic.spec 
+wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --clean --noconfirm --ascii --name $NAME_ROOT-$VERSION.exe -w deterministic.spec 
 
 # build NSIS installer
 # $VERSION could be passed to the electrum.nsi script, but this would require some rewriting in the script iself.
@@ -95,6 +95,6 @@ pushd $WINEPREFIX/drive_c/electrum-mona
 patch < portable.patch 
 popd
 
-wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
+wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --clean --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
 
 echo "Done."
