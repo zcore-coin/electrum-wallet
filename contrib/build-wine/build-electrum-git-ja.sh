@@ -2,6 +2,7 @@
 
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
+ELECTRUM_LOCALE_URL=git://github.com/spesmilo/electrum-locale.git
 BRANCH=master
 NAME_ROOT=electrum-mona
 PYTHON_VERSION=3.6.3
@@ -13,7 +14,7 @@ fi
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
 export PYTHONHASHSEED=22
-
+export PYTHONDONTWRITEBYTECODE=1
 
 PYHOME=c:/python$PYTHON_VERSION
 PYTHON="wine $PYHOME/python.exe -OO -B"
@@ -25,32 +26,50 @@ set -e
 
 cd tmp
 
-if [ -d "electrum-mona-git" ]; then
+
+if [ -d "electrum-mona" ]; then
     # GIT repository found, update it
     echo "Pull"
-    cd electrum-mona-git
+    cd electrum-mona
     git checkout $BRANCH
     git pull
     cd ..
 else
     # GIT repository not found, clone it
     echo "Clone"
-    git clone -b $BRANCH $ELECTRUM_GIT_URL electrum-mona-git
+    git clone -b $BRANCH $ELECTRUM_GIT_URL electrum-mona
 fi
 
-cd electrum-mona-git
+if [ -d "electrum-locale" ]; then
+    # GIT repository found, update it
+    echo "Pull"
+    cd electrum-locale
+    git checkout $BRANCH
+    git pull
+    cd ..
+else
+    # GIT repository not found, clone it
+    echo "Clone"
+    git clone -b $BRANCH $ELECTRUM_LOCALE_URL electrum-locale
+fi
+
+pushd electrum-locale
+for i in ./locale/*; do
+    dir=$i/LC_MESSAGES
+    mkdir -p $dir
+    msgfmt --output-file=$dir/electrum.mo $i/electrum.po || true
+done
+popd
+
+pushd electrum-mona
 VERSION=`git describe --tags`
 echo "Last commit: $VERSION"
-
-cd ..
+popd
 
 rm -rf $WINEPREFIX/drive_c/electrum-mona
-cp -r electrum-mona-git $WINEPREFIX/drive_c/electrum-mona
-cp electrum-mona-git/LICENCE .
-
-# add locale dir
-cp -r ../../../lib/locale $WINEPREFIX/drive_c/electrum-mona/lib/
-
+cp -r electrum-mona $WINEPREFIX/drive_c/electrum-mona
+cp electrum-mona/LICENCE .
+cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
 # Build Qt resources
 wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py
 
@@ -66,6 +85,9 @@ pushd $WINEPREFIX/drive_c/electrum-mona/gui/qt
 patch < default-ja.patch
 popd
 
+# Install frozen dependencies
+$PYTHON -m pip install -r ../../requirements.txt
+
 pushd $WINEPREFIX/drive_c/electrum-mona
 $PYTHON setup.py install
 popd
@@ -75,7 +97,7 @@ cd ..
 rm -rf dist/
 
 # build standalone version
-wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --clean --noconfirm --ascii --name $NAME_ROOT-$VERSION.exe -w deterministic.spec 
+wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION.exe -w deterministic.spec 
 
 # build NSIS installer
 # $VERSION could be passed to the electrum.nsi script, but this would require some rewriting in the script iself.
@@ -95,6 +117,6 @@ pushd $WINEPREFIX/drive_c/electrum-mona
 patch < portable.patch 
 popd
 
-wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --clean --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
+wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --noconfirm --ascii --name $NAME_ROOT-$VERSION-portable.exe -w deterministic.spec
 
 echo "Done."
