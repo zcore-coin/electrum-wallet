@@ -2367,7 +2367,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         address_e.textChanged.connect(on_address)
         if not d.exec_():
             return
-        from electrum.wallet import sweep
+        from electrum_mona.wallet import sweep
         try:
             if get_pk() is not None:
                 tx = sweep(get_pk(), self.network, self.config, get_address(), None)
