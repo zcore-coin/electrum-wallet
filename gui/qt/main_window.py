@@ -118,6 +118,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.require_fee_update = False
         self.tx_notifications = []
         self.tl_windows = []
+        self.tx_external_keypairs = {}
 
         self.create_status_bar()
         self.need_update = threading.Event()
@@ -1413,7 +1414,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.on_error(exc_info)
             callback(False)
 
-        task = partial(self.wallet.sign_transaction, tx, password)
+        if self.tx_external_keypairs:
+            task = partial(Transaction.sign, tx, self.tx_external_keypairs)
+        else:
+            task = partial(self.wallet.sign_transaction, tx, password)
         WaitingDialog(self, _('Signing transaction...'), task,
                       on_signed, on_failed)
 
@@ -1556,6 +1560,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             e.setFrozen(False)
         self.set_pay_from([])
         self.rbf_checkbox.setChecked(False)
+        self.tx_external_keypairs = {}
         self.update_status()
         run_hook('do_clear', self)
 
@@ -1742,6 +1747,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         qtVersion = qVersion()
 
         self.balance_label = QLabel("")
+        self.balance_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.balance_label.setStyleSheet("""QLabel { padding: 0 }""")
         sb.addWidget(self.balance_label)
 
         self.search_box = QLineEdit()
@@ -2367,17 +2374,23 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         address_e.textChanged.connect(on_address)
         if not d.exec_():
             return
-        from electrum_mona.wallet import sweep
+        from electrum_mona.wallet import sweep_preparations
         try:
+            self.do_clear()
             if get_pk() is not None:
-                tx = sweep(get_pk(), self.network, self.config, get_address(), None)
+                coins, keypairs = sweep_preparations(get_pk(), self.network)
             else:
-                tx = sweep(get_pk_old(), self.network, self.config, get_address(), None)
+                coins, keypairs = sweep_preparations(get_pk_old(), self.network)
+            self.tx_external_keypairs = keypairs
+            self.spend_coins(coins)
+            self.payto_e.setText(get_address())
+            self.spend_max()
+            self.payto_e.setFrozen(True)
+            self.amount_e.setFrozen(True)
         except BaseException as e:
             self.show_message(str(e))
             return
         self.warn_if_watching_only()
-        self.show_transaction(tx)
 
     def _do_import(self, title, msg, func):
         text = text_dialog(self, title, msg + ' :', _('Import'))

@@ -540,4 +540,3 @@ class RSAKey(object):
         key.qInv = invMod(q, p)
         return key
     generate = staticmethod(generate)
-
