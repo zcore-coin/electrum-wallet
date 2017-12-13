@@ -86,7 +86,11 @@ def read_blockchains(config):
         checkpoint = int(filename.split('_')[2])
         parent_id = int(filename.split('_')[1])
         b = Blockchain(config, checkpoint, parent_id)
-        blockchains[b.checkpoint] = b
+        h = b.read_header(b.checkpoint)
+        if b.parent().can_connect(h, check_height=False):
+            blockchains[b.checkpoint] = b
+        else:
+            util.print_error("cannot connect", filename)
     return blockchains
 
 def check_header(header):
@@ -113,6 +117,7 @@ class Blockchain(util.PrintError):
         self.config = config
         self.catch_up = None # interface catching up
         self.checkpoint = checkpoint
+        self.checkpoints = bitcoin.NetworkConstants.CHECKPOINTS
         self.parent_id = parent_id
         self.lock = threading.Lock()
         with self.lock:
@@ -177,6 +182,7 @@ class Blockchain(util.PrintError):
     def verify_chunk(self, index, data):
         num = len(data) // 80
         prev_header = None
+        #prev_hash = self.get_hash(index * 2016 - 1)
         if index != 0:
             prev_header = self.read_header(index * 2016 - 1)
         headers = {}
@@ -271,18 +277,22 @@ class Blockchain(util.PrintError):
             with open(name, 'rb') as f:
                 f.seek(delta * 80)
                 h = f.read(80)
+        if h == bytes([0])*80:
+            return None
         return deserialize_header(h, height)
 
     def get_hash(self, height):
-        return hash_header(self.read_header(height))
-
-    def BIP9(self, height, flag):
-        v = self.read_header(height)['version']
-        return ((v & 0xE0000000) == 0x20000000) and ((v & flag) == flag)
-
-    def segwit_support(self, N=144):
-        h = self.local_height
-        return sum([self.BIP9(h-i, 2) for i in range(N)])*10000/N/100.
+        if height == -1:
+            return '0000000000000000000000000000000000000000000000000000000000000000'
+        elif height == 0:
+            return bitcoin.NetworkConstants.GENESIS
+        elif height < len(self.checkpoints) * 2016:
+            assert (height+1) % 2016 == 0
+            index = height // 2016
+            h, t = self.checkpoints[index]
+            return h
+        else:
+            return hash_header(self.read_header(height))
 
 
     def get_target(self, height, chain=None):
@@ -294,13 +304,14 @@ class Blockchain(util.PrintError):
     def can_connect(self, header, check_height=True):
         height = header['block_height']
         if check_height and self.height() != height - 1:
+            #self.print_error("cannot connect at height", height)
             return False
         if height == 0:
             return hash_header(header) == bitcoin.NetworkConstants.GENESIS
-        previous_header = self.read_header(height -1)
-        if not previous_header:
+        try:
+            prev_hash = self.get_hash(height - 1)
+        except:
             return False
-        prev_hash = hash_header(previous_header)
         if prev_hash != header.get('prev_block_hash'):
             return False
         headers = {}
@@ -308,7 +319,7 @@ class Blockchain(util.PrintError):
         bits, target = self.get_target(height, headers)
         try:
             self.verify_header(header, previous_header, bits, target)
-        except:
+        except BaseException as e:
             return False
         return True
 
@@ -322,3 +333,13 @@ class Blockchain(util.PrintError):
         except BaseException as e:
             self.print_error('verify_chunk failed', str(e))
             return False
+
+    def get_checkpoints(self):
+        # for each chunk, store the hash of the last block and the target after the chunk
+        cp = []
+        n = self.height() // 2016
+        for index in range(n):
+            h = self.get_hash((index+1) * 2016 -1)
+            target = self.get_target(index)
+            cp.append((h, target))
+        return cp

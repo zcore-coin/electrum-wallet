@@ -37,13 +37,13 @@ from . import version
 from .util import print_error, InvalidPassword, assert_bytes, to_bytes, inv_dict
 from . import segwit_addr
 
-def read_json_dict(filename):
+def read_json(filename, default):
     path = os.path.join(os.path.dirname(__file__), filename)
     try:
         with open(path, 'r') as f:
             r = json.loads(f.read())
     except:
-        r = {}
+        r = default
     return r
 
 
@@ -80,12 +80,10 @@ class NetworkConstants:
         cls.ADDRTYPE_P2SH = 55
         cls.ADDRTYPE_P2SH_ALT = 5
         cls.SEGWIT_HRP = "mona"
-        cls.HEADERS_URL_1st = "https://electrum-mona.org/blockchain_headers"
-        cls.HEADERS_URL_2nd = "https://gateway.ipfs.io/ipfs/QmWRzyMArRuPZo8JmcCxSCodPEvkh6D9kTB9ybaqe3EURv"
-        cls.HEADERS_URL_3rd = "https://sound.sighash.info/blockchain_headers" #thanks ohac!!
         cls.GENESIS = "ff9f1c0116d19de7c9963845e129f9ed1bfc0b376eb54fd7afa42e0d418c8bb6"
         cls.DEFAULT_PORTS = {'t': '50001', 's': '50002'}
-        cls.DEFAULT_SERVERS = read_json_dict('servers.json')
+        cls.DEFAULT_SERVERS = read_json('servers.json', {})
+        cls.CHECKPOINTS = read_json('checkpoints.json', [])
 
     @classmethod
     def set_testnet(cls):
@@ -95,12 +93,10 @@ class NetworkConstants:
         cls.ADDRTYPE_P2SH = 117
         cls.ADDRTYPE_P2SH_ALT = 196
         cls.SEGWIT_HRP = "tmona"
-        cls.HEADERS_URL_1st = "https://electrum-mona.org/testnet_headers"
-        cls.HEADERS_URL_2nd = None
-        cls.HEADERS_URL_3rd = None
         cls.GENESIS = "a2b106ceba3be0c6d097b2a6a6aacf9d638ba8258ae478158f449c321061e0b2"
         cls.DEFAULT_PORTS = {'t':'51001', 's':'51002'}
-        cls.DEFAULT_SERVERS = read_json_dict('servers_testnet.json')
+        cls.DEFAULT_SERVERS = read_json('servers_testnet.json', {})
+        cls.CHECKPOINTS = read_json('checkpoints_testnet.json', [])
 
 
 NetworkConstants.set_mainnet()

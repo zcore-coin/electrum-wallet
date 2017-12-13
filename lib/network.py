@@ -1,4 +1,3 @@
-
 # Electrum - Lightweight Bitcoin Client
 # Copyright (c) 2011-2016 Thomas Voegtlin
 #
@@ -804,15 +803,22 @@ class Network(util.DaemonThread):
             interface.print_error("unsolicited header",interface.request, height)
             self.connection_down(interface.server)
             return
-
         chain = blockchain.check_header(header)
         if interface.mode == 'backward':
-            if chain:
+            can_connect = blockchain.can_connect(header)
+            if can_connect and can_connect.catch_up is None:
+                interface.mode = 'catch_up'
+                interface.blockchain = can_connect
+                interface.blockchain.save_header(header)
+                next_height = height + 1
+                interface.blockchain.catch_up = interface.server
+            elif chain:
                 interface.print_error("binary search")
                 interface.mode = 'binary'
                 interface.blockchain = chain
                 interface.good = height
                 next_height = (interface.bad + interface.good) // 2
+                assert next_height >= self.max_checkpoint(), (interface.bad, interface.good)
             else:
                 if height == 0:
                     self.connection_down(interface.server)
@@ -821,7 +827,7 @@ class Network(util.DaemonThread):
                     interface.bad = height
                     interface.bad_header = header
                     delta = interface.tip - height
-                    next_height = max(0, interface.tip - 2 * delta)
+                    next_height = max(self.max_checkpoint(), interface.tip - 2 * delta)
 
         elif interface.mode == 'binary':
             if chain:
@@ -832,6 +838,7 @@ class Network(util.DaemonThread):
                 interface.bad_header = header
             if interface.bad != interface.good + 1:
                 next_height = (interface.bad + interface.good) // 2
+                assert next_height >= self.max_checkpoint()
             elif not interface.blockchain.can_connect(interface.bad_header, check_height=False):
                 self.connection_down(interface.server)
                 next_height = None
@@ -941,43 +948,18 @@ class Network(util.DaemonThread):
 
     def init_headers_file(self):
         b = self.blockchains[0]
-        if b.get_hash(0) == bitcoin.NetworkConstants.GENESIS:
-            self.downloading_headers = False
-            return
         filename = b.path()
-        def download_thread():
-            import requests
-            urls = [bitcoin.NetworkConstants.HEADERS_URL_1st, bitcoin.NetworkConstants.HEADERS_URL_2nd, bitcoin.NetworkConstants.HEADERS_URL_3rd, None]
-            for url in urls:
-                if url is None:
-                    self.print_error("download failed. creating file", filename)
-                    open(filename, 'wb+').close()
-                    break
-                try:
-                    self.print_error("downloading ", url)
-                    response = requests.get(url, timeout=5.0)
-                    if response.status_code != 200: raise
-                    with open(filename, 'wb+') as fout: fout.write(response.content)
-                    #import urllib.request, socket
-                    #socket.setdefaulttimeout(30)
-                    #urllib.request.urlretrieve(url, filename + '.tmp')
-                    #os.rename(filename + '.tmp', filename)
-                    self.print_error("done.")
-                    break
-                except Exception:
-                    self.print_error("download failed: ", url)
-            b = self.blockchains[0]
-            with b.lock: b.update_size()
-            self.downloading_headers = False
-        self.downloading_headers = True
-        t = threading.Thread(target = download_thread)
-        t.daemon = True
-        t.start()
+        if not os.path.exists(filename):
+            length = 80 * len(bitcoin.NetworkConstants.CHECKPOINTS) * 2016
+            with open(filename, 'wb') as f:
+                if length>0:
+                    f.seek(length-1)
+                    f.write(b'\x00')
+        with b.lock:
+            b.update_size()
 
     def run(self):
         self.init_headers_file()
-        while self.is_running() and self.downloading_headers:
-            time.sleep(1)
         while self.is_running():
             self.maintain_sockets()
             self.wait_on_sockets()
@@ -990,6 +972,9 @@ class Network(util.DaemonThread):
     def on_notify_header(self, interface, header):
         height = header.get('block_height')
         if not height:
+            return
+        if height < self.max_checkpoint():
+            self.connection_down(interface)
             return
         interface.tip_header = header
         interface.tip = height
@@ -1015,14 +1000,17 @@ class Network(util.DaemonThread):
             interface.mode = 'backward'
             interface.bad = height
             interface.bad_header = header
-            self.request_header(interface, min(tip, height - 1))
+            self.request_header(interface, min(tip +1, height - 1))
         else:
             chain = self.blockchains[0]
             if chain.catch_up is None:
                 chain.catch_up = interface
                 interface.mode = 'catch_up'
                 interface.blockchain = chain
+                self.print_error("switching to catchup mode", tip,  self.blockchains)
                 self.request_header(interface, 0)
+            else:
+                self.print_error("chain already catching up with", chain.catch_up.server)
 
     def blockchain(self):
         if self.interface and self.interface.blockchain is not None:
@@ -1078,3 +1066,12 @@ class Network(util.DaemonThread):
         if out != tx_hash:
             return False, "error: " + out
         return True, out
+
+    def export_checkpoints(self, path):
+        # run manually from the console to generate checkpoints
+        cp = self.blockchain().get_checkpoints()
+        with open(path, 'w') as f:
+            f.write(json.dumps(cp, indent=4))
+
+    def max_checkpoint(self):
+        return max(0, len(bitcoin.NetworkConstants.CHECKPOINTS) * 2016 - 1)
