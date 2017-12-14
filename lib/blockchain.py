@@ -170,6 +170,11 @@ class Blockchain(util.PrintError):
         if bitcoin.NetworkConstants.TESTNET:
             return
         height = header.get('block_height')
+        if height == 2015:
+            print ("-----------")
+            print (height)
+            print (bits)
+            print (hash_header(self.read_header(height)))
         if height < 450000 :
             _powhash = rev_hex(bh2u(scryptGetHash(bfh(serialize_header(header)))))
         else:
@@ -282,17 +287,17 @@ class Blockchain(util.PrintError):
         return deserialize_header(h, height)
 
     def get_hash(self, height):
-        if height == -1:
-            return '0000000000000000000000000000000000000000000000000000000000000000'
-        elif height == 0:
-            return bitcoin.NetworkConstants.GENESIS
-        elif height < len(self.checkpoints) * 2016:
-            assert (height+1) % 2016 == 0
-            index = height // 2016
-            h, t = self.checkpoints[index]
-            return h
-        else:
-            return hash_header(self.read_header(height))
+        #if height == -1:
+        #    return '0000000000000000000000000000000000000000000000000000000000000000'
+        #elif height == 0:
+        #    return bitcoin.NetworkConstants.GENESIS
+        #elif height < len(self.checkpoints) * 2016:
+        #    assert (height+1) % 2016 == 0
+        #    index = height // 2016
+        #    h, t = self.checkpoints[index]
+        #    return h
+        #else:
+        return hash_header(self.read_header(height))
 
 
     def get_target(self, height, chain=None):
@@ -308,8 +313,9 @@ class Blockchain(util.PrintError):
             return False
         if height == 0:
             return hash_header(header) == bitcoin.NetworkConstants.GENESIS
+        previous_header = self.read_header(height -1)
         try:
-            prev_hash = self.get_hash(height - 1)
+            prev_hash = hash_header(previous_header)
         except:
             return False
         if prev_hash != header.get('prev_block_hash'):
