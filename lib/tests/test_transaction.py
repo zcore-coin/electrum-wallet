@@ -137,10 +137,10 @@ class TestTransaction(unittest.TestCase):
 
     def test_estimated_output_size(self):
         estimated_output_size = transaction.Transaction.estimated_output_size
-        self.assertEqual(estimated_output_size('14gcRovpkCoGkCNBivQBvw7eso7eiNAbxG'), 34)
-        self.assertEqual(estimated_output_size('35ZqQJcBQMZ1rsv8aSuJ2wkC7ohUCQMJbT'), 32)
-        self.assertEqual(estimated_output_size('bc1q3g5tmkmlvxryhh843v4dz026avatc0zzr6h3af'), 31)
-        self.assertEqual(estimated_output_size('bc1qnvks7gfdu72de8qv6q6rhkkzu70fqz4wpjzuxjf6aydsx7wxfwcqnlxuv3'), 43)
+        self.assertEqual(estimated_output_size('MFMy9FwJsV6HiN5eZDqDETw4pw52q3UGrb'), 34)
+        self.assertEqual(estimated_output_size('PHjTKtgYLTJ9D2Bzw2f6xBB41KBm2HeGfg'), 32)
+        self.assertEqual(estimated_output_size('mona1quunc907zfyj7cyxhnp9584rj0wmdka2ec9w3af'), 31)
+        self.assertEqual(estimated_output_size('mona1qp8f842ywwr9h5rdxyzggex7q3trvvvaarfssxccju52rj6htfzfsqr79j2'), 43)
 
     # TODO other tests for segwit tx
     def test_tx_signed_segwit(self):
