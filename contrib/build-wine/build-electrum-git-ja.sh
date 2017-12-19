@@ -7,10 +7,6 @@ BRANCH=master
 NAME_ROOT=electrum-mona
 PYTHON_VERSION=3.6.3
 
-if [ "$#" -gt 0 ]; then
-    BRANCH="$1"
-fi
-
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
 export PYTHONDONTWRITEBYTECODE=1

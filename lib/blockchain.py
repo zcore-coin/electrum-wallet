@@ -529,7 +529,7 @@ class Blockchain(util.PrintError):
             return 0, 0
         elif height // 2016 < len(self.checkpoints):
             h, t = self.checkpoints[height // 2016]
-            return convbits(t),t
+            return self.convbits(t[1]),t
         elif height < 80000:
             return self.ltc(height, chain)
         elif height < 140000:
