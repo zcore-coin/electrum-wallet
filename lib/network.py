@@ -949,22 +949,18 @@ class Network(util.DaemonThread):
     def init_headers_file(self):
         b = self.blockchains[0]
         filename = b.path()
-        #for old version headers monacoin
+        if os.path.exists(filename):
+            filesize = os.path.getsize(filename)
+        else:
+            filesize = 0
         length = 80 * len(bitcoin.NetworkConstants.CHECKPOINTS) * 2016
-        with open(filename, 'wb') as f:
-            if length>0:
-                f.seek(length-1)
-                f.write(b'\x00')
+        if filesize<=length:
+            with open(filename, 'wb') as f:
+                if length>0:
+                    f.seek(length-1)
+                    f.write(b'\x00')
         with b.lock:
             b.update_size()
-        #if not os.path.exists(filename):
-        #    length = 80 * len(bitcoin.NetworkConstants.CHECKPOINTS) * 2016
-        #    with open(filename, 'wb') as f:
-        #        if length>0:
-        #            f.seek(length-1)
-        #            f.write(b'\x00')
-        #with b.lock:
-        #    b.update_size()
 
     def run(self):
         self.init_headers_file()
