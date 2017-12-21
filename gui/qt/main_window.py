@@ -2579,17 +2579,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         feebox_cb.stateChanged.connect(on_feebox)
         fee_widgets.append((feebox_cb, None))
 
-<<<<<<< HEAD
-        rbf_policy = self.config.get('rbf_policy', 2)
-        rbf_label = HelpLabel(_('Propose Replace-By-Fee') + ':', '')
-        rbf_combo = QComboBox()
-        rbf_combo.addItems([_('Always'), _('If the fee is low'), _('Never')])
-        rbf_combo.setCurrentIndex(rbf_policy)
-        def on_rbf(x):
-            self.config.set_key('rbf_policy', x)
-        rbf_combo.currentIndexChanged.connect(on_rbf)
-        fee_widgets.append((rbf_label, rbf_combo))
-=======
         use_rbf_cb = QCheckBox(_('Use Replace-By-Fee'))
         use_rbf_cb.setChecked(self.config.get('use_rbf', True))
         use_rbf_cb.setToolTip(
@@ -2600,7 +2589,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.config.set_key('use_rbf', x == Qt.Checked)
         use_rbf_cb.stateChanged.connect(on_use_rbf)
         fee_widgets.append((use_rbf_cb, None))
->>>>>>> upstream/master
 
         self.fee_unit = self.config.get('fee_unit', 0)
         fee_unit_label = HelpLabel(_('Fee Unit') + ':', '')
