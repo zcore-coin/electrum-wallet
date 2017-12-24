@@ -105,7 +105,8 @@ proxy_modes = ['socks4', 'socks5', 'http']
 def serialize_proxy(p):
     if not isinstance(p, dict):
         return None
-    return ':'.join([p.get('mode'),p.get('host'), p.get('port'), p.get('user'), p.get('password')])
+    return ':'.join([p.get('mode'), p.get('host'), p.get('port'),
+                     p.get('user', ''), p.get('password', '')])
 
 
 def deserialize_proxy(s):
@@ -151,9 +152,7 @@ class Network(util.DaemonThread):
     servers, each connected socket is handled by an Interface() object.
     Connections are initiated by a Connection() thread which stops once
     the connection succeeds or fails.
-
     Our external API:
-
     - Member functions get_header(), get_interfaces(), get_local_height(),
           get_parameters(), get_server_height(), get_status_value(),
           is_connected(), set_parameters(), stop()
@@ -818,7 +817,7 @@ class Network(util.DaemonThread):
                 interface.blockchain = chain
                 interface.good = height
                 next_height = (interface.bad + interface.good) // 2
-                assert next_height >= self.max_checkpoint(), (interface.bad, interface.good)
+                ##assert next_height >= self.max_checkpoint(), (interface.bad, interface.good)
             else:
                 if height == 0:
                     self.connection_down(interface.server)
@@ -838,7 +837,7 @@ class Network(util.DaemonThread):
                 interface.bad_header = header
             if interface.bad != interface.good + 1:
                 next_height = (interface.bad + interface.good) // 2
-                assert next_height >= self.max_checkpoint()
+                ##assert next_height >= self.max_checkpoint()
             elif not interface.blockchain.can_connect(interface.bad_header, check_height=False):
                 self.connection_down(interface.server)
                 next_height = None

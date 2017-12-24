@@ -179,8 +179,6 @@ class Blockchain(util.PrintError):
     def verify_chunk(self, index, data):
         num = len(data) // 80
         prev_hash = self.get_hash(index * 2016 - 1)
-        if index != 0:
-            prev_header = self.read_header(index * 2016 - 1)
         headers = {}
         for i in range(num):
             raw_header = data[i*80:(i+1) * 80]
@@ -282,11 +280,13 @@ class Blockchain(util.PrintError):
             return '0000000000000000000000000000000000000000000000000000000000000000'
         if height == 0:
             return bitcoin.NetworkConstants.GENESIS
-        elif height < len(self.checkpoints) * 2016:
-            assert (height+1) % 2016 == 0
+        elif height < len(self.checkpoints) * 2016 and (height+1) % 2016 == 0:
+            #assert (height+1) % 2016 == 0
             index = height // 2016
             h, t = self.checkpoints[index]
             return h
+        #elif height < len(self.checkpoints) * 2016 and (height+1) % 2016 != 0:
+        #    return '0000000000000000000000000000000000000000000000000000000000000000'
         else:
             return hash_header(self.read_header(height))
 
@@ -469,8 +469,10 @@ class Blockchain(util.PrintError):
     def dgwv3(self, height, chain=None):
 
         last = chain.get(height - 1)
+        #last = self.read_header(height - 1)
         if last is None:
             last = self.read_header(height - 1)
+            #last = chain.get(height - 1)
 
         # params
         BlockLastSolved = last
@@ -505,8 +507,10 @@ class Blockchain(util.PrintError):
             LastBlockTime = BlockReading.get('timestamp')
 
             BlockReading = chain.get((height-1) - CountBlocks)
+            #BlockReading = self.read_header((height-1) - CountBlocks)
             if BlockReading is None:
                 BlockReading = self.read_header((height-1) - CountBlocks)
+                #BlockReading = chain.get((height-1) - CountBlocks)
 
 
         bnNew = PastDifficultyAverage
@@ -527,9 +531,11 @@ class Blockchain(util.PrintError):
     def get_target(self, height, chain=None):
         if bitcoin.NetworkConstants.TESTNET:
             return 0, 0
-        elif height // 2016 < len(self.checkpoints):
+        elif height // 2016 < len(self.checkpoints) and (height) % 2016 == 0:
             h, t = self.checkpoints[height // 2016]
-            return self.convbits(t[1]),t
+            return self.convbits(int(t)),int(t)
+        elif height // 2016 < len(self.checkpoints) and (height) % 2016 != 0:
+            return 0, 0
         elif height < 80000:
             return self.ltc(height, chain)
         elif height < 140000:
@@ -616,7 +622,7 @@ class Blockchain(util.PrintError):
         try:
             data = bfh(hexdata)
             self.verify_chunk(idx, data)
-            #self.print_error("validated chunk %d" % idx)
+            self.print_error("validated chunk %d" % idx)
             self.save_chunk(idx, data)
             return True
         except BaseException as e:
@@ -627,8 +633,10 @@ class Blockchain(util.PrintError):
         # for each chunk, store the hash of the last block and the target after the chunk
         cp = []
         n = self.height() // 2016
+        from decimal import (Decimal, ROUND_DOWN)
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
-            target = self.get_target(index * 2016)
-            cp.append((h, target))
+            bits, target = self.get_target(index * 2016)
+            target = Decimal(target)
+            cp.append((h, str(target)))
         return cp

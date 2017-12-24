@@ -39,14 +39,19 @@ class SPV(ThreadJob):
     def run(self):
         lh = self.network.get_local_height()
         unverified = self.wallet.get_unverified_txs()
+        #ub = self.wallet.get_unverified_txs()
+        #unverified = OrderedDict(sorted(ub.items(), key=lambda x:x[1], reverse=True))
+        #print(unverified)
         for tx_hash, tx_height in unverified.items():
+            tx_min_hash, tx_min_height = min(unverified.items(), key=lambda x: x[1])
+            index_min = tx_min_height // 2016
             # do not request merkle branch before headers are available
             if (tx_height > 0) and (tx_height <= lh):
                 header = self.network.blockchain().read_header(tx_height)
                 index = tx_height // 2016
                 #print(index, header)
                 if header is None:
-                    if index not in self.requested_chunks  and self.network.interface:
+                    if index not in self.requested_chunks  and self.network.interface and index == index_min:
                         print("requesting chunk", index)
                         #request = ('blockchain.block.get_chunk', [index])
                         #self.network.send([request], self.verify_merkle)
@@ -100,3 +105,4 @@ class SPV(ThreadJob):
         for tx_hash in tx_hashes:
             self.print_error("redoing", tx_hash)
             self.merkle_roots.pop(tx_hash, None)
+
