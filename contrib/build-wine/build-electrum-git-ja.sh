@@ -40,7 +40,7 @@ if [ -d "electrum-locale" ]; then
     # GIT repository found, update it
     echo "Pull"
     cd electrum-locale
-    git checkout $BRANCH
+    #git checkout $BRANCH
     git pull
     cd ..
 else
@@ -72,12 +72,6 @@ cp electrum-mona/LICENCE .
 cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
 # Build Qt resources
 wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py
-
-# Build target
-pushd $WINEPREFIX/drive_c/electrum-mona/lib
-$PYTHON setup.py build_ext --inplace
-cp $WINEPREFIX/drive_c/electrum-mona/lib/lib/target.*.pyd $WINEPREFIX/drive_c/python$PYTHON_VERSION/
-popd
 
 # build japanese version
 cp ../default-ja.patch $WINEPREFIX/drive_c/electrum-mona/gui/qt

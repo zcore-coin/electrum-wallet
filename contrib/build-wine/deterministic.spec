@@ -28,7 +28,6 @@ datas = [
     (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
     (home+'lib/locale', 'electrum_mona/locale'),
     (home+'plugins', 'electrum_mona_plugins'),
-    (home+'lib/lib/target.*.pyd', 'electrum_mona'),
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')
