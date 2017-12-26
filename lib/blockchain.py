@@ -34,13 +34,6 @@ try:
 except ImportError as e:
     exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
-try:
-    import scrypt
-    scryptGetHash = lambda x: scrypt.hash(x, x, N=1024, r=1, p=1, buflen=32)
-except ImportError:
-    util.print_msg("Warning: package scrypt not available, using fallback")
-    from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
-
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
         + rev_hex(res.get('prev_block_hash')) \
@@ -167,12 +160,9 @@ class Blockchain(util.PrintError):
             return
         if bitcoin.NetworkConstants.TESTNET:
             return
-        if height < 450000 :
-            _powhash = rev_hex(bh2u(scryptGetHash(bfh(serialize_header(header)))))
-        else:
-            _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         if int('0x' + _powhash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
@@ -285,8 +275,6 @@ class Blockchain(util.PrintError):
             index = height // 2016
             h, t = self.checkpoints[index]
             return h
-        #elif height < len(self.checkpoints) * 2016 and (height+1) % 2016 != 0:
-        #    return '0000000000000000000000000000000000000000000000000000000000000000'
         else:
             return hash_header(self.read_header(height))
 
@@ -309,161 +297,6 @@ class Blockchain(util.PrintError):
             a *= 256
         target = (a) * pow(2, 8 * (bits//MM - 3))
         return target
-
-
-    def ltc(self, height, chain=None):
-        if height < 1056:
-            return 0x1e0ffff0, MAX_TARGET
-        # Litecoin: go back the full period unless it's the first retarget
-        first = chain.get(height - 1056 - 1 if height > 1056 else 0)
-        if first is None:
-            first = self.read_header(height - 1056 - 1 if height > 1056 else 0)
-        last = chain.get(height - 1)
-        if last is None:
-            last = self.read_header(height - 1)
-        assert last is not None
-        # bits to target
-        bits = last.get('bits')
-        target = self.convbignum(bits)
-        if height % 1056 != 0:
-            return bits, target
-        # new target
-        nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 95040; #1.1 days 1.1*24*60*60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        new_target = min(MAX_TARGET, (target*nActualTimespan) // nTargetTimespan)
-        # convert new target to bits
-        new_bits = self.convbits(new_target)
-        return new_bits, new_target
-
-        
-    def kgw(self, height, chain=None):	#from vertcoin thanks https://github.com/vertcoin/electrum-vtc
-
-        if chain is None:
-            chain = {}
-
-        BlocksTargetSpacing			= 90; # 1.5 minutes
-        TimeDaySeconds				= 86400; #60 * 60 * 24
-        PastSecondsMin				= 21600; #TimeDaySeconds * 0.25
-        PastSecondsMax				= 604800; #TimeDaySeconds * 7
-        PastBlocksMin				    = PastSecondsMin // BlocksTargetSpacing;
-        PastBlocksMax				    = PastSecondsMax // BlocksTargetSpacing;
-
-        BlockReadingIndex             = height - 1
-        BlockLastSolvedIndex          = height - 1
-        TargetBlocksSpacingSeconds    = BlocksTargetSpacing
-        PastRateAdjustmentRatio       = 1.0
-        bnProofOfWorkLimit = MAX_TARGET
-          
-        if (BlockLastSolvedIndex<=0 or BlockLastSolvedIndex<PastSecondsMin):
-            new_target = bnProofOfWorkLimit
-            new_bits = self.convbits(new_target)      
-            return new_bits, new_target
-
-        last = chain.get(BlockLastSolvedIndex)
-        if last == None:
-            last = self.read_header(BlockLastSolvedIndex)
-          
-        for i in range(1,int(PastBlocksMax)+1):
-            PastBlocksMass=i
-
-            reading = chain.get(BlockReadingIndex)
-            if reading == None:
-                reading = self.read_header(BlockReadingIndex)
-                chain[BlockReadingIndex] = reading
-
-            if (reading == None or last == None):
-                raise BaseException("Could not find previous blocks when calculating difficulty reading: " + str(BlockReadingIndex) + ", last: " + str(BlockLastSolvedIndex) + ", height: " + str(height))
-            
-            if (i == 1):
-                PastDifficultyAverage=self.convbignum(reading.get('bits'))
-            else:
-                PastDifficultyAverage= float((self.convbignum(reading.get('bits')) - PastDifficultyAveragePrev) / float(i)) + PastDifficultyAveragePrev;
-
-            PastDifficultyAveragePrev = PastDifficultyAverage;
-            PastRateActualSeconds   = last.get('timestamp') - reading.get('timestamp');
-            PastRateTargetSeconds   = TargetBlocksSpacingSeconds * PastBlocksMass;
-            PastRateAdjustmentRatio       = 1.0
-            if (PastRateActualSeconds < 0):
-                PastRateActualSeconds = 0.0
-            if (PastRateActualSeconds != 0 and PastRateTargetSeconds != 0):
-                PastRateAdjustmentRatio			= float(PastRateTargetSeconds) / float(PastRateActualSeconds)
-            EventHorizonDeviation       = 1 + (0.7084 * pow(float(PastBlocksMass)/float(144), -1.228))
-            EventHorizonDeviationFast   = EventHorizonDeviation
-            EventHorizonDeviationSlow		= float(1) / float(EventHorizonDeviation)
-            if (PastBlocksMass >= PastBlocksMin):
-            
-                if ((PastRateAdjustmentRatio <= EventHorizonDeviationSlow) or (PastRateAdjustmentRatio >= EventHorizonDeviationFast)):
-                    break;
-                 
-                if (BlockReadingIndex<1):
-                    break
-                
-            BlockReadingIndex = BlockReadingIndex -1;
-
-        bnNew   = PastDifficultyAverage
-        if (PastRateActualSeconds != 0 and PastRateTargetSeconds != 0):
-            bnNew *= float(PastRateActualSeconds);
-            bnNew //= float(PastRateTargetSeconds);
-            
-        if (bnNew > bnProofOfWorkLimit):
-            bnNew = bnProofOfWorkLimit
-
-        # new target
-        new_target = bnNew
-        new_bits = self.convbits(new_target)
-
-        return new_bits, new_target
-
-
-    def dgsld(self, height, chain=None):
-        if chain is None:
-            chain = {}
-
-        nPowTargetTimespan = 95040 #1.1 days 1.1*24*60*60
-
-        nPowTargetSpacing = 90 #1.5 minute
-        nPowTargetSpacingDigisheld = 90 #1.5 minute
-
-        DifficultyAdjustmentIntervalDigisheld = nPowTargetSpacingDigisheld // nPowTargetSpacing #1
-
-        AdjustmentInterval = DifficultyAdjustmentIntervalDigisheld
-
-        blockstogoback = AdjustmentInterval - 1
-        if (height != AdjustmentInterval):
-            blockstogoback = AdjustmentInterval
-
-        last_height = height - 1
-        first_height = last_height - blockstogoback
-
-        TargetTimespan = nPowTargetSpacingDigisheld
-
-        first = chain.get(first_height)
-        if first is None:
-            first = self.read_header(first_height)
-        last = chain.get(last_height)
-        if last is None:
-            last = self.read_header(last_height)
-
-        nActualTimespan = last.get('timestamp') - first.get('timestamp')
-
-        nActualTimespan = TargetTimespan + int(float(nActualTimespan - TargetTimespan) / float(8))
-        nActualTimespan = max(nActualTimespan, TargetTimespan - int(float(TargetTimespan) / float(4)))
-        nActualTimespan = min(nActualTimespan, TargetTimespan + int(float(TargetTimespan) / float(2)))
-
-        bits = last.get('bits')
-        bnNew = self.convbignum(bits)
-        if height % AdjustmentInterval != 0:
-            return bits, bnNew
-
-        # retarget
-        bnNew *= nActualTimespan
-        bnNew //= TargetTimespan
-        bnNew = min(bnNew, MAX_TARGET)
-
-        new_bits = self.convbits(bnNew)
-        return new_bits, bnNew
 
 
     def dgwv3(self, height, chain=None):
@@ -536,12 +369,6 @@ class Blockchain(util.PrintError):
             return self.convbits(int(t)),int(t)
         elif height // 2016 < len(self.checkpoints) and (height) % 2016 != 0:
             return 0, 0
-        elif height < 80000:
-            return self.ltc(height, chain)
-        elif height < 140000:
-            return self.kgw(height, chain)
-        elif height < 450000:
-            return self.dgsld(height, chain)
         elif height == 1187424:
             return 453037678,MAX_TARGET
         elif height == 1187425:
