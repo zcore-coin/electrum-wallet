@@ -635,7 +635,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def base_unit(self):
         assert self.decimal_point in [2, 5, 8]
         if self.decimal_point == 2:
-            return 'uMONA'
+            return 'watanabe'
         if self.decimal_point == 5:
             return 'mMONA'
         if self.decimal_point == 8:
@@ -2652,7 +2652,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         SSL_id_e.setReadOnly(True)
         id_widgets.append((SSL_id_label, SSL_id_e))
 
-        units = ['MONA', 'mMONA', 'uMONA']
+        units = ['MONA', 'mMONA', 'watanabe']
         msg = _('Base unit of your wallet.')\
               + '\n1MONA=1000mMONA.\n' \
               + _(' These settings affects the fields in the Send tab')+' '
@@ -2670,7 +2670,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.decimal_point = 8
             elif unit_result == 'mMONA':
                 self.decimal_point = 5
-            elif unit_result == 'uMONA':
+            elif unit_result == 'watanabe':
                 self.decimal_point = 2
             else:
                 raise Exception('Unknown base unit')

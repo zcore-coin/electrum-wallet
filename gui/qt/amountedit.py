@@ -86,7 +86,7 @@ class BTCAmountEdit(AmountEdit):
         if p == 5:
             return 'mMONA'
         if p == 2:
-            return 'uMONA'
+            return 'watanabe'
         raise Exception('Unknown base unit')
 
     def get_amount(self):
