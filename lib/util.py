@@ -423,8 +423,6 @@ mainnet_block_explorers = {
                         {'tx': 'tx', 'addr': 'addr'}),
     'insight.monaco-ex.org': ('https://mona.insight.monaco-ex.org/insight',
                         {'tx': 'tx', 'addr': 'address'}),
-    'namuyan.dip.jp': ('http://namuyan.dip.jp/MultiLightBlockExplorer/mona',
-                        {'tx': 'tx', 'addr': 'address'}),
 }
 
 testnet_block_explorers = {
