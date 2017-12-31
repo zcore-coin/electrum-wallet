@@ -34,6 +34,8 @@ try:
 except ImportError as e:
     exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
+from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
+
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
         + rev_hex(res.get('prev_block_hash')) \
@@ -162,7 +164,10 @@ class Blockchain(util.PrintError):
             return
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
+        if height < 450000 :
+            _powhash = rev_hex(bh2u(scryptGetHash(bfh(serialize_header(header)))))
+        else:
+            _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
         if int('0x' + _powhash, 16) > target:
             raise BaseException("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
@@ -449,7 +454,7 @@ class Blockchain(util.PrintError):
         try:
             data = bfh(hexdata)
             self.verify_chunk(idx, data)
-            self.print_error("validated chunk %d" % idx)
+            #self.print_error("validated chunk %d" % idx)
             self.save_chunk(idx, data)
             return True
         except BaseException as e:
