@@ -21,7 +21,7 @@ cd tmp
 
 $PYTHON -m pip install setuptools --upgrade
 $PYTHON -m pip install cython --upgrade
-$PYTHON -m pip install https://github.com/wakiyamap/python-trezor/archive/0.7.x.zip
+$PYTHON -m pip install https://github.com/wakiyamap/python-trezor/archive/master.zip
 $PYTHON -m pip install keepkey==4.0.0 --upgrade
 $PYTHON -m pip install btchip-python==0.1.23 --upgrade
 

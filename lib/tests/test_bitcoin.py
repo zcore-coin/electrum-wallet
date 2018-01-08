@@ -87,10 +87,10 @@ class Test_bitcoin(unittest.TestCase):
         sig3_b64 = base64.b64encode(sig3)
         sig4_b64 = base64.b64encode(sig4)
 
-        self.assertEqual(sig1_b64, b'H6xd6TvFWTozs2RggXrItARkvZ3/7iQijgP5j7+KpiVgP2z1JuGQqkdhaDXyVgtKehTaTamf1/uVa+2uDszWxbE=')
-        self.assertEqual(sig2_b64, b'H/9iSTCgZZ1h34cKQ9nhGlb6VLy5vyeha15Zgu+KQQzZa7s/+xV2QXD3Sd9smvptHlFC8VIu52miup7vQ82gD3k=')
-        self.assertEqual(sig3_b64, b'H9AgGi/VN4kbi48KFD8UvFlx1x/PxmxZmIzmM5ffK0hDFwxVo9n47elRhfryoUznpkm1bKJA4n0L/t1wRShlBrE=')
-        self.assertEqual(sig4_b64, b'IDiwhqCV0wiQ+NyoBArfYoU3gZG+E1BYd0Zq8XZvqlMkXcZcePzbgMnn08h8tpVAXnsvhA0HbvqxKrkzl/gfvB8=')
+        self.assertEqual(sig1_b64, b'IDldTozCVViZ/m/gzvSf6EmZZ3ItDdM+RsI4PAxZdsb6ZQUmv3IgaJK+U4naOExaoTIVn0IY3Hoky0MWFAO6ac4=')
+        self.assertEqual(sig2_b64, b'IOr6v1UPcFEoeon11dPNo+TbbLuAu8k8ccG527zmmDf/a26W6z+yAbsfTt01PKF7/UGhwJeCwybdnRXpPC2x4Hk=')
+        self.assertEqual(sig3_b64, b'IIr2gW2LrTNJV4EAm6PuBXzvZBv3PbumrJNJQIf96ofxLrylCQftFeZ/Y3070dW+GcEmLXxau6/sVQb0hcGX2MY=')
+        self.assertEqual(sig4_b64, b'H7WvBRrEqce85Kf56MtNZOoC3BcDR9mCqSL90Kt4swy0G4nbglT+CcKqojubEALUOJLY3ntm+hCbhD5rKzpyKCw=')
 
         self.assertTrue(verify_message(addr1, sig1, msg1))
         self.assertTrue(verify_message(addr2, sig2, msg2))
