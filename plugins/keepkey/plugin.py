@@ -10,6 +10,7 @@ from electrum_mona.i18n import _
 from electrum_mona.plugins import BasePlugin
 from electrum_mona.transaction import deserialize
 from electrum_mona.keystore import Hardware_KeyStore, is_xpubkey, parse_xpubkey
+from electrum_mona.base_wizard import ScriptTypeNotSupported
 
 from ..hw_wallet import HW_PluginBase
 
@@ -208,6 +209,8 @@ class KeepKeyCompatiblePlugin(HW_PluginBase):
         client.used()
 
     def get_xpub(self, device_id, derivation, xtype, wizard):
+        if xtype not in ('standard',):
+            raise ScriptTypeNotSupported(_('This type of script is not supported with KeepKey.'))
         devmgr = self.device_manager()
         client = devmgr.client_by_id(device_id)
         client.handler = wizard
