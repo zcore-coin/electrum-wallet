@@ -34,6 +34,8 @@ import urlparse
 import urllib
 import threading
 from i18n import _
+import hmac
+
 
 base_units = {'BTC':8, 'mBTC':5, 'uBTC':2}
 fee_levels = [_('Within 25 blocks'), _('Within 10 blocks'), _('Within 5 blocks'), _('Within 2 blocks'), _('In the next block')]
@@ -191,6 +193,13 @@ def json_decode(x):
     except:
         return x
 
+
+# taken from Django Source Code
+def constant_time_compare(val1, val2):
+    """Return True if the two strings are equal, False otherwise."""
+    return hmac.compare_digest(to_bytes(val1, 'utf8'), to_bytes(val2, 'utf8'))
+
+
 # decorator that prints execution time
 def profiler(func):
     def do_profile(func, args, kw_args):
@@ -237,6 +246,38 @@ def android_check_data_dir():
 
 def get_headers_dir(config):
     return android_headers_dir() if 'ANDROID_DATA' in os.environ else config.path
+
+def to_string(x, enc):
+    if isinstance(x, (bytes, bytearray)):
+        return x.decode(enc)
+    if isinstance(x, str):
+        return x
+    else:
+        raise TypeError("Not a string or bytes like object")
+
+def to_bytes(something, encoding='utf8'):
+    """
+    cast string to bytes() like object, but for python2 support it's bytearray copy
+    """
+    if isinstance(something, bytes):
+        return something
+    if isinstance(something, str) or isinstance(something, unicode):
+        return something.encode(encoding)
+    elif isinstance(something, bytearray):
+        return bytes(something)
+    else:
+        raise TypeError("Not a string or bytes like object")
+
+# based on https://stackoverflow.com/questions/16022556/has-python-3-to-bytes-been-back-ported-to-python-2-7
+def int_to_bytes(n, length, endianess='big'):
+    hex_n = '%x' % n
+    hex_n2 = '0'*(len(hex_n) % 2) + hex_n
+    left_padded_hex_n = hex_n2.zfill(length*2)
+    if len(left_padded_hex_n) > length*2:
+        raise OverflowError()
+    assert len(left_padded_hex_n) == length*2
+    bytes_n = left_padded_hex_n.decode('hex')
+    return bytes_n if endianess == 'big' else bytes_n[::-1]
 
 def user_dir():
     if 'ANDROID_DATA' in os.environ:
