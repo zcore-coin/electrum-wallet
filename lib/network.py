@@ -216,6 +216,7 @@ class Network(util.DaemonThread):
         self.interfaces = {}
         self.auto_connect = self.config.get('auto_connect', True)
         self.connecting = set()
+        self.requested_chunks = set()
         self.socket_queue = queue.Queue()
         self.start_network(self.protocol, deserialize_proxy(self.config.get('proxy')))
 
@@ -752,11 +753,12 @@ class Network(util.DaemonThread):
             if self.config.is_fee_estimates_update_required():
                 self.request_fee_estimates()
 
-    def request_chunk(self, interface, idx):
-        interface.print_error("requesting chunk %d" % idx)
-        self.queue_request('blockchain.block.get_chunk', [idx], interface)
-        interface.request = idx
-        interface.req_time = time.time()
+    def request_chunk(self, interface, index):
+        if index in self.requested_chunks:
+            return
+        interface.print_error("requesting chunk %d" % index)
+        self.requested_chunks.add(index)
+        self.queue_request('blockchain.block.get_chunk', [index], interface)
 
     def on_get_chunk(self, interface, response):
         '''Handle receiving a chunk of block headers'''
@@ -766,19 +768,19 @@ class Network(util.DaemonThread):
         if result is None or params is None or error is not None:
             interface.print_error(error or 'bad response')
             return
-        # Ignore unsolicited chunks
         index = params[0]
-        if interface.request != index:
+        # Ignore unsolicited chunks
+        if index not in self.requested_chunks:
             return
+        self.requested_chunks.remove(index)
         connect = interface.blockchain.connect_chunk(index, result)
-        # If not finished, get the next chunk
         if not connect:
             self.connection_down(interface.server)
             return
+        # If not finished, get the next chunk
         if interface.blockchain.height() < interface.tip:
             self.request_chunk(interface, index+1)
         else:
-            interface.request = None
             interface.mode = 'default'
             interface.print_error('catch up done', interface.blockchain.height())
             interface.blockchain.catch_up = None
@@ -817,6 +819,7 @@ class Network(util.DaemonThread):
                 interface.blockchain = chain
                 interface.good = height
                 next_height = (interface.bad + interface.good) // 2
+                assert next_height >= self.max_checkpoint(), (interface.bad, interface.good)
                 ##assert next_height >= self.max_checkpoint(), (interface.bad, interface.good)
             else:
                 if height == 0:
@@ -837,6 +840,7 @@ class Network(util.DaemonThread):
                 interface.bad_header = header
             if interface.bad != interface.good + 1:
                 next_height = (interface.bad + interface.good) // 2
+                assert next_height >= self.max_checkpoint()
                 ##assert next_height >= self.max_checkpoint()
             elif not interface.blockchain.can_connect(interface.bad_header, check_height=False):
                 self.connection_down(interface.server)
