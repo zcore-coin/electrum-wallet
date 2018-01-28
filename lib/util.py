@@ -435,6 +435,8 @@ mainnet_block_explorers = {
                         {'tx': 'tx', 'addr': 'addr'}),
     'insight.monaco-ex.org': ('https://mona.insight.monaco-ex.org/insight',
                         {'tx': 'tx', 'addr': 'address'}),
+    'mona.chainseeker.info': ('https://mona.chainseeker.info',
+                        {'tx': 'tx', 'addr': 'addr'}),
 }
 
 testnet_block_explorers = {
