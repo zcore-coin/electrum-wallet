@@ -431,19 +431,19 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'bchain.info': ('https://bchain.info/MONA',
-                        {'tx': 'tx', 'addr': 'addr'}),
-    'insight.monaco-ex.org': ('https://mona.insight.monaco-ex.org/insight',
-                        {'tx': 'tx', 'addr': 'address'}),
-    'mona.chainseeker.info': ('https://mona.chainseeker.info',
-                        {'tx': 'tx', 'addr': 'addr'}),
+    'bchain.info': ('https://bchain.info/MONA/',
+                        {'tx': 'tx/', 'addr': 'addr/'}),
+    'insight.monaco-ex.org': ('https://mona.insight.monaco-ex.org/insight/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
+    'mona.chainseeker.info': ('https://mona.chainseeker.info/',
+                        {'tx': 'tx/', 'addr': 'addr/'}),
 }
 
 testnet_block_explorers = {
-    'insight.monaco-ex.org': ('https://testnet-mona.insight.monaco-ex.org/insight',
-                        {'tx': 'tx', 'addr': 'address'}),
+    'insight.monaco-ex.org': ('https://testnet-mona.insight.monaco-ex.org/insight/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
     'system default': ('blockchain:',
-                       {'tx': 'tx', 'addr': 'address'}),
+                       {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 def block_explorer_info():
