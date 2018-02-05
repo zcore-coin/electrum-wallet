@@ -97,7 +97,7 @@ from electrum_mona.commands import get_parser, known_commands, Commands, config_
 from electrum_mona import daemon
 from electrum_mona import keystore
 from electrum_mona.mnemonic import Mnemonic
-import electrum_plugins
+import electrum_mona_plugins
 
 # get password routine
 def prompt_password(prompt, confirm=True):
