@@ -64,6 +64,7 @@ fi
 
 VERSION=`git describe --tags`
 echo "Last commit: $VERSION"
+find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
 rm -rf $WINEPREFIX/drive_c/electrum-mona
@@ -80,7 +81,9 @@ patch < default-ja.patch
 popd
 
 # Install frozen dependencies
-$PYTHON -m pip install -r ../../requirements.txt
+$PYTHON -m pip install -r ../../deterministic-build/requirements.txt
+$PYTHON -m pip install -r ../../deterministic-build/requirements-hw.txt
+$PYTHON -m pip install https://github.com/wakiyamap/python-trezor/archive/master.zip
 
 pushd $WINEPREFIX/drive_c/electrum-mona
 $PYTHON setup.py install
@@ -95,7 +98,7 @@ wine "C:/python$PYTHON_VERSION/scripts/pyinstaller.exe" --noconfirm --ascii --na
 
 # set timestamps in dist, in order to make the installer reproducible
 pushd dist
-find  -type f  -exec touch -d '2000-11-11T11:11:11+00:00' {} +
+find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
 # build NSIS installer

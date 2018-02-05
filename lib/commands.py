@@ -82,7 +82,7 @@ def command(s):
             password = kwargs.get('password')
             if c.requires_wallet and wallet is None:
                 raise BaseException("wallet not loaded. Use 'electrum-mona daemon load_wallet'")
-            if c.requires_password and password is None and wallet.storage.get('use_encryption'):
+            if c.requires_password and password is None and wallet.has_password():
                 return {'error': 'Password required' }
             return func(*args, **kwargs)
         return func_wrapper
@@ -808,7 +808,7 @@ def subparser_call(self, parser, namespace, values, option_string=None):
         parser = self._name_parser_map[parser_name]
     except KeyError:
         tup = parser_name, ', '.join(self._name_parser_map)
-        msg = _('unknown parser %r (choices: %s)') % tup
+        msg = _('unknown parser {!r} (choices: {})').format(*tup)
         raise ArgumentError(self, msg)
     # parse all the remaining options into the namespace
     # store any unrecognized options on the object, so that the top

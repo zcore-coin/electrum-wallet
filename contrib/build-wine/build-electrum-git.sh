@@ -75,7 +75,9 @@ cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
 wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py
 
 # Install frozen dependencies
-$PYTHON -m pip install -r ../../requirements.txt
+$PYTHON -m pip install -r ../../deterministic-build/requirements.txt
+$PYTHON -m pip install -r ../../deterministic-build/requirements-hw.txt
+$PYTHON -m pip install https://github.com/wakiyamap/python-trezor/archive/master.zip
 
 pushd $WINEPREFIX/drive_c/electrum-mona
 $PYTHON setup.py install

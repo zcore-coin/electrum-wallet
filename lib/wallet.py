@@ -48,7 +48,7 @@ from .util import (NotEnoughFunds, PrintError, UserCancelled, profiler,
 from .bitcoin import *
 from .version import *
 from .keystore import load_keystore, Hardware_KeyStore
-from .storage import multisig_type
+from .storage import multisig_type, STO_EV_PLAINTEXT, STO_EV_USER_PW, STO_EV_XPUB_PW
 
 from . import transaction
 from .transaction import Transaction
@@ -66,7 +66,6 @@ from .contacts import Contacts
 TX_STATUS = [
     _('Replaceable'),
     _('Unconfirmed parent'),
-    _('Low fee'),
     _('Unconfirmed'),
     _('Not Verified'),
     _('Local only'),
@@ -546,17 +545,17 @@ class Abstract_Wallet(PrintError):
                 height, conf, timestamp = self.get_tx_height(tx_hash)
                 if height > 0:
                     if conf:
-                        status = _("%d confirmations") % conf
+                        status = _("{} confirmations").format(conf)
                     else:
                         status = _('Not verified')
                 elif height in (TX_HEIGHT_UNCONF_PARENT, TX_HEIGHT_UNCONFIRMED):
                     status = _('Unconfirmed')
                     if fee is None:
                         fee = self.tx_fees.get(tx_hash)
-                    if fee and self.network.config.has_fee_estimates():
+                    if fee and self.network.config.has_fee_etas():
                         size = tx.estimated_size()
                         fee_per_kb = fee * 1000 / size
-                        exp_n = self.network.config.reverse_dynfee(fee_per_kb)
+                        exp_n = self.network.config.fee_to_eta(fee_per_kb)
                     can_bump = is_mine and not tx.is_final()
                 else:
                     status = _('Local')
@@ -875,34 +874,33 @@ class Abstract_Wallet(PrintError):
 
     def get_tx_status(self, tx_hash, height, conf, timestamp):
         from .util import format_time
+        exp_n = False
         if conf == 0:
             tx = self.transactions.get(tx_hash)
             if not tx:
                 return 3, 'unknown'
             is_final = tx and tx.is_final()
             fee = self.tx_fees.get(tx_hash)
-            if fee and self.network and self.network.config.has_fee_estimates():
-                size = len(tx.raw)/2
-                low_fee = int(self.network.config.dynfee(0)*size/1000)
-                is_lowfee = fee < low_fee * 0.5
-            else:
-                is_lowfee = False
+            if fee and self.network and self.network.config.has_fee_mempool():
+                size = tx.estimated_size()
+                fee_per_kb = fee * 1000 / size
+                exp_n = self.network.config.fee_to_depth(fee_per_kb//1000)
             if height == TX_HEIGHT_LOCAL:
                 status = 5
             elif height == TX_HEIGHT_UNCONF_PARENT:
                 status = 1
             elif height == TX_HEIGHT_UNCONFIRMED and not is_final:
                 status = 0
-            elif height == TX_HEIGHT_UNCONFIRMED and is_lowfee:
-                status = 2
             elif height == TX_HEIGHT_UNCONFIRMED:
-                status = 3
+                status = 2
             else:
-                status = 4
+                status = 3
         else:
-            status = 5 + min(conf, 6)
+            status = 4 + min(conf, 6)
         time_str = format_time(timestamp) if timestamp else _("unknown")
-        status_str = TX_STATUS[status] if status < 6 else time_str
+        status_str = TX_STATUS[status] if status < 5 else time_str
+        if exp_n:
+            status_str += ' [%d sat/b, %.2f MB]'%(fee_per_kb//1000, exp_n/1000000)
         return status, status_str
 
     def relayfee(self):
@@ -1398,10 +1396,65 @@ class Abstract_Wallet(PrintError):
             self.synchronizer.add(address)
 
     def has_password(self):
-        return self.storage.get('use_encryption', False)
+        return self.has_keystore_encryption() or self.has_storage_encryption()
+
+    def can_have_keystore_encryption(self):
+        return self.keystore and self.keystore.may_have_password()
+
+    def get_available_storage_encryption_version(self):
+        """Returns the type of storage encryption offered to the user.
+
+        A wallet file (storage) is either encrypted with this version
+        or is stored in plaintext.
+        """
+        if isinstance(self.keystore, Hardware_KeyStore):
+            return STO_EV_XPUB_PW
+        else:
+            return STO_EV_USER_PW
+
+    def has_keystore_encryption(self):
+        """Returns whether encryption is enabled for the keystore.
+
+        If True, e.g. signing a transaction will require a password.
+        """
+        if self.can_have_keystore_encryption():
+            return self.storage.get('use_encryption', False)
+        return False
+
+    def has_storage_encryption(self):
+        """Returns whether encryption is enabled for the wallet file on disk."""
+        return self.storage.is_encrypted()
+
+    @classmethod
+    def may_have_password(cls):
+        return True
 
     def check_password(self, password):
-        self.keystore.check_password(password)
+        if self.has_keystore_encryption():
+            self.keystore.check_password(password)
+        self.storage.check_password(password)
+
+    def update_password(self, old_pw, new_pw, encrypt_storage=False):
+        if old_pw is None and self.has_password():
+            raise InvalidPassword()
+        self.check_password(old_pw)
+
+        if encrypt_storage:
+            enc_version = self.get_available_storage_encryption_version()
+        else:
+            enc_version = STO_EV_PLAINTEXT
+        self.storage.set_password(new_pw, enc_version)
+
+        # note: Encrypting storage with a hw device is currently only
+        #       allowed for non-multisig wallets. Further,
+        #       Hardware_KeyStore.may_have_password() == False.
+        #       If these were not the case,
+        #       extra care would need to be taken when encrypting keystores.
+        self._update_password_for_keystore(old_pw, new_pw)
+        encrypt_keystore = self.can_have_keystore_encryption()
+        self.storage.set_keystore_encryption(bool(new_pw) and encrypt_keystore)
+
+        self.storage.write()
 
     def sign_message(self, address, message, password):
         index = self.get_address_index(address)
@@ -1435,16 +1488,10 @@ class Simple_Wallet(Abstract_Wallet):
     def is_watching_only(self):
         return self.keystore.is_watching_only()
 
-    def can_change_password(self):
-        return self.keystore.can_change_password()
-
-    def update_password(self, old_pw, new_pw, encrypt=False):
-        if old_pw is None and self.has_password():
-            raise InvalidPassword()
-        self.keystore.update_password(old_pw, new_pw)
-        self.save_keystore()
-        self.storage.set_password(new_pw, encrypt)
-        self.storage.write()
+    def _update_password_for_keystore(self, old_pw, new_pw):
+        if self.keystore and self.keystore.may_have_password():
+            self.keystore.update_password(old_pw, new_pw)
+            self.save_keystore()
 
     def save_keystore(self):
         self.storage.put('keystore', self.keystore.dump())
@@ -1483,9 +1530,6 @@ class Imported_Wallet(Simple_Wallet):
     def save_addresses(self):
         self.storage.put('addresses', self.addresses)
 
-    def can_change_password(self):
-        return not self.is_watching_only()
-
     def can_import_address(self):
         return self.is_watching_only()
 
@@ -1504,7 +1548,7 @@ class Imported_Wallet(Simple_Wallet):
     def get_master_public_keys(self):
         return []
 
-    def is_beyond_limit(self, address, is_change):
+    def is_beyond_limit(self, address):
         return False
 
     def is_mine(self, address):
@@ -1744,9 +1788,9 @@ class Deterministic_Wallet(Abstract_Wallet):
                     for addr in self.receiving_addresses:
                         self.add_address(addr)
 
-    def is_beyond_limit(self, address, is_change):
+    def is_beyond_limit(self, address):
+        is_change, i = self.get_address_index(address)
         addr_list = self.get_change_addresses() if is_change else self.get_receiving_addresses()
-        i = self.get_address_index(address)[1]
         limit = self.gap_limit_for_change if is_change else self.gap_limit
         if i < limit:
             return False
@@ -1864,21 +1908,27 @@ class Multisig_Wallet(Deterministic_Wallet):
     def get_keystores(self):
         return [self.keystores[i] for i in sorted(self.keystores.keys())]
 
-    def update_password(self, old_pw, new_pw, encrypt=False):
-        if old_pw is None and self.has_password():
-            raise InvalidPassword()
+    def can_have_keystore_encryption(self):
+        return any([k.may_have_password() for k in self.get_keystores()])
+
+    def _update_password_for_keystore(self, old_pw, new_pw):
         for name, keystore in self.keystores.items():
-            if keystore.can_change_password():
+            if keystore.may_have_password():
                 keystore.update_password(old_pw, new_pw)
                 self.storage.put(name, keystore.dump())
-        self.storage.set_password(new_pw, encrypt)
-        self.storage.write()
+
+    def check_password(self, password):
+        for name, keystore in self.keystores.items():
+            if keystore.may_have_password():
+                keystore.check_password(password)
+        self.storage.check_password(password)
+
+    def get_available_storage_encryption_version(self):
+        # multisig wallets are not offered hw device encryption
+        return STO_EV_USER_PW
 
     def has_seed(self):
         return self.keystore.has_seed()
-
-    def can_change_password(self):
-        return self.keystore.can_change_password()
 
     def is_watching_only(self):
         return not any([not k.is_watching_only() for k in self.get_keystores()])
