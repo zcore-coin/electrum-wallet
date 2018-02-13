@@ -86,7 +86,7 @@ class TrezorPlugin(HW_PluginBase):
     libraries_URL = 'https://github.com/trezor/python-trezor'
     minimum_firmware = (1, 6, 0)
     keystore_class = TrezorKeyStore
-    minimum_library = (0, 9, 0)
+    minimum_library = (1, 6, 0)
 
     MAX_LABEL_LEN = 32
 

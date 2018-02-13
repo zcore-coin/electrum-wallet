@@ -3,7 +3,7 @@
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
 ELECTRUM_LOCALE_URL=git://github.com/spesmilo/electrum-locale.git
-ELECTRUM_ICONS_URL=git://github.com/spesmilo/electrum-icons.git
+ELECTRUM_ICONS_URL=git://github.com/wakiyamap/electrum-icons.git
 BRANCH=master
 NAME_ROOT=electrum-mona
 PYTHON_VERSION=3.6.3
