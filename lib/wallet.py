@@ -38,6 +38,7 @@ import traceback
 from functools import partial
 from collections import defaultdict
 from numbers import Number
+from decimal import Decimal
 
 import sys
 
@@ -199,6 +200,7 @@ class Abstract_Wallet(PrintError):
         self.labels                = storage.get('labels', {})
         self.frozen_addresses      = set(storage.get('frozen_addresses',[]))
         self.history               = storage.get('addr_history',{})        # address -> list(txid, height)
+        self.fiat_value            = storage.get('fiat_value', {})
 
         self.load_keystore()
         self.load_addresses()
@@ -221,7 +223,7 @@ class Abstract_Wallet(PrintError):
         self.up_to_date = False
 
         # locks: if you need to take multiple ones, acquire them in the order they are defined here!
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.transaction_lock = threading.RLock()
 
         self.check_history()
@@ -335,6 +337,9 @@ class Abstract_Wallet(PrintError):
     def synchronize(self):
         pass
 
+    def is_deterministic(self):
+        return self.keystore.is_deterministic()
+
     def set_up_to_date(self, up_to_date):
         with self.lock:
             self.up_to_date = up_to_date
@@ -356,12 +361,36 @@ class Abstract_Wallet(PrintError):
             if old_text:
                 self.labels.pop(name)
                 changed = True
-
         if changed:
             run_hook('set_label', self, name, text)
             self.storage.put('labels', self.labels)
-
         return changed
+
+    def set_fiat_value(self, txid, ccy, text):
+        if txid not in self.transactions:
+            return
+        if not text:
+            d = self.fiat_value.get(ccy, {})
+            if d and txid in d:
+                d.pop(txid)
+            else:
+                return
+        else:
+            try:
+                Decimal(text)
+            except:
+                return
+        if ccy not in self.fiat_value:
+            self.fiat_value[ccy] = {}
+        self.fiat_value[ccy][txid] = text
+        self.storage.put('fiat_value', self.fiat_value)
+
+    def get_fiat_value(self, txid, ccy):
+        fiat_value = self.fiat_value.get(ccy, {}).get(txid)
+        try:
+            return Decimal(fiat_value)
+        except:
+            return
 
     def is_mine(self, address):
         return address in self.get_addresses()
@@ -929,6 +958,58 @@ class Abstract_Wallet(PrintError):
 
         return h2
 
+    def export_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None, show_addresses=False):
+        from .util import format_time, format_satoshis, timestamp_to_datetime
+        h = self.get_history(domain)
+        out = []
+        for tx_hash, height, conf, timestamp, value, balance in h:
+            if from_timestamp and timestamp < from_timestamp:
+                continue
+            if to_timestamp and timestamp >= to_timestamp:
+                continue
+            item = {
+                'txid':tx_hash,
+                'height':height,
+                'confirmations':conf,
+                'timestamp':timestamp,
+                'value': format_satoshis(value, True) if value is not None else '--',
+                'balance': format_satoshis(balance)
+            }
+            if item['height']>0:
+                date_str = format_time(timestamp) if timestamp is not None else _("unverified")
+            else:
+                date_str = _("unconfirmed")
+            item['date'] = date_str
+            item['label'] = self.get_label(tx_hash)
+            if show_addresses:
+                tx = self.transactions.get(tx_hash)
+                tx.deserialize()
+                input_addresses = []
+                output_addresses = []
+                for x in tx.inputs():
+                    if x['type'] == 'coinbase': continue
+                    addr = x.get('address')
+                    if addr == None: continue
+                    if addr == "(pubkey)":
+                        prevout_hash = x.get('prevout_hash')
+                        prevout_n = x.get('prevout_n')
+                        _addr = self.wallet.find_pay_to_pubkey_address(prevout_hash, prevout_n)
+                        if _addr:
+                            addr = _addr
+                    input_addresses.append(addr)
+                for addr, v in tx.get_outputs():
+                    output_addresses.append(addr)
+                item['input_addresses'] = input_addresses
+                item['output_addresses'] = output_addresses
+            if fx is not None:
+                date = timestamp_to_datetime(time.time() if conf <= 0 else timestamp)
+                item['fiat_value'] = fx.historical_value_str(value, date)
+                item['fiat_balance'] = fx.historical_value_str(balance, date)
+                if value < 0:
+                    item['capital_gain'] = self.capital_gain(tx_hash, fx.timestamp_rate, fx.ccy)
+            out.append(item)
+        return out
+
     def get_label(self, tx_hash):
         label = self.labels.get(tx_hash, '')
         if label is '':
@@ -1004,8 +1085,9 @@ class Abstract_Wallet(PrintError):
         if fixed_fee is None and config.fee_per_kb() is None:
             raise NoDynamicFeeEstimates()
 
-        for item in inputs:
-            self.add_input_info(item)
+        if not is_sweep:
+            for item in inputs:
+                self.add_input_info(item)
 
         # change address
         if change_addr:
@@ -1549,6 +1631,62 @@ class Abstract_Wallet(PrintError):
                     children |= self.get_depending_transactions(other_hash)
         return children
 
+    def txin_value(self, txin):
+        txid = txin['prevout_hash']
+        prev_n = txin['prevout_n']
+        for address, d in self.txo[txid].items():
+            for n, v, cb in d:
+                if n == prev_n:
+                    return v
+        raise BaseException('unknown txin value')
+
+    def price_at_timestamp(self, txid, price_func):
+        height, conf, timestamp = self.get_tx_height(txid)
+        return price_func(timestamp)
+
+    def capital_gain(self, txid, price_func, ccy):
+        """
+        Difference between the fiat price of coins leaving the wallet because of transaction txid,
+        and the price of these coins when they entered the wallet.
+        price_func: function that returns the fiat price given a timestamp
+        """
+        tx = self.transactions[txid]
+        ir, im, v, fee = self.get_wallet_delta(tx)
+        out_value = -v
+        fiat_value = self.get_fiat_value(txid, ccy)
+        if fiat_value is None:
+            p = self.price_at_timestamp(txid, price_func)
+            liquidation_price = None if p is None else out_value/Decimal(COIN) * p
+        else:
+            liquidation_price = - fiat_value
+
+        try:
+            return liquidation_price - out_value/Decimal(COIN) * self.average_price(tx, price_func, ccy)
+        except:
+            return None
+
+    def average_price(self, tx, price_func, ccy):
+        """ average price of the inputs of a transaction """
+        input_value = sum(self.txin_value(txin) for txin in tx.inputs()) / Decimal(COIN)
+        total_price = sum(self.coin_price(txin, price_func, ccy, self.txin_value(txin)) for txin in tx.inputs())
+        return total_price / input_value
+
+    def coin_price(self, coin, price_func, ccy, txin_value):
+        """ fiat price of acquisition of coin """
+        txid = coin['prevout_hash']
+        tx = self.transactions[txid]
+        if all([self.is_mine(txin['address']) for txin in tx.inputs()]):
+            return self.average_price(tx, price_func, ccy) * txin_value/Decimal(COIN)
+        elif all([ not self.is_mine(txin['address']) for txin in tx.inputs()]):
+            fiat_value = self.get_fiat_value(txid, ccy)
+            if fiat_value is not None:
+                return fiat_value
+            else:
+                return self.price_at_timestamp(txid, price_func) * txin_value/Decimal(COIN)
+        else:
+            # could be some coinjoin transaction..
+            return None
+
 
 class Simple_Wallet(Abstract_Wallet):
     # wallet with a single keystore
@@ -1763,9 +1901,6 @@ class Deterministic_Wallet(Abstract_Wallet):
     def has_seed(self):
         return self.keystore.has_seed()
 
-    def is_deterministic(self):
-        return self.keystore.is_deterministic()
-
     def get_receiving_addresses(self):
         return self.receiving_addresses
 
@@ -1827,15 +1962,16 @@ class Deterministic_Wallet(Abstract_Wallet):
 
     def create_new_address(self, for_change=False):
         assert type(for_change) is bool
-        addr_list = self.change_addresses if for_change else self.receiving_addresses
-        n = len(addr_list)
-        x = self.derive_pubkeys(for_change, n)
-        address = self.pubkeys_to_address(x)
-        addr_list.append(address)
-        self._addr_to_addr_index[address] = (for_change, n)
-        self.save_addresses()
-        self.add_address(address)
-        return address
+        with self.lock:
+            addr_list = self.change_addresses if for_change else self.receiving_addresses
+            n = len(addr_list)
+            x = self.derive_pubkeys(for_change, n)
+            address = self.pubkeys_to_address(x)
+            addr_list.append(address)
+            self._addr_to_addr_index[address] = (for_change, n)
+            self.save_addresses()
+            self.add_address(address)
+            return address
 
     def synchronize_sequence(self, for_change):
         limit = self.gap_limit_for_change if for_change else self.gap_limit
@@ -1851,16 +1987,8 @@ class Deterministic_Wallet(Abstract_Wallet):
 
     def synchronize(self):
         with self.lock:
-            if self.is_deterministic():
-                self.synchronize_sequence(False)
-                self.synchronize_sequence(True)
-            else:
-                if len(self.receiving_addresses) != len(self.keystore.keypairs):
-                    pubkeys = self.keystore.keypairs.keys()
-                    self.receiving_addresses = [self.pubkeys_to_address(i) for i in pubkeys]
-                    self.save_addresses()
-                    for addr in self.receiving_addresses:
-                        self.add_address(addr)
+            self.synchronize_sequence(False)
+            self.synchronize_sequence(True)
 
     def is_beyond_limit(self, address):
         is_change, i = self.get_address_index(address)

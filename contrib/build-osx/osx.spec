@@ -5,6 +5,11 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 import sys
 import os
 
+PACKAGE='Electrum-mona'
+PYPKG='electrum_mona'
+MAIN_SCRIPT='electrum-mona'
+ICONS_FILE='electrum.icns'
+
 for i, x in enumerate(sys.argv):
     if x == '--name':
         VERSION = sys.argv[i+1]
@@ -22,21 +27,21 @@ hiddenimports += collect_submodules('btchip')
 hiddenimports += collect_submodules('keepkeylib')
 
 datas = [
-    (electrum+'lib/currencies.json', 'electrum_mona'),
-    (electrum+'lib/servers.json', 'electrum_mona'),
-    (electrum+'lib/checkpoints.json', 'electrum_mona'),
-    (electrum+'lib/servers_testnet.json', 'electrum_mona'),
-    (electrum+'lib/checkpoints_testnet.json', 'electrum_mona'),
-    (electrum+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
-    (electrum+'lib/locale', 'electrum_mona/locale'),
-    (electrum+'plugins', 'electrum_mona_plugins'),
+    (electrum+'lib/currencies.json', PYPKG),
+    (electrum+'lib/servers.json', PYPKG),
+    (electrum+'lib/checkpoints.json', PYPKG),
+    (electrum+'lib/servers_testnet.json', PYPKG),
+    (electrum+'lib/checkpoints_testnet.json', PYPKG),
+    (electrum+'lib/wordlist/english.txt', PYPKG + '/wordlist'),
+    (electrum+'lib/locale', PYPKG + '/locale'),
+    (electrum+'plugins', PYPKG + '_plugins'),
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')
 datas += collect_data_files('keepkeylib')
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([electrum+'electrum-mona',
+a = Analysis([electrum+MAIN_SCRIPT,
               electrum+'gui/qt/main_window.py',
               electrum+'gui/text.py',
               electrum+'lib/util.py',
@@ -59,7 +64,7 @@ a = Analysis([electrum+'electrum-mona',
 
 # http://stackoverflow.com/questions/19055089/pyinstaller-onefile-warning-pyconfig-h-when-importing-scipy-or-scipy-signal
 for d in a.datas:
-    if 'pyconfig' in d[0]: 
+    if 'pyconfig' in d[0]:
         a.datas.remove(d)
         break
 
@@ -69,17 +74,17 @@ exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.datas,
-          name='Electrum-mona',
+          name=PACKAGE,
           debug=False,
           strip=False,
           upx=True,
-          icon=electrum+'electrum.icns',
+          icon=electrum+ICONS_FILE,
           console=False)
 
 app = BUNDLE(exe,
              version = VERSION,
-             name='Electrum-mona.app',
-             icon=electrum+'electrum.icns',
+             name=PACKAGE + '.app',
+             icon=electrum+ICONS_FILE,
              bundle_identifier=None,
              info_plist = {
                  'NSHighResolutionCapable':'True'

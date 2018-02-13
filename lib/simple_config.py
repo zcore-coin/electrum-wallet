@@ -324,7 +324,7 @@ class SimpleConfig(PrintError):
 
     def get_fee_status(self):
         dyn = self.is_dynfee()
-        mempool = self.get('mempool_fees')
+        mempool = self.use_mempool_fees()
         pos = self.get_depth_level() if mempool else self.get_fee_level()
         fee_rate = self.fee_per_kb()
         target, tooltip = self.get_fee_text(pos, dyn, mempool, fee_rate)
@@ -395,10 +395,10 @@ class SimpleConfig(PrintError):
         return bool(self.mempool_fees)
 
     def is_dynfee(self):
-        return self.get('dynamic_fees', True)
+        return bool(self.get('dynamic_fees', True))
 
     def use_mempool_fees(self):
-        return self.get('mempool_fees', False)
+        return bool(self.get('mempool_fees', False))
 
     def fee_per_kb(self):
         """Returns sat/kvB fee to pay for a txn.
@@ -428,7 +428,12 @@ class SimpleConfig(PrintError):
 
     @classmethod
     def estimate_fee_for_feerate(cls, fee_per_kb, size):
-        return int(fee_per_kb * size / 1000.)
+        # note: We only allow integer sat/byte values atm.
+        # The GUI for simplicity reasons only displays integer sat/byte,
+        # and for the sake of consistency, we thus only use integer sat/byte in
+        # the backend too.
+        fee_per_byte = int(fee_per_kb / 1000)
+        return int(fee_per_byte * size)
 
     def update_fee_estimates(self, key, value):
         self.fee_estimates[key] = value

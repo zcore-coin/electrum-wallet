@@ -3,6 +3,7 @@
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
 ELECTRUM_LOCALE_URL=git://github.com/spesmilo/electrum-locale.git
+ELECTRUM_ICONS_URL=git://github.com/spesmilo/electrum-icons.git
 BRANCH=master
 NAME_ROOT=electrum-mona
 PYTHON_VERSION=3.6.3
@@ -34,6 +35,19 @@ else
     # GIT repository not found, clone it
     echo "Clone"
     git clone -b $BRANCH $ELECTRUM_GIT_URL electrum-mona
+fi
+
+if [ -d "electrum-icons" ]; then
+    # GIT repository found, update it
+    echo "Pull"
+    cd electrum-icons
+    #git checkout $BRANCH
+    git pull
+    cd ..
+else
+    # GIT repository not found, clone it
+    echo "Clone"
+    git clone -b $BRANCH $ELECTRUM_ICONS_URL electrum-icons
 fi
 
 if [ -d "electrum-locale" ]; then
@@ -71,13 +85,11 @@ rm -rf $WINEPREFIX/drive_c/electrum-mona
 cp -r electrum-mona $WINEPREFIX/drive_c/electrum-mona
 cp electrum-mona/LICENCE .
 cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
-# Build Qt resources
-wine $WINEPREFIX/drive_c/python$PYTHON_VERSION/Scripts/pyrcc5.exe C:/electrum-mona/icons.qrc -o C:/electrum-mona/gui/qt/icons_rc.py
+cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt
 $PYTHON -m pip install -r ../../deterministic-build/requirements-hw.txt
-$PYTHON -m pip install https://github.com/wakiyamap/python-trezor/archive/master.zip
 
 pushd $WINEPREFIX/drive_c/electrum-mona
 $PYTHON setup.py install
