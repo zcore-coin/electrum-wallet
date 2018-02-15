@@ -3,63 +3,55 @@
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx2.tamami-foundation.org": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx3.tamami-foundation.org": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
-    },
-    "mona-cce-1.coinomi.net": {
-        "pruning": "-",
-        "t": "5022",
-        "version": "1.0.15"
-    },
-    "mona-cce-2.coinomi.net": {
-        "pruning": "-",
-        "t": "5022",
-        "version": "1.0.15"
+        "version": "1.2"
     },
     "electrumx1.movsign.info": {
         "pruning": "-",
+        "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx2.movsign.info": {
         "pruning": "-",
+        "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx1.monacoin.nl": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx2.monacoin.nl": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx1.monacoin.ninja": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrumx2.monacoin.ninja": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.1"
+        "version": "1.2"
     },
     "electrum-mona.bitbank.cc": {
         "pruning": "-",
