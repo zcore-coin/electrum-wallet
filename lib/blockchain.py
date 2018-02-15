@@ -159,7 +159,7 @@ class Blockchain(util.PrintError):
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
-        if height % 2016 != 0 and height // 2016 < len(self.checkpoints) or height < len(self.checkpoints)*2016 + 24:
+        if height % 2016 != 0 and height // 2016 < len(self.checkpoints) or height >= len(self.checkpoints)*2016 and height <= len(self.checkpoints)*2016 + 24:
             return
         if bitcoin.NetworkConstants.TESTNET:
             return
@@ -328,7 +328,7 @@ class Blockchain(util.PrintError):
 
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
         if height < len(self.checkpoints)*2016 + PastBlocksMax:
-            return 0x1e0fffff, MAX_TARGET
+            return 0, 0
         #thanks watanabe!! http://askmona.org/5288#res_61
         if BlockLastSolved is None or height-1 < 450024:
             return 0x1e0fffff, MAX_TARGET
@@ -373,10 +373,10 @@ class Blockchain(util.PrintError):
     def get_target(self, height, chain=None):
         if bitcoin.NetworkConstants.TESTNET:
             return 0, 0
-        elif height // 2016 < len(self.checkpoints) and (height) % 2016 == 0:
+        elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
             h, t = self.checkpoints[height // 2016]
             return self.convbits(int(t)),int(t)
-        elif height // 2016 < len(self.checkpoints) and (height) % 2016 != 0:
+        elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
             return 0, 0
         else:
             return self.get_target_dgwv3(height, chain)
