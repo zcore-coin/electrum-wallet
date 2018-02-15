@@ -158,7 +158,8 @@ class Blockchain(util.PrintError):
         height = header.get('block_height')
         if prev_hash != header.get('prev_block_hash'):
             raise BaseException("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-        if height % 2016 != 0 and height // 2016 < len(self.checkpoints):
+        # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
+        if height % 2016 != 0 and height // 2016 < len(self.checkpoints) or height < len(self.checkpoints)*2016 + 24:
             return
         if bitcoin.NetworkConstants.TESTNET:
             return
@@ -275,8 +276,6 @@ class Blockchain(util.PrintError):
             return '0000000000000000000000000000000000000000000000000000000000000000'
         if height == 0:
             return bitcoin.NetworkConstants.GENESIS
-        ##elif height < len(self.checkpoints) * 2016 and (height+1) % 2016 == 0:
-            ##assert (height+1) % 2016 == 0
         elif height < len(self.checkpoints) * 2016:
             assert (height+1) % 2016 == 0, height
             index = height // 2016
@@ -306,7 +305,7 @@ class Blockchain(util.PrintError):
         return target
 
 
-    def dgwv3(self, height, chain=None):
+    def get_target_dgwv3(self, height, chain=None):
 
         last = chain.get(height - 1)
         #last = self.read_header(height - 1)
@@ -327,6 +326,9 @@ class Blockchain(util.PrintError):
         PastDifficultyAveragePrev = 0
         bnNum = 0
 
+        # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
+        if height < len(self.checkpoints)*2016 + PastBlocksMax:
+            return 0x1e0fffff, MAX_TARGET
         #thanks watanabe!! http://askmona.org/5288#res_61
         if BlockLastSolved is None or height-1 < 450024:
             return 0x1e0fffff, MAX_TARGET
@@ -376,58 +378,8 @@ class Blockchain(util.PrintError):
             return self.convbits(int(t)),int(t)
         elif height // 2016 < len(self.checkpoints) and (height) % 2016 != 0:
             return 0, 0
-        elif height == 1187424:
-            return 453037678,MAX_TARGET
-        elif height == 1187425:
-            return 453049761,MAX_TARGET
-        elif height == 1187426:
-            return 453056689,MAX_TARGET
-        elif height == 1187427:
-            return 453053493,MAX_TARGET
-        elif height == 1187428:
-            return 453055081,MAX_TARGET
-        elif height == 1187429:
-            return 453060145,MAX_TARGET
-        elif height == 1187430:
-            return 453057892,MAX_TARGET
-        elif height == 1187431:
-            return 453050162,MAX_TARGET
-        elif height == 1187432:
-            return 453044709,MAX_TARGET
-        elif height == 1187433:
-            return 453040779,MAX_TARGET
-        elif height == 1187434:
-            return 453037232,MAX_TARGET
-        elif height == 1187435:
-            return 453036347,MAX_TARGET
-        elif height == 1187436:
-            return 453036792,MAX_TARGET
-        elif height == 1187437:
-            return 453041932,MAX_TARGET
-        elif height == 1187438:
-            return 453042568,MAX_TARGET
-        elif height == 1187439:
-            return 453041078,MAX_TARGET
-        elif height == 1187440:
-            return 453044014,MAX_TARGET
-        elif height == 1187441:
-            return 453045182,MAX_TARGET
-        elif height == 1187442:
-            return 453039075,MAX_TARGET
-        elif height == 1187443:
-            return 453051430,MAX_TARGET
-        elif height == 1187444:
-            return 453055157,MAX_TARGET
-        elif height == 1187445:
-            return 453054651,MAX_TARGET
-        elif height == 1187446:
-            return 453054972,MAX_TARGET
-        elif height == 1187447:
-            return 453054904,MAX_TARGET
-        elif height == 1187448:
-            return 453044917,MAX_TARGET
         else:
-            return self.dgwv3(height, chain)
+            return self.get_target_dgwv3(height, chain)
 
 
     def can_connect(self, header, check_height=True):
