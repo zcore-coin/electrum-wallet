@@ -1,14 +1,12 @@
 #!/bin/bash
 
-PYTHON_VERSION=3.6.3
+PYTHON_VERSION=3.6.4
 # Please update these links carefully, some versions won't work under Wine
 PYTHON_URL=https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION.exe
-PYTHON_SHA256=cb3bfe1e6b0d1254cebf9bb1fc095fe74396af8baf65f244d5f9b349d232b280
+PYTHON_SHA256=f1c783363504c353d4b2478d3af21f72cee0bdd6d4f363a9e0e4fffda3dc9fdf
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
-VC2015_URL=https://download.microsoft.com/download/9/3/F/93FCF1E7-E6A4-478B-96E7-D4B285925B00/vc_redist.x86.exe
-WINETRICKS_MASTER_URL=https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks
-LYRA2RE_HASH_PYTHON_URL=https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
+LYRA2RE_HASH_PYTHON_URL=https://github.com/wakiyamap/lyra2re-hash-python/releases/download/1.1.2/lyra2re2_hash-1.1.2-cp36-cp36m-win32.whl
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
@@ -59,7 +57,7 @@ $PYTHON -m pip install pip --upgrade
 $PYTHON -m pip install pywin32-ctypes==0.1.2
 
 ## Install pyinstaller
-$PYTHON -m pip install pyinstaller==3.3
+$PYTHON -m pip install pyinstaller==3.3.1
 
 $PYTHON -m pip install -r ../../deterministic-build/requirements-binaries.txt
 
@@ -70,9 +68,6 @@ $PYTHON -m pip install -r ../../deterministic-build/requirements-binaries.txt
 
 # Upgrade setuptools (so Electrum can be installed later)
 $PYTHON -m pip install setuptools --upgrade
-
-# install cython
-$PYTHON -m pip install cython
 
 # Install NSIS installer
 wget -q -O nsis.exe "$NSIS_URL"
@@ -86,37 +81,6 @@ wine nsis.exe /S
 
 # add dlls needed for pyinstaller:
 cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $WINEPREFIX/drive_c/python$PYTHON_VERSION/
-
-# Install MinGW
-wget http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-setup.exe
-wine mingw-get-setup.exe
-
-echo "add C:\MinGW\bin to PATH using regedit"
-echo "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
-#regedit
-wine reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PATH /t REG_EXPAND_SZ /d C:\\MinGW\\bin\;C\:\\windows\\system32\;C:\\windows\;C:\\windows\\system32\\wbem /f
-
-wine mingw-get install gcc
-wine mingw-get install mingw-utils
-wine mingw-get install mingw32-libz
-
-printf "[build]\ncompiler=mingw32\n" > $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils/distutils.cfg
-
-# Install VC++2015
-#wget -O vc_redist.x86.exe "$VC2015_URL"
-#wine vc_redist.x86.exe /quiet
-wget $WINETRICKS_MASTER_URL
-bash winetricks vcrun2015
-
-# build msvcr140.dll
-cp ../msvcr140.patch $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils
-pushd $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/distutils
-patch < msvcr140.patch
-popd
-
-wine pexports $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll >vcruntime140.def
-wine dlltool -dllname $WINEPREFIX/drive_c/python$PYTHON_VERSION/vcruntime140.dll --def vcruntime140.def --output-lib libvcruntime140.a
-cp libvcruntime140.a $WINEPREFIX/drive_c/MinGW/lib/
 
 # install lyra2re2_hash
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL

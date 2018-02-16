@@ -6,7 +6,7 @@ ELECTRUM_LOCALE_URL=git://github.com/spesmilo/electrum-locale.git
 ELECTRUM_ICONS_URL=git://github.com/wakiyamap/electrum-icons.git
 BRANCH=master
 NAME_ROOT=electrum-mona
-PYTHON_VERSION=3.6.3
+PYTHON_VERSION=3.6.4
 
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
@@ -85,10 +85,14 @@ rm -rf $WINEPREFIX/drive_c/electrum-mona
 cp -r electrum-mona $WINEPREFIX/drive_c/electrum-mona
 cp electrum-mona/LICENCE .
 cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
-cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum/gui/qt/
+cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt
+
+# Workaround until they upload binary wheels themselves:
+$PYTHON -m pip install https://github.com/wakiyamap/pyblake2/releases/download/temp/pyblake2-1.1.0-cp36-cp36m-win32.whl
+
 $PYTHON -m pip install -r ../../deterministic-build/requirements-hw.txt
 
 pushd $WINEPREFIX/drive_c/electrum-mona
