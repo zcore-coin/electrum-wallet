@@ -7,7 +7,6 @@ import traceback
 from decimal import Decimal
 import threading
 
-import electrum_mona as electrum
 from electrum_mona.bitcoin import TYPE_ADDRESS
 from electrum_mona import WalletStorage, Wallet
 from electrum_mona_gui.kivy.i18n import _
@@ -95,7 +94,7 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         protocol = 's'
         def cb2(host):
-            from electrum.bitcoin import NetworkConstants
+            from electrum_mona.bitcoin import NetworkConstants
             pp = servers.get(host, NetworkConstants.DEFAULT_PORTS)
             port = pp.get(protocol, '')
             popup.ids.host.text = host
@@ -364,7 +363,7 @@ class ElectrumWindow(App):
         popup.open()
 
     def show_addr_details(self, req, status):
-        from electrum.util import format_time
+        from electrum_mona.util import format_time
         fund = req.get('fund')
         isaddr = 'y'
         popup = Builder.load_file('gui/kivy/uix/ui_screens/invoice.kv')
