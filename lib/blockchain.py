@@ -22,6 +22,7 @@
 # SOFTWARE.
 import os
 import threading
+import sys
 
 from . import util
 from . import bitcoin
@@ -32,7 +33,7 @@ MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 try:
     import lyra2re2_hash
 except ImportError as e:
-    exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
+    sys.exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
 
 from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
 
