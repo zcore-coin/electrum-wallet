@@ -7,6 +7,8 @@ PYTHON_SHA256=f1c783363504c353d4b2478d3af21f72cee0bdd6d4f363a9e0e4fffda3dc9fdf
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
 LYRA2RE_HASH_PYTHON_URL=https://github.com/wakiyamap/lyra2re-hash-python/releases/download/1.1.2/lyra2re2_hash-1.1.2-cp36-cp36m-win32.whl
+LIB_GCC_URL=http://prdownloads.sourceforge.net/mingw/libgcc-6.3.0-1-mingw32-dll-1.tar.xz
+LIB_GCC_SHA256=8cbfa963f645cc0f81c08df2a3ecbcefc776606f0fb9db7a280d79f05209a1c3
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
@@ -87,5 +89,11 @@ cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $W
 
 # install lyra2re2_hash
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL
+
+# copy from mingw for lyra2re2_hash
+wget $LIB_GCC_URL
+verify_hash libgcc-6.3.0-1-mingw32-dll-1.tar.xz $LIB_GCC_SHA256
+tar Jxfv libgcc-6.3.0-1-mingw32-dll-1.tar.xz
+cp bin/libgcc_s_dw2-1.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/
 
 #echo "Wine is configured. Please run prepare-pyinstaller.sh"
