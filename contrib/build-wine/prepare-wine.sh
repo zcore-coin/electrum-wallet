@@ -9,6 +9,9 @@ NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
 LYRA2RE_HASH_PYTHON_URL=https://github.com/wakiyamap/lyra2re-hash-python/releases/download/1.1.2/lyra2re2_hash-1.1.2-cp36-cp36m-win32.whl
 LIB_GCC_URL=http://prdownloads.sourceforge.net/mingw/libgcc-6.3.0-1-mingw32-dll-1.tar.xz
 LIB_GCC_SHA256=8cbfa963f645cc0f81c08df2a3ecbcefc776606f0fb9db7a280d79f05209a1c3
+LIBUSB_URL=https://prdownloads.sourceforge.net/project/libusb/libusb-1.0/libusb-1.0.21/libusb-1.0.21.7z?download
+LIBUSB_SHA256=acdde63a40b1477898aee6153f9d91d1a2e8a5d93f832ca8ab876498f3a6d2b8
+
 
 ## These settings probably don't need change
 export WINEPREFIX=/opt/wine64
@@ -78,6 +81,11 @@ $PYTHON -m pip install setuptools --upgrade
 wget -q -O nsis.exe "$NSIS_URL"
 verify_hash nsis.exe $NSIS_SHA256
 wine nsis.exe /S
+
+wget -q -O libusb.7z "$LIBUSB_URL"
+verify_hash libusb.7z "$LIBUSB_SHA256"
+7z x -olibusb libusb.7z
+cp libusb/MS32/dll/libusb-1.0.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/
 
 # Install UPX
 #wget -O upx.zip "https://downloads.sourceforge.net/project/upx/upx/3.08/upx308w.zip"
