@@ -16,7 +16,7 @@ jobs:
   include:
     - stage: windows build
       sudo: true
-      python: 3.6
+      python: 3.5
       install:
         - sudo dpkg --add-architecture i386
         - wget -nc https://dl.winehq.org/wine-builds/Release.key
