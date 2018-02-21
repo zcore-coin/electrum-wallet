@@ -292,6 +292,7 @@ class Test_keyImport(unittest.TestCase):
 
     priv_pub_addr = (
            {'priv': 'T9ZV9h1ZkYfgh2E2h5CZbEzrc32nz3uK2KjhA1Amu7JzNo99YGxg',
+            'exported_privkey': 'p2pkh:T9ZV9h1ZkYfgh2E2h5CZbEzrc32nz3uK2KjhA1Amu7JzNo99YGxg',
             'pub': '0251ce5368b2ac47b6e7fb7222c1180ea0012e4891b56cefb8d9d187bc7ad11659',
             'address': 'MN3qk8taHHcLp52tf6v9V4CyfiJuCpwz4B',
             'minikey' : False,
@@ -299,7 +300,26 @@ class Test_keyImport(unittest.TestCase):
             'compressed': True,
             'addr_encoding': 'base58',
             'scripthash': '33c5367b611c9183b2eedf0a32de2fa57f399f75e6b884fdaaf95a655f706d7c'},
+           {'priv': 'p2pkh:T4kGgvhsaiWqfcfQi9KMbpV3KUWo4cNhVm4fwNqi4PNH94NFBePL',
+            'exported_privkey': 'p2pkh:T4kGgvhsaiWqfcfQi9KMbpV3KUWo4cNhVm4fwNqi4PNH94NFBePL',
+            'pub': '031fc22d17f7f4353a1041c67ba02e58a218d3f7519236db1a583e9f5ff87fc87a',
+            'address': 'MWFdhfqsJrE9jeu6WYrgf8SyAaHcTaq9mo',
+            'minikey': False,
+            'txin_type': 'p2pkh',
+            'compressed': True,
+            'addr_encoding': 'base58',
+            'scripthash': '3bd7fabf96d797e2f6d933a0ade1b3bf0b1a60bdb82bcd10ec3a9d4d01bdeb19'},
            {'priv': '6ymMe23cQJpFbeURHAk55m6iQDP2BNNFwmempMtpGxKj9idvR8K',
+            'exported_privkey': 'p2wpkh-p2sh:6ussHZ9YhTToL1K1U1W5B7uAZz9asxgWNVWZL4X2HeJxAZ31tGq',
+            'pub': '041958d7b0db55e8c42912231ade8713aa1127603c78ce91fa3be5a8386d24b4a03efe44e3c5f56362a268f84a8a42f75a50fbb6f976198dae2cea926df1439f87',
+            'address': 'PT7Y9pqWHZHfsnk1dw9ejq3Yp2pQ6qBSCf',
+            'minikey': False,
+            'txin_type': 'p2wpkh-p2sh',
+            'compressed': False,
+            'addr_encoding': 'base58',
+            'scripthash': '8a11cc149d7dce867caccf61e5481d00acf782f790b169bf808b4a6ab32a5efb'},
+           {'priv': 'p2wpkh-p2sh:6ussHZ9YhTToL1K1U1W5B7uAZz9asxgWNVWZL4X2HeJxAZ31tGq',
+            'exported_privkey': 'p2wpkh-p2sh:6ussHZ9YhTToL1K1U1W5B7uAZz9asxgWNVWZL4X2HeJxAZ31tGq',
             'pub': '041958d7b0db55e8c42912231ade8713aa1127603c78ce91fa3be5a8386d24b4a03efe44e3c5f56362a268f84a8a42f75a50fbb6f976198dae2cea926df1439f87',
             'address': 'PT7Y9pqWHZHfsnk1dw9ejq3Yp2pQ6qBSCf',
             'minikey': False,
@@ -308,6 +328,16 @@ class Test_keyImport(unittest.TestCase):
             'addr_encoding': 'base58',
             'scripthash': '8a11cc149d7dce867caccf61e5481d00acf782f790b169bf808b4a6ab32a5efb'},
            {'priv': 'TNAttqWnTUoRfgduAasFX7oZNj3oC28euS3nQCmt5rfy6Uk5FBEr',
+            'exported_privkey': 'p2wpkh-p2sh:T51dkWnz7Ay9iecN4S5TvmcasreVXBbCaYoXHJ5h6uAYXpM8MGDS',
+            'pub': '0273a3c1bd660286dc632400f8ecaaf9d782b8941e0cc5e1bc73308e658510021c',
+            'address': 'PN7E5z6oUHf6aQQivCmmn8haFe6FtYshAJ',
+            'minikey': False,
+            'txin_type': 'p2wpkh-p2sh',
+            'compressed': True,
+            'addr_encoding': 'base58',
+            'scripthash': '8945b92543e13adc7c3d35d2be7924c00a125a25741f15fe5df8275a7c15cd42'},
+           {'priv': 'p2wpkh-p2sh:T51dkWnz7Ay9iecN4S5TvmcasreVXBbCaYoXHJ5h6uAYXpM8MGDS',
+            'exported_privkey': 'p2wpkh-p2sh:T51dkWnz7Ay9iecN4S5TvmcasreVXBbCaYoXHJ5h6uAYXpM8MGDS',
             'pub': '0273a3c1bd660286dc632400f8ecaaf9d782b8941e0cc5e1bc73308e658510021c',
             'address': 'PN7E5z6oUHf6aQQivCmmn8haFe6FtYshAJ',
             'minikey': False,
@@ -316,6 +346,16 @@ class Test_keyImport(unittest.TestCase):
             'addr_encoding': 'base58',
             'scripthash': '8945b92543e13adc7c3d35d2be7924c00a125a25741f15fe5df8275a7c15cd42'},
            {'priv': 'TH9hBPJWPL7n63oN2QkQFRLWYsFDUKd7sqjuauvmU3H5KxKR4vZG',
+            'exported_privkey': 'p2wpkh:T8a4cDwcDBCe7XnbULMWTFF2JS3ZduMPiQ7n2TafyZXN3dAqzEg5',
+            'pub': '03b9ace321eddd5037f35bc141a9f6cbd54d5064b917da1ef02e1b575f410f5e11',
+            'address': 'mona1quunc907zfyj7cyxhnp9584rj0wmdka2ec9w3af',
+            'minikey': False,
+            'txin_type': 'p2wpkh',
+            'compressed': True,
+            'addr_encoding': 'bech32',
+            'scripthash': 'bdd0b86d7c9290b25b8528f01739358445cd9d050e8aef8099eb74f8e34db082'},
+           {'priv': 'p2wpkh:T8a4cDwcDBCe7XnbULMWTFF2JS3ZduMPiQ7n2TafyZXN3dAqzEg5',
+            'exported_privkey': 'p2wpkh:T8a4cDwcDBCe7XnbULMWTFF2JS3ZduMPiQ7n2TafyZXN3dAqzEg5',
             'pub': '03b9ace321eddd5037f35bc141a9f6cbd54d5064b917da1ef02e1b575f410f5e11',
             'address': 'mona1quunc907zfyj7cyxhnp9584rj0wmdka2ec9w3af',
             'minikey': False,
@@ -325,6 +365,7 @@ class Test_keyImport(unittest.TestCase):
             'scripthash': 'bdd0b86d7c9290b25b8528f01739358445cd9d050e8aef8099eb74f8e34db082'},
            # from http://bitscan.com/articles/security/spotlight-on-mini-private-keys
            {'priv': 'SzavMBLoXU6kDrqtUVmffv',
+            'exported_privkey': 'p2pkh:TAsve34b6yMQn1hBGTc472BfW8kvEoct5MhZrxADHEB7oZgBbky4',
             'pub': '02588d202afcc1ee4ab5254c7847ec25b9a135bbda0f2bc69ee1a714749fd77dc9',
             'address': 'MGB59epkrViwpW6QARm5vCQGAaWErLrsUx',
             'minikey': True,
@@ -365,6 +406,7 @@ class Test_keyImport(unittest.TestCase):
     def test_is_private_key(self):
         for priv_details in self.priv_pub_addr:
             self.assertTrue(is_private_key(priv_details['priv']))
+            self.assertTrue(is_private_key(priv_details['exported_privkey']))
             self.assertFalse(is_private_key(priv_details['pub']))
             self.assertFalse(is_private_key(priv_details['address']))
         self.assertFalse(is_private_key("not a privkey"))
@@ -373,8 +415,7 @@ class Test_keyImport(unittest.TestCase):
         for priv_details in self.priv_pub_addr:
             txin_type, privkey, compressed = deserialize_privkey(priv_details['priv'])
             priv2 = serialize_privkey(privkey, compressed, txin_type)
-            if not priv_details['minikey']:
-                self.assertEqual(priv_details['priv'], priv2)
+            self.assertEqual(priv_details['exported_privkey'], priv2)
 
     def test_address_to_scripthash(self):
         for priv_details in self.priv_pub_addr:
