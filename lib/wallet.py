@@ -78,9 +78,9 @@ TX_HEIGHT_UNCONFIRMED = 0
 
 
 def relayfee(network):
-    RELAY_FEE = 1000
+    from .simple_config import FEERATE_DEFAULT_RELAY
     MAX_RELAY_FEE = 50000
-    f = network.relay_fee if network and network.relay_fee else RELAY_FEE
+    f = network.relay_fee if network and network.relay_fee else FEERATE_DEFAULT_RELAY
     return min(f, MAX_RELAY_FEE)
 
 def dust_threshold(network):
@@ -1042,7 +1042,7 @@ class Abstract_Wallet(PrintError):
                     fiat_default = False
                 item['fiat_value'] = Fiat(fiat_value, fx.ccy)
                 item['fiat_default'] = fiat_default
-                if value < 0:
+                if value is not None and value < 0:
                     ap, lp = self.capital_gain(tx_hash, fx.timestamp_rate, fx.ccy)
                     cg = lp - ap
                     item['acquisition_price'] = Fiat(ap, fx.ccy)
@@ -1054,7 +1054,8 @@ class Abstract_Wallet(PrintError):
             out.append(item)
         # add summary
         if out:
-            start_balance = out[0]['balance'].value - out[0]['value'].value
+            b, v = out[0]['balance'].value, out[0]['value'].value
+            start_balance = None if b is None or v is None else b - v
             end_balance = out[-1]['balance'].value
             if from_timestamp is not None and to_timestamp is not None:
                 start_date = timestamp_to_datetime(from_timestamp)
@@ -1718,7 +1719,7 @@ class Abstract_Wallet(PrintError):
 
     def price_at_timestamp(self, txid, price_func):
         height, conf, timestamp = self.get_tx_height(txid)
-        return price_func(timestamp)
+        return price_func(timestamp if timestamp else time.time())
 
     def unrealized_gains(self, domain, price_func, ccy):
         coins = self.get_utxos(domain)

@@ -5,8 +5,10 @@ PYTHON_VERSION=3.6.4
 NSIS_URL=http://prdownloads.sourceforge.net/nsis/nsis-3.02.1-setup.exe?download
 NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
 LYRA2RE_HASH_PYTHON_URL=https://github.com/wakiyamap/lyra2re-hash-python/releases/download/1.1.2/lyra2re2_hash-1.1.2-cp36-cp36m-win32.whl
-LIB_GCC_URL=http://prdownloads.sourceforge.net/mingw/libgcc-6.3.0-1-mingw32-dll-1.tar.xz
+LIB_GCC_URL=https://prdownloads.sourceforge.net/mingw/libgcc-6.3.0-1-mingw32-dll-1.tar.xz?download
 LIB_GCC_SHA256=8cbfa963f645cc0f81c08df2a3ecbcefc776606f0fb9db7a280d79f05209a1c3
+ZBAR_URL=https://sourceforge.net/projects/zbarw/files/zbarw-20121031-setup.exe/download
+ZBAR_SHA256=177e32b272fa76528a3af486b74e9cb356707be1c5ace4ed3fcee9723e2c2c02
 LIBUSB_URL=https://prdownloads.sourceforge.net/project/libusb/libusb-1.0/libusb-1.0.21/libusb-1.0.21.7z?download
 LIBUSB_SHA256=acdde63a40b1477898aee6153f9d91d1a2e8a5d93f832ca8ab876498f3a6d2b8
 
@@ -90,8 +92,9 @@ $PYTHON -m pip install -r ../../deterministic-build/requirements-binaries.txt
 $PYTHON -m pip install pyinstaller==3.3.1
 
 # Install ZBar
-#wget -q -O zbar.exe "https://sourceforge.net/projects/zbar/files/zbar/0.10/zbar-0.10-setup.exe/download"
-#wine zbar.exe
+wget -q -O zbar.exe "$ZBAR_URL"
+verify_hash zbar.exe $ZBAR_SHA256
+wine zbar.exe /S
 
 
 # Upgrade setuptools (so Electrum can be installed later)
@@ -119,9 +122,9 @@ cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $W
 $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL
 
 # copy from mingw for lyra2re2_hash
-wget $LIB_GCC_URL
-verify_hash libgcc-6.3.0-1-mingw32-dll-1.tar.xz $LIB_GCC_SHA256
-tar Jxfv libgcc-6.3.0-1-mingw32-dll-1.tar.xz
+wget -q -O libgcc.tar.xz "$LIB_GCC_URL"
+verify_hash libgcc.tar.xz $LIB_GCC_SHA256
+tar Jxfv libgcc.tar.xz
 cp bin/libgcc_s_dw2-1.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/
 
 #echo "Wine is configured. Please run prepare-pyinstaller.sh"

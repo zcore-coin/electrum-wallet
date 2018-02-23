@@ -8,7 +8,6 @@ from electrum_mona.i18n import languages
 from electrum_mona_gui.kivy.i18n import _
 from electrum_mona.plugins import run_hook
 from electrum_mona import coinchooser
-from electrum_mona.util import fee_levels
 
 from .choice_dialog import ChoiceDialog
 
