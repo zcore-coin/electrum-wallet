@@ -3,6 +3,7 @@
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_dynamic_libs
 
 import sys
+import os
 for i, x in enumerate(sys.argv):
     if x == '--name':
         cmdline_name = sys.argv[i+1]
@@ -12,6 +13,11 @@ else:
 
 
 home = 'C:\\electrum-mona\\'
+
+if os.path.exists("C:/Program Files (x86)"):
+    zbardir = 'C:\\Program Files (x86)\\'
+else:
+    zbardir = 'C:\\Program Files\\'
 
 # see https://github.com/pyinstaller/pyinstaller/issues/2005
 hiddenimports = []
@@ -34,7 +40,7 @@ datas = [
     (home+'lib/wordlist/english.txt', 'electrum_mona/wordlist'),
     (home+'lib/locale', 'electrum_mona/locale'),
     (home+'plugins', 'electrum_mona_plugins'),
-    ('C:\\Program Files\\ZBar\\bin\\', '.')
+    (zbardir+'ZBar\\bin\\', '.')
 ]
 datas += collect_data_files('trezorlib')
 datas += collect_data_files('btchip')
