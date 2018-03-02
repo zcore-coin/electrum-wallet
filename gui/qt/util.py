@@ -202,9 +202,14 @@ class MessageBoxMixin(object):
     def msg_box(self, icon, parent, title, text, buttons=QMessageBox.Ok,
                 defaultButton=QMessageBox.NoButton):
         parent = parent or self.top_level_window()
-        d = QMessageBox(icon, title, str(text), buttons, parent)
+        if type(icon) is QPixmap:
+            d = QMessageBox(QMessageBox.Information, title, str(text), buttons, parent)
+            d.setIconPixmap(icon)
+        else:
+            d = QMessageBox(icon, title, str(text), buttons, parent)
         d.setWindowModality(Qt.WindowModal)
         d.setDefaultButton(defaultButton)
+        d.setTextInteractionFlags(Qt.TextSelectableByMouse)
         return d.exec_()
 
 class WindowModalDialog(QDialog, MessageBoxMixin):
@@ -218,7 +223,7 @@ class WindowModalDialog(QDialog, MessageBoxMixin):
 
 
 class WaitingDialog(WindowModalDialog):
-    '''Shows a please wait dialog whilst runnning a task.  It is not
+    '''Shows a please wait dialog whilst running a task.  It is not
     necessary to maintain a reference to this dialog.'''
     def __init__(self, parent, message, task, on_success=None, on_error=None):
         assert parent
@@ -230,6 +235,7 @@ class WaitingDialog(WindowModalDialog):
         self.accepted.connect(self.on_accepted)
         self.show()
         self.thread = TaskThread(self)
+        self.thread.finished.connect(self.deleteLater)  # see #3956
         self.thread.add(task, on_success, self.accept, on_error)
 
     def wait(self):
@@ -400,6 +406,9 @@ class MyTreeWidget(QTreeWidget):
         self.update_headers(headers)
         self.current_filter = ""
 
+        self.setRootIsDecorated(False)  # remove left margin
+        self.toolbar_shown = False
+
     def update_headers(self, headers):
         self.setColumnCount(len(headers))
         self.setHeaderLabels(headers)
@@ -515,6 +524,37 @@ class MyTreeWidget(QTreeWidget):
             item.setHidden(all([item.text(column).lower().find(p) == -1
                                 for column in columns]))
 
+    def create_toolbar(self, config=None):
+        hbox = QHBoxLayout()
+        buttons = self.get_toolbar_buttons()
+        for b in buttons:
+            b.setVisible(False)
+            hbox.addWidget(b)
+        hide_button = QPushButton('x')
+        hide_button.setVisible(False)
+        hide_button.pressed.connect(lambda: self.show_toolbar(False, config))
+        self.toolbar_buttons = buttons + (hide_button,)
+        hbox.addStretch()
+        hbox.addWidget(hide_button)
+        return hbox
+
+    def save_toolbar_state(self, state, config):
+        pass  # implemented in subclasses
+
+    def show_toolbar(self, state, config=None):
+        if state == self.toolbar_shown:
+            return
+        self.toolbar_shown = state
+        if config:
+            self.save_toolbar_state(state, config)
+        for b in self.toolbar_buttons:
+            b.setVisible(state)
+        if not state:
+            self.on_hide_toolbar()
+
+    def toggle_toolbar(self, config=None):
+        self.show_toolbar(not self.toolbar_shown, config)
+
 
 class ButtonsWidget(QWidget):
 
@@ -601,12 +641,12 @@ class TaskThread(QThread):
             except BaseException:
                 self.doneSig.emit(sys.exc_info(), task.cb_done, task.cb_error)
 
-    def on_done(self, result, cb_done, cb):
+    def on_done(self, result, cb_done, cb_result):
         # This runs in the parent's thread.
         if cb_done:
             cb_done()
-        if cb:
-            cb(result)
+        if cb_result:
+            cb_result(result)
 
     def stop(self):
         self.tasks.put(None)
@@ -633,6 +673,7 @@ class ColorScheme:
     dark_scheme = False
 
     GREEN = ColorSchemeItem("#117c11", "#8af296")
+    YELLOW = ColorSchemeItem("#ffff00", "#ffff00")
     RED = ColorSchemeItem("#7c1111", "#f18c8c")
     BLUE = ColorSchemeItem("#123b7c", "#8cb3f2")
     DEFAULT = ColorSchemeItem("black", "white")
@@ -708,6 +749,34 @@ def export_meta_gui(electrum_window, title, exporter):
     else:
         electrum_window.show_message(_("Your {0} were exported to '{1}'")
                                      .format(title, str(filename)))
+
+
+def get_parent_main_window(widget):
+    """Returns a reference to the ElectrumWindow this widget belongs to."""
+    from .main_window import ElectrumWindow
+    for _ in range(100):
+        if widget is None:
+            return None
+        if not isinstance(widget, ElectrumWindow):
+            widget = widget.parentWidget()
+        else:
+            return widget
+    return None
+
+class SortableTreeWidgetItem(QTreeWidgetItem):
+    DataRole = Qt.UserRole + 1
+
+    def __lt__(self, other):
+        column = self.treeWidget().sortColumn()
+        if None not in [x.data(column, self.DataRole) for x in [self, other]]:
+            # We have set custom data to sort by
+            return self.data(column, self.DataRole) < other.data(column, self.DataRole)
+        try:
+            # Is the value something numeric?
+            return float(self.text(column)) < float(other.text(column))
+        except ValueError:
+            # If not, we will just do string comparison
+            return self.text(column) < other.text(column)
 
 
 if __name__ == "__main__":

@@ -25,6 +25,9 @@ import json
 import locale
 import platform
 import traceback
+import os
+import sys
+import subprocess
 
 import requests
 from PyQt5.QtCore import QObject
@@ -33,7 +36,6 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
 from electrum_mona.i18n import _
-import sys
 from electrum_mona import ELECTRUM_VERSION, bitcoin
 
 issue_template = """<h2>Traceback</h2>
@@ -43,7 +45,7 @@ issue_template = """<h2>Traceback</h2>
 
 <h2>Additional information</h2>
 <ul>
-  <li>Electrum version: {electrum_version}</li>
+  <li>Electrum version: {app_version}</li>
   <li>Operating system: {os}</li>
   <li>Wallet type: {wallet_type}</li>
   <li>Locale: {locale}</li>
@@ -154,7 +156,7 @@ class Exception_Window(QWidget):
 
     def get_additional_info(self):
         args = {
-            "electrum_version": ELECTRUM_VERSION,
+            "app_version": ELECTRUM_VERSION,
             "os": platform.platform(),
             "wallet_type": "unknown",
             "locale": locale.getdefaultlocale()[0],
@@ -165,12 +167,23 @@ class Exception_Window(QWidget):
         except:
             # Maybe the wallet isn't loaded yet
             pass
+        try:
+            args["app_version"] = self.get_git_version()
+        except:
+            # This is probably not running from source
+            pass
         return args
 
     def get_report_string(self):
         info = self.get_additional_info()
         info["traceback"] = "".join(traceback.format_exception(*self.exc_args))
         return issue_template.format(**info)
+
+    @staticmethod
+    def get_git_version():
+        dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        version = subprocess.check_output(['git', 'describe', '--always'], cwd=dir)
+        return str(version, "utf8").strip()
 
 
 def _show_window(*args):

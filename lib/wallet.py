@@ -65,11 +65,10 @@ from .paymentrequest import InvoiceStore
 from .contacts import Contacts
 
 TX_STATUS = [
-    _('Replaceable'),
-    _('Unconfirmed parent'),
     _('Unconfirmed'),
+    _('Unconfirmed parent'),
     _('Not Verified'),
-    _('Local only'),
+    _('Local'),
 ]
 
 TX_HEIGHT_LOCAL = -2
@@ -478,10 +477,10 @@ class Abstract_Wallet(PrintError):
                 return height, conf, timestamp
             elif tx_hash in self.unverified_tx:
                 height = self.unverified_tx[tx_hash]
-                return height, 0, False
+                return height, 0, None
             else:
                 # local transaction
-                return TX_HEIGHT_LOCAL, 0, False
+                return TX_HEIGHT_LOCAL, 0, None
 
     def get_txpos(self, tx_hash):
         "return position, even if the tx is unverified"
@@ -603,10 +602,10 @@ class Abstract_Wallet(PrintError):
                     status = _('Unconfirmed')
                     if fee is None:
                         fee = self.tx_fees.get(tx_hash)
-                    if fee and self.network.config.has_fee_etas():
+                    if fee and self.network.config.has_fee_mempool():
                         size = tx.estimated_size()
-                        fee_per_kb = fee * 1000 / size
-                        exp_n = self.network.config.fee_to_eta(fee_per_kb)
+                        fee_per_byte = fee / size
+                        exp_n = self.network.config.fee_to_depth(fee_per_byte)
                     can_bump = is_mine and not tx.is_final()
                 else:
                     status = _('Local')
@@ -846,16 +845,16 @@ class Abstract_Wallet(PrintError):
                     prevout_hash = txi['prevout_hash']
                     prevout_n = txi['prevout_n']
                     ser = prevout_hash + ':%d'%prevout_n
-                # find value from prev output
                 if addr and self.is_mine(addr):
+                    # we only track is_mine spends
+                    self.spent_outpoints[ser] = tx_hash
+                    # find value from prev output
                     dd = self.txo.get(prevout_hash, {})
                     for n, v, is_cb in dd.get(addr, []):
                         if n == prevout_n:
                             if d.get(addr) is None:
                                 d[addr] = []
                             d[addr].append((ser, v))
-                            # we only track is_mine spends
-                            self.spent_outpoints[ser] = tx_hash
                             break
                     else:
                         self.pruned_txo[ser] = tx_hash
@@ -1000,12 +999,15 @@ class Abstract_Wallet(PrintError):
         from .util import timestamp_to_datetime, Satoshis, Fiat
         out = []
         capital_gains = 0
+        income = 0
+        expenditures = 0
         fiat_income = 0
+        fiat_expenditures = 0
         h = self.get_history(domain)
         for tx_hash, height, conf, timestamp, value, balance in h:
-            if from_timestamp and timestamp < from_timestamp:
+            if from_timestamp and (timestamp or time.time()) < from_timestamp:
                 continue
-            if to_timestamp and timestamp >= to_timestamp:
+            if to_timestamp and (timestamp or time.time()) >= to_timestamp:
                 continue
             item = {
                 'txid':tx_hash,
@@ -1015,7 +1017,7 @@ class Abstract_Wallet(PrintError):
                 'value': Satoshis(value),
                 'balance': Satoshis(balance)
             }
-            item['date'] = timestamp_to_datetime(timestamp) if timestamp is not None else None
+            item['date'] = timestamp_to_datetime(timestamp)
             item['label'] = self.get_label(tx_hash)
             if show_addresses:
                 tx = self.transactions.get(tx_hash)
@@ -1032,25 +1034,32 @@ class Abstract_Wallet(PrintError):
                     output_addresses.append(addr)
                 item['input_addresses'] = input_addresses
                 item['output_addresses'] = output_addresses
+            # value may be None if wallet is not fully synchronized
+            if value is None:
+                continue
+            # fixme: use in and out values
+            if value < 0:
+                expenditures += -value
+            else:
+                income += value
+            # fiat computations
             if fx is not None:
-                date = timestamp_to_datetime(time.time() if conf <= 0 else timestamp)
+                date = timestamp_to_datetime(timestamp)
                 fiat_value = self.get_fiat_value(tx_hash, fx.ccy)
-                if fiat_value is None:
-                    fiat_value = fx.historical_value(value, date)
-                    fiat_default = True
-                else:
-                    fiat_default = False
+                fiat_default = fiat_value is None
+                fiat_value = fiat_value if fiat_value is not None else value / Decimal(COIN) * self.price_at_timestamp(tx_hash, fx.timestamp_rate)
                 item['fiat_value'] = Fiat(fiat_value, fx.ccy)
                 item['fiat_default'] = fiat_default
-                if value is not None and value < 0:
-                    ap, lp = self.capital_gain(tx_hash, fx.timestamp_rate, fx.ccy)
-                    cg = lp - ap
-                    item['acquisition_price'] = Fiat(ap, fx.ccy)
+                if value < 0:
+                    acquisition_price = - value / Decimal(COIN) * self.average_price(tx_hash, fx.timestamp_rate, fx.ccy)
+                    liquidation_price = - fiat_value
+                    item['acquisition_price'] = Fiat(acquisition_price, fx.ccy)
+                    cg = liquidation_price - acquisition_price
                     item['capital_gain'] = Fiat(cg, fx.ccy)
                     capital_gains += cg
+                    fiat_expenditures += -fiat_value
                 else:
-                    if fiat_value is not None:
-                        fiat_income += fiat_value
+                    fiat_income += fiat_value
             out.append(item)
         # add summary
         if out:
@@ -1061,24 +1070,24 @@ class Abstract_Wallet(PrintError):
                 start_date = timestamp_to_datetime(from_timestamp)
                 end_date = timestamp_to_datetime(to_timestamp)
             else:
-                start_date = out[0]['date']
-                end_date = out[-1]['date']
-
+                start_date = None
+                end_date = None
             summary = {
                 'start_date': start_date,
                 'end_date': end_date,
                 'start_balance': Satoshis(start_balance),
-                'end_balance': Satoshis(end_balance)
+                'end_balance': Satoshis(end_balance),
+                'income': Satoshis(income),
+                'expenditures': Satoshis(expenditures)
             }
             if fx:
                 unrealized = self.unrealized_gains(domain, fx.timestamp_rate, fx.ccy)
                 summary['capital_gains'] = Fiat(capital_gains, fx.ccy)
                 summary['fiat_income'] = Fiat(fiat_income, fx.ccy)
+                summary['fiat_expenditures'] = Fiat(fiat_expenditures, fx.ccy)
                 summary['unrealized_gains'] = Fiat(unrealized, fx.ccy)
-                if start_date:
-                    summary['start_fiat_balance'] = Fiat(fx.historical_value(start_balance, start_date), fx.ccy)
-                if end_date:
-                    summary['end_fiat_balance'] = Fiat(fx.historical_value(end_balance, end_date), fx.ccy)
+                summary['start_fiat_balance'] = Fiat(fx.historical_value(start_balance, start_date), fx.ccy)
+                summary['end_fiat_balance'] = Fiat(fx.historical_value(end_balance, end_date), fx.ccy)
         else:
             summary = {}
         return {
@@ -1105,33 +1114,40 @@ class Abstract_Wallet(PrintError):
 
     def get_tx_status(self, tx_hash, height, conf, timestamp):
         from .util import format_time
-        exp_n = False
+        extra = []
         if conf == 0:
             tx = self.transactions.get(tx_hash)
             if not tx:
                 return 2, 'unknown'
             is_final = tx and tx.is_final()
-            fee = self.tx_fees.get(tx_hash)
-            if fee and self.network and self.network.config.has_fee_mempool():
+            if not is_final:
+                extra.append('rbf')
+            fee = self.get_wallet_delta(tx)[3]
+            if fee is None:
+                fee = self.tx_fees.get(tx_hash)
+            if fee is not None:
                 size = tx.estimated_size()
-                fee_per_kb = fee * 1000 / size
-                exp_n = self.network.config.fee_to_depth(fee_per_kb//1000)
+                fee_per_byte = fee / size
+                extra.append('%.1f sat/b'%(fee_per_byte))
+            if fee is not None and height in (TX_HEIGHT_UNCONF_PARENT, TX_HEIGHT_UNCONFIRMED) \
+               and self.network and self.network.config.has_fee_mempool():
+                exp_n = self.network.config.fee_to_depth(fee_per_byte)
+                if exp_n:
+                    extra.append('%.2f MB'%(exp_n/1000000))
             if height == TX_HEIGHT_LOCAL:
-                status = 4
+                status = 3
             elif height == TX_HEIGHT_UNCONF_PARENT:
                 status = 1
-            elif height == TX_HEIGHT_UNCONFIRMED and not is_final:
-                status = 0
             elif height == TX_HEIGHT_UNCONFIRMED:
-                status = 2
+                status = 0
             else:
-                status = 3
+                status = 2
         else:
-            status = 4 + min(conf, 6)
+            status = 3 + min(conf, 6)
         time_str = format_time(timestamp) if timestamp else _("unknown")
-        status_str = TX_STATUS[status] if status < 5 else time_str
-        if exp_n:
-            status_str += ' [%d sat/b, %.2f MB]'%(fee_per_kb//1000, exp_n/1000000)
+        status_str = TX_STATUS[status] if status < 4 else time_str
+        if extra:
+            status_str += ' [%s]'%(', '.join(extra))
         return status, status_str
 
     def relayfee(self):
@@ -1245,8 +1261,9 @@ class Abstract_Wallet(PrintError):
 
     def start_threads(self, network):
         self.network = network
+        # prepare self.unverified_tx regardless of network
+        self.prepare_for_verifier()
         if self.network is not None:
-            self.prepare_for_verifier()
             self.verifier = SPV(self.network, self)
             self.synchronizer = Synchronizer(self, network)
             network.add_jobs([self.verifier, self.synchronizer])
@@ -1728,18 +1745,6 @@ class Abstract_Wallet(PrintError):
         ap = sum(self.coin_price(coin['prevout_hash'], price_func, ccy, self.txin_value(coin)) for coin in coins)
         lp = sum([coin['value'] for coin in coins]) * p / Decimal(COIN)
         return lp - ap
-
-    def capital_gain(self, txid, price_func, ccy):
-        """
-        Difference between the fiat price of coins leaving the wallet because of transaction txid,
-        and the price of these coins when they entered the wallet.
-        price_func: function that returns the fiat price given a timestamp
-        """
-        out_value = - self.get_tx_value(txid)/Decimal(COIN)
-        fiat_value = self.get_fiat_value(txid, ccy)
-        liquidation_price = - fiat_value if fiat_value else out_value * self.price_at_timestamp(txid, price_func)
-        acquisition_price = out_value * self.average_price(txid, price_func, ccy)
-        return acquisition_price, liquidation_price
 
     def average_price(self, txid, price_func, ccy):
         """ Average acquisition price of the inputs of a transaction """
