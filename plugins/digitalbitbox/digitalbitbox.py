@@ -4,9 +4,10 @@
 #
 
 try:
-    import electrum_mona as electrum
+    import electrum_mona
     from electrum_mona.bitcoin import TYPE_ADDRESS, push_script, var_int, msg_magic, Hash, verify_message, pubkey_from_signature, point_to_ser, public_key_to_p2pkh, EncodeAES, DecodeAES, MyVerifyingKey
     from electrum_mona.bitcoin import serialize_xpub, deserialize_xpub
+    from electrum_mona import constants
     from electrum_mona.transaction import Transaction
     from electrum_mona.i18n import _
     from electrum_mona.keystore import Hardware_KeyStore
@@ -92,10 +93,10 @@ class DigitalBitbox_Client():
         if reply:
             xpub = reply['xpub']
             # Change type of xpub to the requested type. The firmware
-            # only ever returns the standard type, but it is agnostic
+            # only ever returns the mainnet standard type, but it is agnostic
             # to the type when signing.
-            if xtype != 'standard':
-                _, depth, fingerprint, child_number, c, cK = deserialize_xpub(xpub)
+            if xtype != 'standard' or constants.net.TESTNET:
+                _, depth, fingerprint, child_number, c, cK = deserialize_xpub(xpub, net=constants.BitcoinMainnet)
                 xpub = serialize_xpub(xtype, c, cK, depth, fingerprint, child_number)
             return xpub
         else:
@@ -271,7 +272,7 @@ class DigitalBitbox_Client():
 
     def dbb_generate_wallet(self):
         key = self.stretch_key(self.password)
-        filename = ("Electrum-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf").encode('utf8')
+        filename = ("Electrum-mona-" + time.strftime("%Y-%m-%d-%H-%M-%S") + ".pdf").encode('utf8')
         msg = b'{"seed":{"source": "create", "key": "%s", "filename": "%s", "entropy": "%s"}}' % (key, filename, b'Digital Bitbox Electrum Plugin')
         reply = self.hid_send_encrypt(msg)
         if 'error' in reply:

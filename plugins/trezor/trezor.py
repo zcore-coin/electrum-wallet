@@ -4,7 +4,8 @@ from binascii import hexlify, unhexlify
 
 from electrum_mona.util import bfh, bh2u, versiontuple
 from electrum_mona.bitcoin import (b58_address_to_hash160, xpub_from_pubkey,
-                              TYPE_ADDRESS, TYPE_SCRIPT, NetworkConstants)
+                              TYPE_ADDRESS, TYPE_SCRIPT)
+from electrum_mona import constants
 from electrum_mona.i18n import _
 from electrum_mona.plugins import BasePlugin, Device
 from electrum_mona.transaction import deserialize
@@ -173,7 +174,7 @@ class TrezorPlugin(HW_PluginBase):
         return client
 
     def get_coin_name(self):
-        return "Testnet" if NetworkConstants.TESTNET else "Monacoin"
+        return "Testnet" if constants.net.TESTNET else "Monacoin"
 
     def initialize_device(self, device_id, wizard, handler):
         # Initialization method
@@ -434,6 +435,9 @@ class TrezorPlugin(HW_PluginBase):
 
     def electrum_tx_to_txtype(self, tx):
         t = self.types.TransactionType()
+        if tx is None:
+            # probably for segwit input and we don't need this prev txn
+            return t
         d = deserialize(tx.raw)
         t.version = d['version']
         t.lock_time = d['lockTime']

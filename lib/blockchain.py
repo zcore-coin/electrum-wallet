@@ -26,6 +26,7 @@ import sys
 
 from . import util
 from . import bitcoin
+from . import constants
 from .bitcoin import *
 
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -109,7 +110,7 @@ class Blockchain(util.PrintError):
         self.config = config
         self.catch_up = None # interface catching up
         self.checkpoint = checkpoint
-        self.checkpoints = bitcoin.NetworkConstants.CHECKPOINTS
+        self.checkpoints = constants.net.CHECKPOINTS
         self.parent_id = parent_id
         self.lock = threading.Lock()
         with self.lock:
@@ -162,7 +163,7 @@ class Blockchain(util.PrintError):
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
         if height % 2016 != 0 and height // 2016 < len(self.checkpoints) or height >= len(self.checkpoints)*2016 and height <= len(self.checkpoints)*2016 + 24:
             return
-        if bitcoin.NetworkConstants.TESTNET:
+        if constants.net.TESTNET:
             return
         if bits != header.get('bits'):
             raise BaseException("bits mismatch: %s vs %s" % (bits, header.get('bits')))
@@ -277,7 +278,7 @@ class Blockchain(util.PrintError):
         if height == -1:
             return '0000000000000000000000000000000000000000000000000000000000000000'
         if height == 0:
-            return bitcoin.NetworkConstants.GENESIS
+            return constants.net.GENESIS
         elif height < len(self.checkpoints) * 2016:
             assert (height+1) % 2016 == 0, height
             index = height // 2016
@@ -285,7 +286,6 @@ class Blockchain(util.PrintError):
             return h
         else:
             return hash_header(self.read_header(height))
-
 
     def convbits(self,new_target):
         c = ("%064x" % int(new_target))[2:]
@@ -373,7 +373,7 @@ class Blockchain(util.PrintError):
 
 
     def get_target(self, height, chain=None):
-        if bitcoin.NetworkConstants.TESTNET:
+        if constants.net.TESTNET:
             return 0, 0
         elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
             h, t = self.checkpoints[height // 2016]
@@ -390,7 +390,7 @@ class Blockchain(util.PrintError):
             #self.print_error("cannot connect at height", height)
             return False
         if height == 0:
-            return hash_header(header) == bitcoin.NetworkConstants.GENESIS
+            return hash_header(header) == constants.net.GENESIS
         try:
             prev_hash = self.get_hash(height - 1)
         except:

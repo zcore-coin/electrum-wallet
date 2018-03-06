@@ -118,6 +118,13 @@ class ExchangeBase(PrintError):
         json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
         return Decimal(json['last']) * btc
 
+
+class BitcoinAverage(ExchangeBase):
+
+    def get_rates(self, ccy):
+        json = self.get_json('apiv2.bitcoinaverage.com', '/indices/crypto/ticker/MONABTC')
+        return {ccy: self.convert_btc_to_ccy(ccy, Decimal(json['last']))}
+
 class Bittrex(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('bittrex.com', '/api/v1.1/public/getticker?market=btc-mona')
@@ -132,6 +139,7 @@ class Zaif(ExchangeBase):
     def get_rates(self, ccy):
         json = self.get_json('api.zaif.jp', '/api/1/last_price/mona_jpy')
         return {'JPY': Decimal(json['last_price'])}
+
 
 def dictinvert(d):
     inv = {}
@@ -287,6 +295,10 @@ class FxThread(ThreadJob):
         if rate is None:
             return Decimal('NaN')
         return Decimal(rate)
+
+    def format_amount(self, btc_balance):
+        rate = self.exchange_rate()
+        return '' if rate.is_nan() else "%s" % self.value_str(btc_balance, rate)
 
     def format_amount_and_units(self, btc_balance):
         rate = self.exchange_rate()

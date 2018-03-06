@@ -44,7 +44,7 @@ import sys
 
 from .i18n import _
 from .util import (NotEnoughFunds, PrintError, UserCancelled, profiler,
-                   format_satoshis, NoDynamicFeeEstimates)
+                   format_satoshis, NoDynamicFeeEstimates, TimeoutException)
 
 from .bitcoin import *
 from .version import *
@@ -881,16 +881,19 @@ class Abstract_Wallet(PrintError):
             return True
 
     def remove_transaction(self, tx_hash):
-        def undo_spend(outpoint_to_txid_map):
-            for addr, l in self.txi[tx_hash].items():
-                for ser, v in l:
-                    outpoint_to_txid_map.pop(ser, None)
 
         with self.transaction_lock:
             self.print_error("removing tx from history", tx_hash)
             self.transactions.pop(tx_hash, None)
-            undo_spend(self.pruned_txo)
-            undo_spend(self.spent_outpoints)
+            # undo spent_outpoints that are in txi
+            for addr, l in self.txi[tx_hash].items():
+                for ser, v in l:
+                    self.spent_outpoints.pop(ser, None)
+            # undo spent_outpoints that are in pruned_txo
+            for ser, hh in list(self.pruned_txo.items()):
+                if hh == tx_hash:
+                    self.spent_outpoints.pop(ser)
+                    self.pruned_txo.pop(ser)
 
             # add tx to pruned_txo, and undo the txi addition
             for next_tx, dd in self.txi.items():
@@ -924,7 +927,8 @@ class Abstract_Wallet(PrintError):
                     # make tx local
                     self.unverified_tx.pop(tx_hash, None)
                     self.verified_tx.pop(tx_hash, None)
-                    self.verifier.merkle_roots.pop(tx_hash, None)
+                    if self.verifier:
+                        self.verifier.merkle_roots.pop(tx_hash, None)
                     # but remove completely if not is_mine
                     if self.txi[tx_hash] == {}:
                         # FIXME the test here should be for "not all is_mine"; cannot detect conflict in some cases
@@ -998,11 +1002,11 @@ class Abstract_Wallet(PrintError):
     def get_full_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None, show_addresses=False):
         from .util import timestamp_to_datetime, Satoshis, Fiat
         out = []
-        capital_gains = 0
         income = 0
         expenditures = 0
-        fiat_income = 0
-        fiat_expenditures = 0
+        capital_gains = Decimal(0)
+        fiat_income = Decimal(0)
+        fiat_expenditures = Decimal(0)
         h = self.get_history(domain)
         for tx_hash, height, conf, timestamp, value, balance in h:
             if from_timestamp and (timestamp or time.time()) < from_timestamp:
@@ -1413,21 +1417,28 @@ class Abstract_Wallet(PrintError):
                 return True
         return False
 
-    def get_input_tx(self, tx_hash):
+    def get_input_tx(self, tx_hash, ignore_timeout=False):
         # First look up an input transaction in the wallet where it
         # will likely be.  If co-signing a transaction it may not have
         # all the input txs, in which case we ask the network.
-        tx = self.transactions.get(tx_hash)
+        tx = self.transactions.get(tx_hash, None)
         if not tx and self.network:
             request = ('blockchain.transaction.get', [tx_hash])
-            tx = Transaction(self.network.synchronous_get(request))
+            try:
+                tx = Transaction(self.network.synchronous_get(request))
+            except TimeoutException as e:
+                self.print_error('getting input txn from network timed out for {}'.format(tx_hash))
+                if not ignore_timeout:
+                    raise e
         return tx
 
     def add_hw_info(self, tx):
         # add previous tx for hw wallets
         for txin in tx.inputs():
             tx_hash = txin['prevout_hash']
-            txin['prev_tx'] = self.get_input_tx(tx_hash)
+            # segwit inputs might not be needed for some hw wallets
+            ignore_timeout = Transaction.is_segwit_input(txin)
+            txin['prev_tx'] = self.get_input_tx(tx_hash, ignore_timeout)
         # add output info for hw wallets
         info = {}
         xpubs = self.get_master_public_keys()
