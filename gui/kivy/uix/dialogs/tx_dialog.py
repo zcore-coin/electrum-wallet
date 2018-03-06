@@ -151,8 +151,8 @@ class TxDialog(Factory.Popup):
         except BaseException as e:
             self.app.show_error(str(e))
             return
-        if is_final:
-            new_tx.set_rbf(False)
+        # if is_final:
+            # new_tx.set_rbf(False)
         self.tx = new_tx
         self.update()
         self.do_sign()

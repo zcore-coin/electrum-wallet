@@ -117,6 +117,9 @@ class ElectrumGui:
         self.app.new_window_signal.connect(self.start_new_window)
         run_hook('init_qt', self)
         ColorScheme.update_from_widget(QWidget())
+        # rbf disabled
+        if self.config.get('use_rbf', True):
+            self.config.set_key('use_rbf', False)
 
     def build_tray_menu(self):
         # Avoid immediate GC of old menu when window closed via its action

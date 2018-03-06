@@ -418,8 +418,8 @@ class Commands:
         tx = self.wallet.make_unsigned_transaction(coins, final_outputs, self.config, fee, change_addr)
         if locktime != None: 
             tx.locktime = locktime
-        if rbf:
-            tx.set_rbf(True)
+        # if rbf:
+            #tx.set_rbf(True)
         if not unsigned:
             run_hook('sign_tx', self.wallet, tx)
             self.wallet.sign_transaction(tx, password)

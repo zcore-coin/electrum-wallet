@@ -277,8 +277,8 @@ class SendScreen(CScreen):
             traceback.print_exc(file=sys.stdout)
             self.app.show_error(str(e))
             return
-        if rbf:
-            tx.set_rbf(True)
+        # if rbf:
+            # tx.set_rbf(True)
         fee = tx.get_fee()
         msg = [
             _("Amount to be sent") + ": " + self.app.format_amount_and_units(amount),

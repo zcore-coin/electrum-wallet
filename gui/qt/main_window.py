@@ -2653,8 +2653,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             _('Note that some merchants do not accept non-final transactions until they are confirmed.'))
         def on_use_rbf(x):
             self.config.set_key('use_rbf', x == Qt.Checked)
+        # rbf disable
+        if self.config.get('use_rbf', True):
+            self.config.set_key('use_rbf', False)
         use_rbf_cb.stateChanged.connect(on_use_rbf)
-        fee_widgets.append((use_rbf_cb, None))
+        #fee_widgets.append((use_rbf_cb, None))
 
         msg = _('OpenAlias record, used to receive coins and to sign payment requests.') + '\n\n'\
               + _('The following alias providers are available:') + '\n'\
@@ -3112,7 +3115,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.show_error(_('Max fee exceeded'))
             return
         new_tx = self.wallet.cpfp(parent_tx, fee)
-        new_tx.set_rbf(True)
+        # new_tx.set_rbf(True)
+        new_tx.set_rbf(False)
         self.show_transaction(new_tx)
 
     def bump_fee_dialog(self, tx):
@@ -3149,8 +3153,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         except BaseException as e:
             self.show_error(str(e))
             return
-        if is_final:
-            new_tx.set_rbf(False)
+        #if is_final:
+        #    new_tx.set_rbf(True)
+        new_tx.set_rbf(False)
         self.show_transaction(new_tx, tx_label)
 
     def save_transaction_into_wallet(self, tx):
