@@ -17,18 +17,6 @@
         "t": "50001",
         "version": "1.2"
     },
-    "electrumx1.movsign.info": {
-        "pruning": "-",
-        "s": "50002",
-        "t": "50001",
-        "version": "1.2"
-    },
-    "electrumx2.movsign.info": {
-        "pruning": "-",
-        "s": "50002",
-        "t": "50001",
-        "version": "1.2"
-    },
     "electrumx1.monacoin.nl": {
         "pruning": "-",
         "s": "50002",
@@ -48,12 +36,6 @@
         "version": "1.2"
     },
     "electrumx2.monacoin.ninja": {
-        "pruning": "-",
-        "s": "50002",
-        "t": "50001",
-        "version": "1.2"
-    },
-    "electrum-mona.bitbank.cc": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
