@@ -52,9 +52,8 @@ rm  -rf $BUILDDIR > /dev/null 2>&1
 mkdir $BUILDDIR
 
 info "Downloading icons and locale..."
-git clone https://github.com/spesmilo/electrum-locale $BUILDDIR/electrum-$repo
-git clone https://github.com/wakiyamap/electrum-icons $BUILDDIR/electrum-$repo
-done
+git clone https://github.com/spesmilo/electrum-locale $BUILDDIR/electrum-locale
+git clone https://github.com/wakiyamap/electrum-icons $BUILDDIR/electrum-icons
 
 cp -R $BUILDDIR/electrum-locale/locale/ ./lib/locale/
 cp    $BUILDDIR/electrum-icons/icons_rc.py ./gui/qt/
