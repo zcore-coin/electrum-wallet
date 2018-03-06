@@ -24,9 +24,6 @@ class FeeSlider(QSlider):
                 fee_rate = self.config.depth_to_fee(pos) if self.config.use_mempool_fees() else self.config.eta_to_fee(pos)
             else:
                 fee_rate = self.config.static_fee(pos)
-            # mempool 0 fee :\
-            if fee_rate <= 101000:
-                fee_rate = 101801
             tooltip = self.get_tooltip(pos, fee_rate)
             QToolTip.showText(QCursor.pos(), tooltip, self)
             self.setToolTip(tooltip)
@@ -45,7 +42,7 @@ class FeeSlider(QSlider):
             self.dyn = self.config.is_dynfee()
             mempool = self.config.use_mempool_fees()
             maxp, pos, fee_rate = self.config.get_fee_slider(self.dyn, mempool)
-            self.setRange(0.000001, maxp)
+            self.setRange(0, maxp)
             self.setValue(pos)
             tooltip = self.get_tooltip(pos, fee_rate)
             self.setToolTip(tooltip)

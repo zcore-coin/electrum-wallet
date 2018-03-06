@@ -27,8 +27,6 @@ from .context_menu import ContextMenu
 
 from electrum_mona_gui.kivy.i18n import _
 
-class EmptyLabel(Factory.Label):
-    pass
 
 class CScreen(Factory.Screen):
     __events__ = ('on_activate', 'on_deactivate', 'on_enter', 'on_leave')
