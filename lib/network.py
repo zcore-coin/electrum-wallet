@@ -549,6 +549,9 @@ class Network(util.DaemonThread):
                 self.donation_address = result
         elif method == 'mempool.get_fee_histogram':
             if error is None:
+                if result == []:
+                    # [] is bad :\ It's dummy data.
+                    result = [[101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000], [101, 10000000]]
                 self.print_error('fee_histogram', result)
                 self.config.mempool_fees = result
                 self.notify('fee_histogram')
