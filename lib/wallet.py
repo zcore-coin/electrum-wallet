@@ -217,6 +217,8 @@ class Abstract_Wallet(PrintError):
         self.load_transactions()
         self.build_spent_outpoints()
 
+        self.test_addresses_sanity()
+
         # load requests
         self.receive_requests = self.storage.get('payment_requests', {})
 
@@ -345,6 +347,12 @@ class Abstract_Wallet(PrintError):
         if type(d) != dict: d={}
         self.receiving_addresses = d.get('receiving', [])
         self.change_addresses = d.get('change', [])
+
+    def test_addresses_sanity(self):
+        addrs = self.get_receiving_addresses()
+        if len(addrs) > 0:
+            if not bitcoin.is_address(addrs[0]):
+                raise Exception('The addresses in this wallet are not bitcoin addresses.')
 
     def synchronize(self):
         pass
@@ -795,6 +803,9 @@ class Abstract_Wallet(PrintError):
             return conflicting_txns
 
     def add_transaction(self, tx_hash, tx):
+        assert tx_hash, tx_hash
+        assert tx, tx
+        assert tx.is_complete()
         # we need self.transaction_lock but get_tx_height will take self.lock
         # so we need to take that too here, to enforce order of locks
         with self.lock, self.transaction_lock:
@@ -896,7 +907,7 @@ class Abstract_Wallet(PrintError):
             # undo spent_outpoints that are in pruned_txo
             for ser, hh in list(self.pruned_txo.items()):
                 if hh == tx_hash:
-                    self.spent_outpoints.pop(ser)
+                    self.spent_outpoints.pop(ser, None)
                     self.pruned_txo.pop(ser)
 
             # add tx to pruned_txo, and undo the txi addition
@@ -1634,13 +1645,14 @@ class Abstract_Wallet(PrintError):
         return True
 
     def get_sorted_requests(self, config):
-        def f(x):
+        def f(addr):
             try:
-                addr = x.get('address')
-                return self.get_address_index(addr) or addr
+                return self.get_address_index(addr)
             except:
-                return addr
-        return sorted(map(lambda x: self.get_payment_request(x, config), self.receive_requests.keys()), key=f)
+                return
+        keys = map(lambda x: (f(x), x), self.receive_requests.keys())
+        sorted_keys = sorted(filter(lambda x: x[0] is not None, keys))
+        return [self.get_payment_request(x[1], config) for x in sorted_keys]
 
     def get_fingerprint(self):
         raise NotImplementedError()
@@ -1743,11 +1755,12 @@ class Abstract_Wallet(PrintError):
     def txin_value(self, txin):
         txid = txin['prevout_hash']
         prev_n = txin['prevout_n']
-        for address, d in self.txo[txid].items():
+        for address, d in self.txo.get(txid, {}).items():
             for n, v, cb in d:
                 if n == prev_n:
                     return v
-        raise BaseException('unknown txin value')
+        # may occur if wallet is not synchronized
+        return None
 
     def price_at_timestamp(self, txid, price_func):
         height, conf, timestamp = self.get_tx_height(txid)
@@ -1776,6 +1789,8 @@ class Abstract_Wallet(PrintError):
         Acquisition price of a coin.
         This assumes that either all inputs are mine, or no input is mine.
         """
+        if txin_value is None:
+            return Decimal('NaN')
         cache_key = "{}:{}:{}".format(str(txid), str(ccy), str(txin_value))
         result = self.coin_price_cache.get(cache_key, None)
         if result is not None:
@@ -1945,14 +1960,15 @@ class Imported_Wallet(Simple_Wallet):
         try:
             txin_type, pubkey = self.keystore.import_privkey(sec, pw)
         except Exception:
-            raise BaseException('Invalid private key', sec)
+            neutered_privkey = str(sec)[:3] + '..' + str(sec)[-2:]
+            raise BaseException('Invalid private key', neutered_privkey)
         if txin_type in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh']:
             if redeem_script is not None:
-                raise BaseException('Cannot use redeem script with', txin_type, sec)
+                raise BaseException('Cannot use redeem script with', txin_type)
             addr = bitcoin.pubkey_to_address(txin_type, pubkey)
         elif txin_type in ['p2sh', 'p2wsh', 'p2wsh-p2sh']:
             if redeem_script is None:
-                raise BaseException('Redeem script required for', txin_type, sec)
+                raise BaseException('Redeem script required for', txin_type)
             addr = bitcoin.redeem_script_to_address(txin_type, redeem_script)
         else:
             raise NotImplementedError(txin_type)
@@ -2306,5 +2322,5 @@ class Wallet(object):
             return Multisig_Wallet
         if wallet_type in wallet_constructors:
             return wallet_constructors[wallet_type]
-        raise RuntimeError("Unknown wallet type: " + wallet_type)
+        raise RuntimeError("Unknown wallet type: " + str(wallet_type))
 

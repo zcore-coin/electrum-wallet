@@ -11,7 +11,7 @@ from lib.bitcoin import (
     var_int, op_push, address_to_script, regenerate_key,
     verify_message, deserialize_privkey, serialize_privkey, is_segwit_address,
     is_b58_address, address_to_scripthash, is_minikey, is_compressed, is_xpub,
-    xpub_type, is_xprv, is_bip32_derivation, seed_type, deserialize_privkey_old)
+    xpub_type, is_xprv, is_bip32_derivation, seed_type, deserialize_privkey_old, is_private_key_old)
 from lib.util import bfh
 from lib import constants
 
@@ -376,6 +376,25 @@ class Test_keyImport(unittest.TestCase):
             'scripthash': '60ad5a8b922f758cd7884403e90ee7e6f093f8d21a0ff24c9a865e695ccefdf1'},
     )
 
+    priv_pub_addr_old = (
+           {'priv': 'TNsb2t6wGVTrZCeeTP5C9eEA3UdqQpDCaYQYbEof1wPuTDzLsbni',
+            'exported_privkey': 'p2pkh:TNsb2t6wGVTrZCeeTP5C9eEA3UdqQpDCaYQYbEof1wPuTDzLsbni',
+            'pub': '03581803a5795674e8ba65765d7d8bc4c89ce96835e19538437390b010a0e693f7',
+            'address': 'MKLkoVY9am6aRxTeCAzVrywyg8PC5uQVPW',
+            'minikey' : False,
+            'txin_type': 'p2pkh',
+            'compressed': True,
+            'addr_encoding': 'base58'},
+           {'priv': 'TNsb2t6wGVTrZCeeTP5C9eEA3UdqQpDCaYQYbEof1wPuTDzLsbni',
+            'exported_privkey': 'TNsb2t6wGVTrZCeeTP5C9eEA3UdqQpDCaYQYbEof1wPuTDzLsbni',
+            'pub': '03581803a5795674e8ba65765d7d8bc4c89ce96835e19538437390b010a0e693f7',
+            'address': 'MKLkoVY9am6aRxTeCAzVrywyg8PC5uQVPW',
+            'minikey' : False,
+            'txin_type': 'p2pkh',
+            'compressed': True,
+            'addr_encoding': 'base58'}
+    )
+
     def test_public_key_from_private_key(self):
         for priv_details in self.priv_pub_addr:
             txin_type, privkey, compressed = deserialize_privkey(priv_details['priv'])
@@ -411,6 +430,14 @@ class Test_keyImport(unittest.TestCase):
             self.assertFalse(is_private_key(priv_details['pub']))
             self.assertFalse(is_private_key(priv_details['address']))
         self.assertFalse(is_private_key("not a privkey"))
+
+    def test_is_private_key_old(self):
+        for priv_details in self.priv_pub_addr_old:
+            self.assertTrue(is_private_key_old(priv_details['priv']))
+            self.assertTrue(is_private_key_old(priv_details['exported_privkey']))
+            self.assertFalse(is_private_key_old(priv_details['pub']))
+            self.assertFalse(is_private_key_old(priv_details['address']))
+        self.assertFalse(is_private_key_old("not a privkey"))
 
     def test_serialize_privkey(self):
         for priv_details in self.priv_pub_addr:
