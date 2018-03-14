@@ -16,9 +16,6 @@ Electrum-mona - Lightweight Monacoin client
 .. image:: https://coveralls.io/repos/github/wakiyamap/electrum-mona/badge.svg?branch=master
     :target: https://coveralls.io/github/wakiyamap/electrum-mona?branch=master
     :alt: Test coverage statistics
-.. image:: https://img.shields.io/badge/help-translating-blue.svg
-    :target: https://crowdin.com/project/electrum
-    :alt: Help translating Electrum online
 
 
 
