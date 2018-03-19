@@ -173,8 +173,8 @@ class Test_bitcoin(unittest.TestCase):
         # test vectors from BIP-0173 TODO
         self.assertEqual(address_to_script('MONA1Q4KPN6PSTHGD5UR894AUHJJ2G02WLGMP8KE08NE'), '0014ad833d060bba1b4e0ce5af797949487a9df46c27')
         self.assertEqual(address_to_script('mona1qp8f842ywwr9h5rdxyzggex7q3trvvvaarfssxccju52rj6htfzfsqr79j2'), '002009d27aa88e70cb7a0da620908c9bc08ac6c633bd1a61036312e514396aeb4893')
-        #self.assertEqual(address_to_script('MONA1SW50QA3JX3S'), '6002751e')
-        #self.assertEqual(address_to_script('mona1zw508d6qejxtdg4y5r3zarvaryvg6kdaj'), '5210751e76e8199196d454941c45d1b3a323')
+        self.assertEqual(address_to_script('mona1sw50qpvnxy8'), '6002751e')
+        self.assertEqual(address_to_script('mona1zw508d6qejxtdg4y5r3zarvaryvhm3vz7'), '5210751e76e8199196d454941c45d1b3a323')
 
         # base58 P2PKH
         self.assertEqual(address_to_script('MFMy9FwJsV6HiN5eZDqDETw4pw52q3UGrb'), '76a91451dadacc7021440cbe4ca148a5db563b329b4c0388ac')

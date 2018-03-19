@@ -117,6 +117,7 @@ class TrezorPlugin(HW_PluginBase):
             return
 
         from . import client
+        from . import transport
         import trezorlib.ckd_public
         import trezorlib.messages
         self.client_class = client.TrezorClient
@@ -124,37 +125,17 @@ class TrezorPlugin(HW_PluginBase):
         self.types = trezorlib.messages
         self.DEVICE_IDS = ('TREZOR',)
 
+        self.transport_handler = transport.TrezorTransport()
         self.device_manager().register_enumerate_func(self.enumerate)
 
     def enumerate(self):
-        try:
-            from trezorlib.transport import all_transports
-        except ImportError:
-            # compat for trezorlib < 0.9.2
-            def all_transports():
-                from trezorlib.transport_bridge import BridgeTransport
-                from trezorlib.transport_hid import HidTransport
-                from trezorlib.transport_udp import UdpTransport
-                from trezorlib.transport_webusb import WebUsbTransport
-                return (BridgeTransport, HidTransport, UdpTransport, WebUsbTransport)
-
-        devices = []
-        for transport in all_transports():
-            try:
-                new_devices = transport.enumerate()
-            except BaseException as e:
-                self.print_error('enumerate failed for {}. error {}'
-                                 .format(transport.__name__, str(e)))
-            else:
-                devices.extend(new_devices)
-
+        devices = self.transport_handler.enumerate_devices()
         return [Device(d.get_path(), -1, d.get_path(), 'TREZOR', 0) for d in devices]
 
     def create_client(self, device, handler):
-        from trezorlib.device import TrezorDevice
         try:
             self.print_error("connecting to device at", device.path)
-            transport = TrezorDevice.find_by_path(device.path)
+            transport = self.transport_handler.get_transport(device.path)
         except BaseException as e:
             self.print_error("cannot connect at", device.path, str(e))
             return None
