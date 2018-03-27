@@ -389,6 +389,8 @@ class Blockchain(util.PrintError):
 
 
     def can_connect(self, header, check_height=True):
+        if header is None:
+            return False
         height = header['block_height']
         if check_height and self.height() != height - 1:
             #self.print_error("cannot connect at height", height)
