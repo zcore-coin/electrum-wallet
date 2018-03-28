@@ -44,6 +44,9 @@ setup(
     name="Electrum-MONA",
     version=version.ELECTRUM_VERSION,
     install_requires=requirements,
+    extras_require={
+        'full': requirements_hw + ['pycryptodomex'],
+    },
     packages=[
         'electrum_mona',
         'electrum_mona_gui',
@@ -88,8 +91,3 @@ setup(
     url="https://github.com/wakiyamap/electrum-mona",
     long_description="""Lightweight Monacoin Wallet"""
 )
-
-# Optional modules (not required to run Electrum)
-import pip
-opt_modules = requirements_hw + ['pycryptodomex']
-[ pip.main(['install', m]) for m in opt_modules ]
