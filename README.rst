@@ -21,7 +21,6 @@ Electrum-mona - Lightweight Monacoin client
 
 
 
-
 Getting started
 ===============
 
