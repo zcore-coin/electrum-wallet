@@ -2,9 +2,9 @@
 
 PYTHON_VERSION=3.6.4
 # Please update these links carefully, some versions won't work under Wine
-NSIS_FILENAME=nsis-3.02.1-setup.exe
-NSIS_URL=https://cfhcable.dl.sourceforge.net/project/nsis/NSIS%203/3.02.1/$NSIS_FILENAME
-NSIS_SHA256=736c9062a02e297e335f82252e648a883171c98e0d5120439f538c81d429552e
+NSIS_FILENAME=nsis-3.03-setup.exe
+NSIS_URL=https://prdownloads.sourceforge.net/nsis/$NSIS_FILENAME?download
+NSIS_SHA256=bd3b15ab62ec6b0c7a00f46022d441af03277be893326f6fea8e212dc2d77743
 
 LYRA2RE_HASH_PYTHON_URL=https://github.com/wakiyamap/lyra2re-hash-python/releases/download/1.1.2/lyra2re2_hash-1.1.2-cp36-cp36m-win32.whl
 
@@ -16,9 +16,9 @@ ZBAR_FILENAME=zbarw-20121031-setup.exe
 ZBAR_URL=https://astuteinternet.dl.sourceforge.net/project/zbarw/$ZBAR_FILENAME
 ZBAR_SHA256=177e32b272fa76528a3af486b74e9cb356707be1c5ace4ed3fcee9723e2c2c02
 
-LIBUSB_FILENAME=libusb-1.0.21.7z
-LIBUSB_URL=https://netix.dl.sourceforge.net/project/libusb/libusb-1.0/libusb-1.0.21/$LIBUSB_FILENAME
-LIBUSB_SHA256=acdde63a40b1477898aee6153f9d91d1a2e8a5d93f832ca8ab876498f3a6d2b8
+LIBUSB_FILENAME=libusb-1.0.22.7z
+LIBUSB_URL=https://prdownloads.sourceforge.net/project/libusb/libusb-1.0/libusb-1.0.22/$LIBUSB_FILENAME?download
+LIBUSB_SHA256=671f1a420757b4480e7fadc8313d6fb3cbb75ca00934c417c1efa6e77fb8779b
 
 
 ## These settings probably don't need change
@@ -92,8 +92,6 @@ echo "done"
 
 wine 'wineboot'
 
-mkdir -p /tmp/electrum-build
-
 cd /tmp/electrum-build
 
 # Install Python
@@ -105,8 +103,8 @@ KEYSERVER_PYTHON_DEV="hkp://pool.sks-keyservers.net"
 retry gpg --no-default-keyring --keyring $KEYRING_PYTHON_DEV --keyserver $KEYSERVER_PYTHON_DEV --recv-keys $KEYLIST_PYTHON_DEV
 for msifile in core dev exe lib pip tools; do
     echo "Installing $msifile..."
-    wget -nc "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi"
-    wget -nc "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi.asc"
+    wget -N -c "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi"
+    wget -N -c "https://www.python.org/ftp/python/$PYTHON_VERSION/win32/${msifile}.msi.asc"
     verify_signature "${msifile}.msi.asc" $KEYRING_PYTHON_DEV
     wine msiexec /i "${msifile}.msi" /qb TARGETDIR=C:/python$PYTHON_VERSION
 done
@@ -143,11 +141,6 @@ verify_hash $LIBUSB_FILENAME "$LIBUSB_SHA256"
 7z x -olibusb $LIBUSB_FILENAME -aos
 
 cp libusb/MS32/dll/libusb-1.0.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/
-
-# Install UPX
-#wget -O upx.zip "https://downloads.sourceforge.net/project/upx/upx/3.08/upx308w.zip"
-#unzip -o upx.zip
-#cp upx*/upx.exe .
 
 # add dlls needed for pyinstaller:
 cp $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/PyQt5/Qt/bin/* $WINEPREFIX/drive_c/python$PYTHON_VERSION/

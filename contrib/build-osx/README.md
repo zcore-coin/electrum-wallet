@@ -13,7 +13,7 @@ makes the binaries incompatible with older versions.
 Before starting, make sure that the Xcode command line tools are installed (e.g. you have `git`).
 
 
-    cd electrum-mona
+    cd electrum
     ./contrib/build-osx/make_osx
     
 This creates a folder named Electrum-MONA.app.
@@ -34,3 +34,4 @@ Then you can just invoke `package.sh` with the path to the app:
 
     cd electrum-mona
     ./contrib/build-osx/package.sh ~/Electrum-MONA.app/
+

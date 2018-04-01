@@ -11,9 +11,12 @@ from lib.bitcoin import (
     var_int, op_push, address_to_script, regenerate_key,
     verify_message, deserialize_privkey, serialize_privkey, is_segwit_address,
     is_b58_address, address_to_scripthash, is_minikey, is_compressed, is_xpub,
-    xpub_type, is_xprv, is_bip32_derivation, seed_type, deserialize_privkey_old, is_private_key_old)
+    xpub_type, is_xprv, is_bip32_derivation, seed_type, EncodeBase58Check, deserialize_privkey_old, is_private_key_old)
 from lib.util import bfh
 from lib import constants
+
+from . import TestCaseForTestnet
+
 
 try:
     import ecdsa
@@ -185,17 +188,7 @@ class Test_bitcoin(unittest.TestCase):
         self.assertEqual(address_to_script('3AqJ6Tn8qS8LKMDfi41AhuZiY6JbR6mt6E'), 'a9146449f568c9cd2378138f2636e1567112a184a9e887')
 
 
-class Test_bitcoin_testnet(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        constants.set_testnet()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        constants.set_mainnet()
+class Test_bitcoin_testnet(TestCaseForTestnet):
 
     def test_address_to_script(self):
         # bech32 native segwit
@@ -287,6 +280,79 @@ class Test_xprv_xpub(unittest.TestCase):
         self.assertFalse(is_bip32_derivation("n/"))
         self.assertFalse(is_bip32_derivation(""))
         self.assertFalse(is_bip32_derivation("m/q8462"))
+
+    def test_version_bytes(self):
+        xprv_headers_b58 = {
+            'standard':    'xprv',
+            'p2wpkh-p2sh': 'yprv',
+            'p2wsh-p2sh':  'Yprv',
+            'p2wpkh':      'zprv',
+            'p2wsh':       'Zprv',
+        }
+        xpub_headers_b58 = {
+            'standard':    'xpub',
+            'p2wpkh-p2sh': 'ypub',
+            'p2wsh-p2sh':  'Ypub',
+            'p2wpkh':      'zpub',
+            'p2wsh':       'Zpub',
+        }
+        for xtype, xkey_header_bytes in constants.net.XPRV_HEADERS.items():
+            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
+            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
+
+            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
+
+        for xtype, xkey_header_bytes in constants.net.XPUB_HEADERS.items():
+            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
+            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
+
+            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
+
+
+class Test_xprv_xpub_testnet(TestCaseForTestnet):
+
+    def test_version_bytes(self):
+        xprv_headers_b58 = {
+            'standard':    'tprv',
+            'p2wpkh-p2sh': 'uprv',
+            'p2wsh-p2sh':  'Uprv',
+            'p2wpkh':      'vprv',
+            'p2wsh':       'Vprv',
+        }
+        xpub_headers_b58 = {
+            'standard':    'tpub',
+            'p2wpkh-p2sh': 'upub',
+            'p2wsh-p2sh':  'Upub',
+            'p2wpkh':      'vpub',
+            'p2wsh':       'Vpub',
+        }
+        for xtype, xkey_header_bytes in constants.net.XPRV_HEADERS.items():
+            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
+            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
+
+            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xprv_headers_b58[xtype]))
+
+        for xtype, xkey_header_bytes in constants.net.XPUB_HEADERS.items():
+            xkey_header_bytes = bfh("%08x" % xkey_header_bytes)
+            xkey_bytes = xkey_header_bytes + bytes([0] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
+
+            xkey_bytes = xkey_header_bytes + bytes([255] * 74)
+            xkey_b58 = EncodeBase58Check(xkey_bytes)
+            self.assertTrue(xkey_b58.startswith(xpub_headers_b58[xtype]))
 
 
 class Test_keyImport(unittest.TestCase):

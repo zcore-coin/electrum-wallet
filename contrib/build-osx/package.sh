@@ -78,11 +78,11 @@ ${genisoimage} \
     -r \
     -dir-mode 0755 \
     -apple \
-    -o Electrum-MONA_uncompressed.dmg \
+    -o Electrum_uncompressed.dmg \
     /tmp/electrum-macos/image || fail "Unable to create uncompressed dmg"
 
-dmg dmg Electrum-MONA_uncompressed.dmg electrum-MONA-$VERSION.dmg || fail "Unable to create compressed dmg"
-rm Electrum-MONAs_uncompressed.dmg
+dmg dmg Electrum_uncompressed.dmg electrum-mona-$VERSION.dmg || fail "Unable to create compressed dmg"
+rm Electrum_uncompressed.dmg
 
 echo "Done."
-md5sum electrum-MONA-$VERSION.dmg
+md5sum electrum-mona-$VERSION.dmg
