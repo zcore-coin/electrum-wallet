@@ -13,10 +13,10 @@ makes the binaries incompatible with older versions.
 Before starting, make sure that the Xcode command line tools are installed (e.g. you have `git`).
 
 
-    cd electrum
+    cd electrum-mona
     ./contrib/build-osx/make_osx
     
-This creates a folder named Electrum.app.
+This creates a folder named Electrum-MONA.app.
 
 ## 2. Building the image 
 The usual way to distribute macOS applications is to use image files containing the 
@@ -32,5 +32,5 @@ Copy the Electrum.app directory over and install the dependencies, e.g.:
     
 Then you can just invoke `package.sh` with the path to the app:
 
-    cd electrum
-    ./contrib/build-osx/package.sh ~/Electrum.app/
+    cd electrum-mona
+    ./contrib/build-osx/package.sh ~/Electrum-MONA.app/
