@@ -244,10 +244,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def pop_top_level_window(self, window):
         self.tl_windows.remove(window)
 
-    def top_level_window(self):
+    def top_level_window(self, test_func=None):
         '''Do the right thing in the presence of tx dialog windows'''
         override = self.tl_windows[-1] if self.tl_windows else None
-        return self.top_level_window_recurse(override)
+        if override and test_func and not test_func(override):
+            override = None  # only override if ok for test_func
+        return self.top_level_window_recurse(override, test_func)
 
     def diagnostic_name(self):
         return "%s/%s" % (PrintError.diagnostic_name(self),
@@ -1039,7 +1041,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         completer = QCompleter()
         completer.setCaseSensitivity(False)
-        self.payto_e.setCompleter(completer)
+        self.payto_e.set_completer(completer)
         completer.setModel(self.completions)
 
         msg = _('Description of the transaction (not mandatory).') + '\n\n'\
@@ -1602,7 +1604,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return status, msg
 
         # Capture current TL window; override might be removed on return
-        parent = self.top_level_window()
+        parent = self.top_level_window(lambda win: isinstance(win, MessageBoxMixin))
 
         def broadcast_done(result):
             # GUI thread
@@ -1827,6 +1829,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def show_invoice(self, key):
         pr = self.invoices.get(key)
+        if pr is None:
+            self.show_error('Cannot find payment request in wallet.')
+            return
         pr.verify(self.contacts)
         self.show_pr_details(pr)
 
@@ -2720,9 +2725,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         id_widgets.append((SSL_id_label, SSL_id_e))
 
         units = ['MONA', 'mMONA', 'bits']
-        msg = _('Base unit of your wallet.')\
-              + '\n1MONA=1000mMONA.\n' \
-              + _(' These settings affects the fields in the Send tab')+' '
+        msg = (_('Base unit of your wallet.')
+               + '\n1 MONA = 1000 mMONA. 1 mMONA = 1000 bits.\n'
+               + _('This setting affects the Send tab, and all balance related fields.'))
         unit_label = HelpLabel(_('Base unit') + ':', msg)
         unit_combo = QComboBox()
         unit_combo.addItems(units)

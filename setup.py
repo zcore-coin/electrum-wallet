@@ -73,6 +73,7 @@ setup(
         'electrum_mona': [
             'servers.json',
             'servers_testnet.json',
+            'servers_regtest.json',
             'currencies.json',
             'checkpoints.json',
             'checkpoints_testnet.json',

@@ -3,7 +3,7 @@
 
 [Desktop Entry]
 Comment=Lightweight Monacoin Client
-Exec=sh -c 'PATH="$HOME/.local/bin:$PATH" electrum-mona %u'
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-mona %u"
 GenericName[en_US]=Monacoin Wallet
 GenericName=Monacoin Wallet
 Icon=electrum-mona
@@ -17,5 +17,5 @@ MimeType=x-scheme-handler/monacoin;
 Actions=Testnet;
 
 [Desktop Action Testnet]
-Exec=sh -c 'PATH="$HOME/.local/bin:$PATH" electrum-mona --testnet %u'
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-mona --testnet %u"
 Name=Testnet mode
