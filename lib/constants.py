@@ -99,7 +99,7 @@ class BitcoinTestnet:
 class BitcoinRegtest(BitcoinTestnet):
 
     SEGWIT_HRP = "bcrt"
-    GENESIS = "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"
+    GENESIS = "7543a69d7c2fcdb29a5ebec2fc064c074a35253b6f3072c8a749473aa590a29c"
     DEFAULT_SERVERS = read_json('servers_regtest.json', {})
     CHECKPOINTS = []
 
