@@ -42,13 +42,9 @@ You can also install Electrum-mona on your system, by running this command::
     pip3 install .[full]
 
 This will download and install the Python dependencies used by
-<<<<<<< HEAD
 Electrum-mona, instead of using the 'packages' directory.
-=======
-Electrum, instead of using the 'packages' directory.
 The 'full' extra contains some optional dependencies that we think
 are often useful but they are not strictly needed.
->>>>>>> upstream/master
 
 If you cloned the git repository, you need to compile extra files
 before you can run Electrum-mona. Read the next section, "Development
