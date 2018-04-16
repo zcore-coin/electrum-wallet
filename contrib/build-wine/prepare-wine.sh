@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PYTHON_VERSION=3.6.4
+PYTHON_VERSION=3.6.5
 # Please update these links carefully, some versions won't work under Wine
 NSIS_FILENAME=nsis-3.03-setup.exe
 NSIS_URL=https://prdownloads.sourceforge.net/nsis/$NSIS_FILENAME?download

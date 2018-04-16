@@ -11,7 +11,7 @@ for i, x in enumerate(sys.argv):
 else:
     raise Exception('no name')
 
-PYTHON_VERSION = '3.6.4'
+PYTHON_VERSION = '3.6.5'
 PYHOME = 'c:/python' + PYTHON_VERSION
 
 home = 'C:\\electrum-mona\\'

@@ -55,7 +55,7 @@ Version".
 Development version
 ===================
 
-Check out the code from Github::
+Check out the code from GitHub::
 
     git clone https://github.com/wakiyamap/electrum-mona.git
     cd electrum-mona
