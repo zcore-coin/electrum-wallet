@@ -2,7 +2,7 @@
 
 # Parameterize
 PYTHON_VERSION=3.6.4
-BUILDDIR=/tmp/electrum-build
+BUILDDIR=/tmp/electrum-mona-build
 PACKAGE=Electrum-MONA
 GIT_REPO=https://github.com/spesmilo/electrum
 
