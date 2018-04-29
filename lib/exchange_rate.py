@@ -118,7 +118,6 @@ class ExchangeBase(PrintError):
         json = self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
         return Decimal(json['last']) * btc
 
-
 class BitcoinAverage(ExchangeBase):
 
     def get_rates(self, ccy):
@@ -338,6 +337,6 @@ class FxThread(ThreadJob):
         return self.fiat_value(satoshis, self.history_rate(d_t))
 
     def timestamp_rate(self, timestamp):
-        from electrum_mona.util import timestamp_to_datetime
+        from .util import timestamp_to_datetime
         date = timestamp_to_datetime(timestamp)
         return self.history_rate(date)
