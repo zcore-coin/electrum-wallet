@@ -41,6 +41,7 @@ import PyQt5.QtCore as QtCore
 from electrum_mona.i18n import _, set_language
 from electrum_mona.plugins import run_hook
 from electrum_mona import WalletStorage
+from electrum_mona.base_wizard import GoBack
 # from electrum_mona.synchronizer import Synchronizer
 # from electrum_mona.verifier import SPV
 # from electrum_mona.util import DebugMem
@@ -48,7 +49,7 @@ from electrum_mona.util import (UserCancelled, print_error,
                            WalletFileException, BitcoinException)
 # from electrum_mona.wallet import Abstract_Wallet
 
-from .installwizard import InstallWizard, GoBack
+from .installwizard import InstallWizard
 
 
 try:

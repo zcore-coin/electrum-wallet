@@ -40,5 +40,17 @@
         "s": "50002",
         "t": "50001",
         "version": "1.2"
+    },
+    "electrumx2.movsign.info": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.2"
+    },
+    "electrum-mona.bitbank.cc": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.2"
     }
 }
