@@ -4,7 +4,7 @@
 PYTHON_VERSION=3.6.4
 BUILDDIR=/tmp/electrum-mona-build
 PACKAGE=Electrum-MONA
-GIT_REPO=https://github.com/spesmilo/electrum
+GIT_REPO=https://github.com/wakiyamap/electrum-mona
 
 . $(dirname "$0")/base.sh
 
@@ -37,16 +37,14 @@ pyinstaller --version
 
 rm -rf ./dist
 
+git submodule init
+git submodule update
 
 rm  -rf $BUILDDIR > /dev/null 2>&1
 mkdir $BUILDDIR
 
-info "Downloading icons and locale..."
-git clone https://github.com/spesmilo/electrum-locale $BUILDDIR/electrum-locale
-git clone https://github.com/wakiyamap/electrum-icons $BUILDDIR/electrum-icons
-
-cp -R $BUILDDIR/electrum-locale/locale/ ./lib/locale/
-cp    $BUILDDIR/electrum-icons/icons_rc.py ./gui/qt/
+cp -R ./contrib/deterministic-build/electrum-locale/locale/ ./lib/locale/
+cp    ./contrib/deterministic-build/electrum-icons/icons_rc.py ./gui/qt/
 
 
 info "Downloading libusb..."

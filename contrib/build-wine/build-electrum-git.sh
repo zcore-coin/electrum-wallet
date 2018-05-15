@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# You probably need to update only this link
-ELECTRUM_GIT_URL=git://github.com/wakiyamap/electrum-mona.git
-ELECTRUM_LOCALE_URL=git://github.com/spesmilo/electrum-locale.git
-ELECTRUM_ICONS_URL=git://github.com/wakiyamap/electrum-icons.git
-BRANCH=master
 NAME_ROOT=electrum-mona
 PYTHON_VERSION=3.5.4
 
@@ -24,58 +19,28 @@ set -e
 mkdir -p tmp
 cd tmp
 
-
-if [ -d "electrum-mona" ]; then
-    # GIT repository found, update it
-    echo "Pull"
-    cd electrum-mona
-    git checkout $BRANCH
-    git pull
-    cd ..
-else
-    # GIT repository not found, clone it
-    echo "Clone"
-    git clone -b $BRANCH $ELECTRUM_GIT_URL electrum-mona
+if [ -d ./electrum-mona ]; then
+  rm ./electrum-mona -rf
 fi
 
-if [ -d "electrum-icons" ]; then
-    # GIT repository found, update it
-    echo "Pull"
-    cd electrum-icons
-    #git checkout $BRANCH
-    git pull
-    cd ..
-else
-    # GIT repository not found, clone it
-    echo "Clone"
-    git clone -b $BRANCH $ELECTRUM_ICONS_URL electrum-icons
+git clone https://github.com/wakiyamap/electrum-mona -b master
+
+pushd electrum-mona
+if [ ! -z "$1" ]; then
+    git checkout $1
 fi
 
-if [ -d "electrum-locale" ]; then
-    # GIT repository found, update it
-    echo "Pull"
-    cd electrum-locale
-    #git checkout $BRANCH
-    git pull
-    cd ..
-else
-    # GIT repository not found, clone it
-    echo "Clone"
-    git clone -b $BRANCH $ELECTRUM_LOCALE_URL electrum-locale
-fi
+# Load electrum-icons and electrum-locale for this release
+git submodule init
+git submodule update
 
-pushd electrum-locale
+pushd ./contrib/deterministic-build/electrum-locale
 for i in ./locale/*; do
     dir=$i/LC_MESSAGES
     mkdir -p $dir
     msgfmt --output-file=$dir/electrum.mo $i/electrum.po || true
 done
 popd
-
-pushd electrum-mona
-if [ ! -z "$1" ]; then
-    git checkout $1
-fi
 
 VERSION=`git describe --tags --dirty`
 echo "Last commit: $VERSION"
@@ -85,8 +50,8 @@ popd
 rm -rf $WINEPREFIX/drive_c/electrum-mona
 cp -r electrum-mona $WINEPREFIX/drive_c/electrum-mona
 cp electrum-mona/LICENCE .
-cp -r electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
-cp electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/gui/qt/
+cp -r ./electrum-mona/contrib/deterministic-build/electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
+cp ./electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt
