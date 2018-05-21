@@ -733,7 +733,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 else:
                     icon = QIcon(":icons/status_connected_proxy.png")
         else:
-            text = _("Not connected")
+            if self.network.proxy:
+                text = "{} ({})".format(_("Not connected"), _("proxy enabled"))
+            else:
+                text = _("Not connected")
             icon = QIcon(":icons/status_disconnected.png")
 
         self.tray.setToolTip("%s (%s)" % (text, self.wallet.basename()))
@@ -1585,8 +1588,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             # can sign directly
             task = partial(Transaction.sign, tx, self.tx_external_keypairs)
         else:
-            # call hook to see if plugin needs gui interaction
-            run_hook('sign_tx', self, tx)
             task = partial(self.wallet.sign_transaction, tx, password)
         WaitingDialog(self, _('Signing transaction...'), task,
                       on_signed, on_failed)
