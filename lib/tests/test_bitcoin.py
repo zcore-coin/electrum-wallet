@@ -134,7 +134,7 @@ class Test_bitcoin(SequentialTestCase):
 
         def sign_message_with_wif_privkey_old(wif_privkey, msg):
             txin_type, privkey, compressed = deserialize_privkey_old(wif_privkey)
-            key = regenerate_key(privkey)
+            key = ecc.ECPrivkey(privkey)
             return key.sign_message(msg, compressed)
 
         sig1 = sign_message_with_wif_privkey(
