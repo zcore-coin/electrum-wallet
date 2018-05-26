@@ -17,6 +17,8 @@ mkdir -p /tmp/electrum-mona-build
 mkdir -p /tmp/electrum-mona-build/pip-cache
 export PIP_CACHE_DIR="/tmp/electrum-mona-build/pip-cache"
 
+$here/build-secp256k1.sh || exit 1
+
 $here/prepare-wine.sh || exit 1
 
 echo "Resetting modification time in C:\Python..."
