@@ -516,7 +516,7 @@ class TestWalletSending(TestCaseForTestnet):
         # bootstrap wallet1
         funding_tx = Transaction('01000000000101a41aae475d026c9255200082c7fad26dc47771275b0afba238dccda98a597bd20000000000fdffffff02400d0300000000002200203c43ac80d6e3015cf378bf6bac0c22456723d6050bef324ec641e7762440c63c9dcd410000000000160014824626055515f3ed1d2cfc9152d2e70685c71e8f02483045022100b9f39fad57d07ce1e18251424034f21f10f20e59931041b5167ae343ce973cf602200fefb727fa0ffd25b353f1bcdae2395898fe407b692c62f5885afbf52fa06f5701210301a28f68511ace43114b674371257bb599fd2c686c4b19544870b1799c954b40e9c11300')
         funding_txid = funding_tx.txid()
-        funding_output_value = 170000
+        funding_output_value = 200000
         self.assertEqual('d2bd6c9d332db8e2c50aa521cd50f963fba214645aab2f7556e061a412103e21', funding_txid)
         wallet1a.receive_tx_callback(funding_txid, funding_tx, TX_HEIGHT_UNCONFIRMED)
 
@@ -535,7 +535,7 @@ class TestWalletSending(TestCaseForTestnet):
         self.assertTrue(wallet1a.is_mine(tx.inputs()[0]['address']))
         self.assertEqual(wallet1a.txin_type, tx_copy.inputs()[0]['type'])
         self.assertEqual(tx.wtxid(), tx_copy.wtxid())
-        self.assertEqual('13925a2d2e743b24c8e2e69d2d386fb048c289227514b9264d160e1ca93ee9ec', tx_copy.txid())
+        self.assertEqual('6e9c3cd8788bdb970a124ea06136d52bc01cec4f9b1e217627d5e90ebe77d049', tx_copy.txid())
 
         wallet1a.receive_tx_callback(tx.txid(), tx, TX_HEIGHT_UNCONFIRMED)
         wallet2a.receive_tx_callback(tx.txid(), tx, TX_HEIGHT_UNCONFIRMED)
@@ -555,7 +555,7 @@ class TestWalletSending(TestCaseForTestnet):
         self.assertTrue(wallet2a.is_mine(tx.inputs()[0]['address']))
         self.assertEqual(wallet2a.txin_type, tx_copy.inputs()[0]['type'])
         self.assertEqual(tx.wtxid(), tx_copy.wtxid())
-        self.assertEqual('70ce67314a6d334bb2ba522556eb358f81d3f0fbbb8f5e087a74765f868c71e2', tx_copy.txid())
+        self.assertEqual('84b0dcb43022385f7a10e2710e5625a2be3cd6e390387b6100b55500d5eea8f6', tx_copy.txid())
 
         wallet1a.receive_tx_callback(tx.txid(), tx, TX_HEIGHT_UNCONFIRMED)
         wallet2a.receive_tx_callback(tx.txid(), tx, TX_HEIGHT_UNCONFIRMED)
