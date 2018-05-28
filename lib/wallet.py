@@ -80,7 +80,7 @@ TX_HEIGHT_UNCONFIRMED = 0
 
 def relayfee(network):
     from .simple_config import FEERATE_DEFAULT_RELAY
-    MAX_RELAY_FEE = 5000000
+    MAX_RELAY_FEE = 10 * FEERATE_DEFAULT_RELAY
     f = network.relay_fee if network and network.relay_fee else FEERATE_DEFAULT_RELAY
     return min(f, MAX_RELAY_FEE)
 
