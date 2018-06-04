@@ -38,6 +38,11 @@ except ImportError as e:
 
 from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
 
+
+class MissingHeader(Exception):
+    pass
+
+
 def serialize_header(res):
     s = int_to_hex(res.get('version'), 4) \
         + rev_hex(res.get('prev_block_hash')) \
@@ -330,6 +335,8 @@ class Blockchain(util.PrintError):
         if last is None:
             last = self.read_header(height - 1)
             #last = chain.get(height - 1)
+        if not last:
+            raise MissingHeader()
 
         # params
         BlockLastSolved = last
@@ -417,7 +424,10 @@ class Blockchain(util.PrintError):
             return False
         headers = {}
         headers[header.get('block_height')] = header
-        bits, target = self.get_target(height, headers)
+        try:
+            bits, target = self.get_target(height, headers)
+        except MissingHeader:
+            return False
         try:
             self.verify_header(header, prev_hash, bits, target)
         except BaseException as e:
