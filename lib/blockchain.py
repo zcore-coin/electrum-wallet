@@ -335,8 +335,6 @@ class Blockchain(util.PrintError):
         if last is None:
             last = self.read_header(height - 1)
             #last = chain.get(height - 1)
-        if not last:
-            raise MissingHeader()
 
         # params
         BlockLastSolved = last
