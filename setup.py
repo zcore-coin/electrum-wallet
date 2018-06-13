@@ -65,6 +65,7 @@ setup(
         'electrum_mona_plugins.keepkey',
         'electrum_mona_plugins.labels',
         'electrum_mona_plugins.ledger',
+        'electrum_mona_plugins.revealer',
         'electrum_mona_plugins.trezor',
         'electrum_mona_plugins.digitalbitbox',
         'electrum_mona_plugins.virtualkeyboard',
@@ -75,18 +76,10 @@ setup(
         'electrum_mona_plugins': 'plugins',
     },
     package_data={
+        '': ['*.txt', '*.json', '*.ttf', '*.otf'],
         'electrum_mona': [
-            'servers.json',
-            'servers_testnet.json',
-            'servers_regtest.json',
-            'currencies.json',
-            'checkpoints.json',
-            'checkpoints_testnet.json',
-            'www/index.html',
-            'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
-            'target*.*',
-        ]
+        ],
     },
     scripts=['electrum-mona'],
     data_files=data_files,
