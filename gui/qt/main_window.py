@@ -53,7 +53,7 @@ from electrum_mona.util import (format_time, format_satoshis, format_fee_satoshi
 from electrum_mona import Transaction
 from electrum_mona import util, bitcoin, commands, coinchooser
 from electrum_mona import paymentrequest
-from electrum_mona.wallet import Multisig_Wallet, AddTransactionException
+from electrum_mona.wallet import Multisig_Wallet, AddTransactionException, CannotBumpFee
 
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, FeerateEdit
 from .qrcodewidget import QRCodeWidget, QRDialog
@@ -61,6 +61,7 @@ from .qrtextedit import ShowQRTextEdit, ScanQRTextEdit
 from .transaction_dialog import show_transaction
 from .fee_slider import FeeSlider
 from .util import *
+from .installwizard import WIF_HELP_TEXT
 
 class StatusBarButton(QPushButton):
     def __init__(self, icon, tooltip, func):
@@ -2497,7 +2498,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         d.setMinimumSize(600, 300)
 
         vbox = QVBoxLayout(d)
-        vbox.addWidget(QLabel(_("Enter private keys:")))
+
+        hbox_top = QHBoxLayout()
+        hbox_top.addWidget(QLabel(_("Enter private keys:")))
+        hbox_top.addWidget(InfoButton(WIF_HELP_TEXT), alignment=Qt.AlignRight)
+        vbox.addLayout(hbox_top)
 
         keys_e = ScanQRTextEdit(allow_multi=True)
         keys_e.setTabChangesFocus(True)
@@ -2555,9 +2560,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         self.warn_if_watching_only()
 
-    def _do_import(self, title, msg, func):
-        text = text_dialog(self, title, msg + ' :', _('Import'),
-                           allow_multi=True)
+    def _do_import(self, title, header_layout, func):
+        text = text_dialog(self, title, header_layout, _('Import'), allow_multi=True)
         if not text:
             return
         bad = []
@@ -2579,15 +2583,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def import_addresses(self):
         if not self.wallet.can_import_address():
             return
-        title, msg = _('Import addresses'), _("Enter addresses")
+        title, msg = _('Import addresses'), _("Enter addresses")+':'
         self._do_import(title, msg, self.wallet.import_address)
 
     @protected
     def do_import_privkey(self, password):
         if not self.wallet.can_import_privkey():
             return
-        title, msg = _('Import private keys'), _("Enter private keys")
-        self._do_import(title, msg, lambda x: self.wallet.import_private_key(x, password))
+        title = _('Import private keys')
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(QLabel(_("Enter private keys")+':'))
+        header_layout.addWidget(InfoButton(WIF_HELP_TEXT), alignment=Qt.AlignRight)
+        self._do_import(title, header_layout, lambda x: self.wallet.import_private_key(x, password))
 
     def update_fiat(self):
         b = self.fx and self.fx.is_enabled()
@@ -2792,6 +2799,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         on_video_device = lambda x: self.config.set_key("video_device", qr_combo.itemData(x), True)
         qr_combo.currentIndexChanged.connect(on_video_device)
         gui_widgets.append((qr_label, qr_combo))
+
+        colortheme_combo = QComboBox()
+        colortheme_combo.addItem(_('Light'), 'default')
+        colortheme_combo.addItem(_('Dark'), 'dark')
+        index = colortheme_combo.findData(self.config.get('qt_gui_color_theme', 'default'))
+        colortheme_combo.setCurrentIndex(index)
+        colortheme_label = QLabel(_('Color theme') + ':')
+        def on_colortheme(x):
+            self.config.set_key('qt_gui_color_theme', colortheme_combo.itemData(x), True)
+            self.need_restart = True
+        colortheme_combo.currentIndexChanged.connect(on_colortheme)
+        gui_widgets.append((colortheme_label, colortheme_combo))
 
         usechange_cb = QCheckBox(_('Use change addresses'))
         usechange_cb.setChecked(self.wallet.use_change)
@@ -3176,7 +3195,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             return
         try:
             new_tx = self.wallet.bump_fee(tx, delta)
-        except BaseException as e:
+        except CannotBumpFee as e:
             self.show_error(str(e))
             return
         #if is_final:

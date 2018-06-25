@@ -187,6 +187,9 @@ class UnrelatedTransactionException(AddTransactionException):
         return _("Transaction is unrelated to this wallet.")
 
 
+class CannotBumpFee(Exception): pass
+
+
 class Abstract_Wallet(PrintError):
     """
     Wallet classes are created to handle various address generation methods.
@@ -728,6 +731,7 @@ class Abstract_Wallet(PrintError):
         coins = []
         if domain is None:
             domain = self.get_addresses()
+        domain = set(domain)
         if exclude_frozen:
             domain = set(domain) - self.frozen_addresses
         for addr in domain:
@@ -756,6 +760,7 @@ class Abstract_Wallet(PrintError):
     def get_balance(self, domain=None):
         if domain is None:
             domain = self.get_addresses()
+        domain = set(domain)
         cc = uu = xx = 0
         for addr in domain:
             c, u, x = self.get_addr_balance(addr)
@@ -1004,6 +1009,7 @@ class Abstract_Wallet(PrintError):
         # get domain
         if domain is None:
             domain = self.get_addresses()
+        domain = set(domain)
         # 1. Get the history of each address in the domain, maintain the
         #    delta of a tx as the sum of its deltas on domain addresses
         tx_deltas = defaultdict(int)
@@ -1079,19 +1085,8 @@ class Abstract_Wallet(PrintError):
             item['label'] = self.get_label(tx_hash)
             if show_addresses:
                 tx = self.transactions.get(tx_hash)
-                tx.deserialize()
-                input_addresses = []
-                output_addresses = []
-                for x in tx.inputs():
-                    if x['type'] == 'coinbase': continue
-                    addr = self.get_txin_address(x)
-                    if addr is None:
-                        continue
-                    input_addresses.append(addr)
-                for addr, v in tx.get_outputs():
-                    output_addresses.append(addr)
-                item['input_addresses'] = input_addresses
-                item['output_addresses'] = output_addresses
+                item['inputs'] = list(map(lambda x: dict((k, x[k]) for k in ('prevout_hash', 'prevout_n')), tx.inputs()))
+                item['outputs'] = list(map(lambda x:{'address':x[0], 'value':Satoshis(x[1])}, tx.get_outputs()))
             # value may be None if wallet is not fully synchronized
             if value is None:
                 continue
@@ -1237,9 +1232,8 @@ class Abstract_Wallet(PrintError):
         if fixed_fee is None and config.fee_per_kb() is None:
             raise NoDynamicFeeEstimates()
 
-        if not is_sweep:
-            for item in inputs:
-                self.add_input_info(item)
+        for item in inputs:
+            self.add_input_info(item)
 
         # change address
         if change_addr:
@@ -1281,7 +1275,9 @@ class Abstract_Wallet(PrintError):
             outputs[i_max] = (_type, data, 0)
             tx = Transaction.from_io(inputs, outputs[:])
             fee = fee_estimator(tx.estimated_size())
-            amount = max(0, sendable - tx.output_value() - fee)
+            amount = sendable - tx.output_value() - fee
+            if amount < 0:
+                raise NotEnoughFunds()
             outputs[i_max] = (_type, data, amount)
             tx = Transaction.from_io(inputs, outputs[:])
 
@@ -1395,7 +1391,9 @@ class Abstract_Wallet(PrintError):
 
     def bump_fee(self, tx, delta):
         if tx.is_final():
-            raise Exception(_('Cannot bump fee') + ': ' + _('transaction is final'))
+            raise CannotBumpFee(_('Cannot bump fee') + ': ' + _('transaction is final'))
+        tx = Transaction(tx.serialize())
+        tx.deserialize(force_full_parse=True)  # need to parse inputs
         inputs = copy.deepcopy(tx.inputs())
         outputs = copy.deepcopy(tx.outputs())
         for txin in inputs:
@@ -1426,7 +1424,7 @@ class Abstract_Wallet(PrintError):
                 if delta > 0:
                     continue
         if delta > 0:
-            raise Exception(_('Cannot bump fee') + ': ' + _('could not find suitable outputs'))
+            raise CannotBumpFee(_('Cannot bump fee') + ': ' + _('could not find suitable outputs'))
         locktime = self.get_local_height()
         tx_new = Transaction.from_io(inputs, outputs, locktime=locktime)
         tx_new.BIP_LI01_sort()
@@ -1451,21 +1449,32 @@ class Abstract_Wallet(PrintError):
         # note: no need to call tx.BIP_LI01_sort() here - single input/output
         return Transaction.from_io(inputs, outputs, locktime=locktime)
 
+    def add_input_sig_info(self, txin, address):
+        raise NotImplementedError()  # implemented by subclasses
+
     def add_input_info(self, txin):
         address = txin['address']
         if self.is_mine(address):
             txin['type'] = self.get_txin_type(address)
             # segwit needs value to sign
-            if txin.get('value') is None and Transaction.is_segwit_input(txin):
+            if txin.get('value') is None and Transaction.is_input_value_needed(txin):
                 received, spent = self.get_addr_io(address)
                 item = received.get(txin['prevout_hash']+':%d'%txin['prevout_n'])
                 tx_height, value, is_cb = item
                 txin['value'] = value
             self.add_input_sig_info(txin, address)
 
+    def add_input_info_to_all_inputs(self, tx):
+        if tx.is_complete():
+            return
+        for txin in tx.inputs():
+            self.add_input_info(txin)
+
     def can_sign(self, tx):
         if tx.is_complete():
             return False
+        # add info to inputs if we can; otherwise we might return a false negative:
+        self.add_input_info_to_all_inputs(tx)  # though note that this is a side-effect
         for k in self.get_keystores():
             if k.can_sign(tx):
                 return True
@@ -1508,6 +1517,7 @@ class Abstract_Wallet(PrintError):
     def sign_transaction(self, tx, password):
         if self.is_watching_only():
             return
+        self.add_input_info_to_all_inputs(tx)
         # hardware wallets require extra info
         if any([(isinstance(k, Hardware_KeyStore) and k.can_sign(tx)) for k in self.get_keystores()]):
             self.add_hw_info(tx)
@@ -2326,7 +2336,13 @@ class Multisig_Wallet(Deterministic_Wallet):
         # they are sorted in transaction.get_sorted_pubkeys
         # pubkeys is set to None to signal that x_pubkeys are unsorted
         derivation = self.get_address_index(address)
-        txin['x_pubkeys'] = [k.get_xpubkey(*derivation) for k in self.get_keystores()]
+        x_pubkeys_expected = [k.get_xpubkey(*derivation) for k in self.get_keystores()]
+        x_pubkeys_actual = txin.get('x_pubkeys')
+        # if 'x_pubkeys' is already set correctly (ignoring order, as above), leave it.
+        # otherwise we might delete signatures
+        if x_pubkeys_actual and set(x_pubkeys_actual) == set(x_pubkeys_expected):
+            return
+        txin['x_pubkeys'] = x_pubkeys_expected
         txin['pubkeys'] = None
         # we need n place holders
         txin['signatures'] = [None] * self.n

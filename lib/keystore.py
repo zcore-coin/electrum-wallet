@@ -677,12 +677,18 @@ def load_keystore(storage, name):
     return k
 
 
-def is_old_mpk(mpk):
+def is_old_mpk(mpk: str) -> bool:
     try:
         int(mpk, 16)
     except:
         return False
-    return len(mpk) == 128
+    if len(mpk) != 128:
+        return False
+    try:
+        ecc.ECPubkey(bfh('04' + mpk))
+    except:
+        return False
+    return True
 
 
 def is_address_list(text):
@@ -716,7 +722,7 @@ is_bip32_key = lambda x: is_xprv(x) or is_xpub(x)
 
 
 def bip44_derivation(account_id, bip43_purpose=44):
-    coin = 1 if constants.net.TESTNET else 22
+    coin = constants.net.BIP44_COIN_TYPE
     return "m/%d'/%d'/%d'" % (bip43_purpose, coin, int(account_id))
 
 def from_seed(seed, passphrase, is_p2sh):

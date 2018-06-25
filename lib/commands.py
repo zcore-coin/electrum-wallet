@@ -655,10 +655,23 @@ class Commands:
         return self.wallet.is_up_to_date()
 
     @command('n')
-    def getfeerate(self):
-        """Return current optimal fee rate per kilobyte, according
-        to config settings (static/dynamic)"""
-        return self.config.fee_per_kb()
+    def getfeerate(self, fee_method=None, fee_level=None):
+        """Return current suggested fee rate (in sat/kvByte), according to config
+        settings or supplied parameters.
+        """
+        if fee_method is None:
+            dyn, mempool = None, None
+        elif fee_method.lower() == 'static':
+            dyn, mempool = False, False
+        elif fee_method.lower() == 'eta':
+            dyn, mempool = True, False
+        elif fee_method.lower() == 'mempool':
+            dyn, mempool = True, True
+        else:
+            raise Exception('Invalid fee estimation method: {}'.format(fee_method))
+        if fee_level is not None:
+            fee_level = Decimal(fee_level)
+        return self.config.fee_per_kb(dyn=dyn, mempool=mempool, fee_level=fee_level)
 
     @command('')
     def help(self):
@@ -717,6 +730,8 @@ command_options = {
     'show_addresses': (None, "Show input and output addresses"),
     'show_fiat':   (None, "Show fiat value of transactions"),
     'year':        (None, "Show history for a given year"),
+    'fee_method':  (None, "Fee estimation method to use"),
+    'fee_level':   (None, "Float between 0.0 and 1.0, representing fee slider position")
 }
 
 
@@ -736,6 +751,8 @@ arg_types = {
     'fee': lambda x: str(Decimal(x)) if x is not None else None,
     'amount': lambda x: str(Decimal(x)) if x != '!' else '!',
     'locktime': int,
+    'fee_method': str,
+    'fee_level': json_loads,
 }
 
 config_variables = {
@@ -816,6 +833,7 @@ def add_global_options(parser):
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
     group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
     group.add_argument("--regtest", action="store_true", dest="regtest", default=False, help="Use Regtest")
+    group.add_argument("--simnet", action="store_true", dest="simnet", default=False, help="Use Simnet")
 
 def get_parser():
     # create main parser

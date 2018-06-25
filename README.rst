@@ -39,7 +39,7 @@ directory. To run Electrum-mona from its root directory, just do::
 You can also install Electrum-mona on your system, by running this command::
 
     sudo apt-get install python3-setuptools
-    pip3 install .[full]
+    pip3 install .[fast]
 
 This will download and install the Python dependencies used by
 Electrum-mona, instead of using the 'packages' directory.
@@ -66,9 +66,9 @@ Need lyra2rev2_hash::
 
 Run install (this should install dependencies)::
 
-    pip3 install .[full]
+    pip3 install .[fast]
 
-Render the SVG icons to PNGs::
+Render the SVG icons to PNGs (optional)::
 
     for i in lock unlock confirmed status_lagging status_disconnected status_connected_proxy status_connected status_waiting preferences; do convert -background none icons/$i.svg icons/$i.png; done
 

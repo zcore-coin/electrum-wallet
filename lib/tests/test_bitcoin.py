@@ -12,7 +12,7 @@ from lib.bitcoin import (
     deserialize_privkey, serialize_privkey, is_segwit_address,
     is_b58_address, address_to_scripthash, is_minikey, is_compressed, is_xpub,
     xpub_type, is_xprv, is_bip32_derivation, seed_type, EncodeBase58Check,
-    script_num_to_hex, push_script, add_number_to_script,
+    script_num_to_hex, push_script, add_number_to_script,int_to_hex,
     deserialize_privkey_old, is_private_key_old)
 from lib import ecc, crypto, ecc_fast
 from lib.ecc import number_to_string, string_to_number
@@ -125,6 +125,32 @@ class Test_bitcoin(SequentialTestCase):
         signature = eck.sign_message(message, True)
         #print signature
         eck.verify_message_for_address(signature, message)
+
+    @needs_test_with_all_ecc_implementations
+    def test_ecc_sanity(self):
+        G = ecc.generator()
+        n = G.order()
+        self.assertEqual(ecc.CURVE_ORDER, n)
+        inf = n * G
+        self.assertEqual(ecc.point_at_infinity(), inf)
+        self.assertTrue(inf.is_at_infinity())
+        self.assertFalse(G.is_at_infinity())
+        self.assertEqual(11 * G, 7 * G + 4 * G)
+        self.assertEqual((n + 2) * G, 2 * G)
+        self.assertEqual((n - 2) * G, -2 * G)
+        A = (n - 2) * G
+        B = (n - 1) * G
+        C = n * G
+        D = (n + 1) * G
+        self.assertFalse(A.is_at_infinity())
+        self.assertFalse(B.is_at_infinity())
+        self.assertTrue(C.is_at_infinity())
+        self.assertTrue((C * 5).is_at_infinity())
+        self.assertFalse(D.is_at_infinity())
+        self.assertEqual(inf, C)
+        self.assertEqual(inf, A + 2 * G)
+        self.assertEqual(inf, D + (-1) * G)
+        self.assertNotEqual(A, B)
 
     @needs_test_with_all_ecc_implementations
     def test_msg_signing(self):
@@ -244,6 +270,26 @@ class Test_bitcoin(SequentialTestCase):
 
         result = Hash(payload)
         self.assertEqual(expected, result)
+
+    def test_int_to_hex(self):
+        self.assertEqual('00', int_to_hex(0, 1))
+        self.assertEqual('ff', int_to_hex(-1, 1))
+        self.assertEqual('00000000', int_to_hex(0, 4))
+        self.assertEqual('01000000', int_to_hex(1, 4))
+        self.assertEqual('7f', int_to_hex(127, 1))
+        self.assertEqual('7f00', int_to_hex(127, 2))
+        self.assertEqual('80', int_to_hex(128, 1))
+        self.assertEqual('80', int_to_hex(-128, 1))
+        self.assertEqual('8000', int_to_hex(128, 2))
+        self.assertEqual('ff', int_to_hex(255, 1))
+        self.assertEqual('ff7f', int_to_hex(32767, 2))
+        self.assertEqual('0080', int_to_hex(-32768, 2))
+        self.assertEqual('ffff', int_to_hex(65535, 2))
+        with self.assertRaises(OverflowError): int_to_hex(256, 1)
+        with self.assertRaises(OverflowError): int_to_hex(-129, 1)
+        with self.assertRaises(OverflowError): int_to_hex(-257, 1)
+        with self.assertRaises(OverflowError): int_to_hex(65536, 2)
+        with self.assertRaises(OverflowError): int_to_hex(-32769, 2)
 
     def test_var_int(self):
         for i in range(0xfd):
@@ -592,14 +638,14 @@ class Test_keyImport(SequentialTestCase):
             'scripthash': 'bdd0b86d7c9290b25b8528f01739358445cd9d050e8aef8099eb74f8e34db082'},
            # from http://bitscan.com/articles/security/spotlight-on-mini-private-keys
            {'priv': 'SzavMBLoXU6kDrqtUVmffv',
-            'exported_privkey': 'p2pkh:TAsve34b6yMQn1hBGTc472BfW8kvEoct5MhZrxADHEB7oZgBbky4',
-            'pub': '02588d202afcc1ee4ab5254c7847ec25b9a135bbda0f2bc69ee1a714749fd77dc9',
-            'address': 'MGB59epkrViwpW6QARm5vCQGAaWErLrsUx',
+            'exported_privkey': 'p2pkh:6vtsDUCgu6yHGBaa92x4skmZHa2LmMz4sNuh54tUhqJFELE28eh',
+            'pub': '04588d202afcc1ee4ab5254c7847ec25b9a135bbda0f2bc69ee1a714749fd77dc9f88ff2a00d7e752d44cbe16e1ebcf0890b76ec7c78886109dee76ccfc8445424',
+            'address': 'MK6CkTbJa9nuqCSqaeKmAFyUmPYd1rWS6Q',
             'minikey': True,
             'txin_type': 'p2pkh',
-            'compressed': True,  # this is actually ambiguous... issue #2748
+            'compressed': False,  # this is actually ambiguous... issue #2748
             'addr_encoding': 'base58',
-            'scripthash': '60ad5a8b922f758cd7884403e90ee7e6f093f8d21a0ff24c9a865e695ccefdf1'},
+            'scripthash': '5b07ddfde826f5125ee823900749103cea37808038ecead5505a766a07c34445'},
     )
 
     priv_pub_addr_old = (

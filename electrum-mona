@@ -69,7 +69,6 @@ if is_local or is_android:
     import imp
     imp.load_module('electrum_mona', *imp.find_module('lib'))
     imp.load_module('electrum_mona_gui', *imp.find_module('gui'))
-    imp.load_module('electrum_mona_plugins', *imp.find_module('plugins'))
 
 
 
@@ -84,7 +83,6 @@ from electrum_mona.commands import get_parser, known_commands, Commands, config_
 from electrum_mona import daemon
 from electrum_mona import keystore
 from electrum_mona.mnemonic import Mnemonic
-import electrum_mona_plugins
 
 # get password routine
 def prompt_password(prompt, confirm=True):
@@ -402,6 +400,8 @@ if __name__ == '__main__':
         constants.set_testnet()
     elif config.get('regtest'):
         constants.set_regtest()
+    elif config.get('simnet'):
+        constants.set_simnet()
 
     # run non-RPC commands separately
     if cmdname in ['create', 'restore']:

@@ -25,9 +25,9 @@ import threading
 import sys
 
 from . import util
-from . import bitcoin
+from .bitcoin import Hash, hash_encode, int_to_hex, rev_hex
 from . import constants
-from .bitcoin import *
+from .util import bfh, bh2u
 
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
