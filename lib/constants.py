@@ -95,7 +95,7 @@ class BitcoinTestnet:
         'p2wpkh':      0x045f1cf6,  # vpub
         'p2wsh':       0x02575483,  # Vpub
     }
-    BIP44_COIN_TYPE = 0
+    BIP44_COIN_TYPE = 1
 
 
 class BitcoinRegtest(BitcoinTestnet):
