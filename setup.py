@@ -79,6 +79,7 @@ setup(
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
         'electrum_mona': [
+            'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
     },
