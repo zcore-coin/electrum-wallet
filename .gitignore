@@ -18,6 +18,7 @@ env/
 bin/
 /app.fil
 lib/.pytest_cache
+.pytest_cache
 
 # tox files
 .cache/
