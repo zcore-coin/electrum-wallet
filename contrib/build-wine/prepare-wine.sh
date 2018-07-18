@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PYTHON_VERSION=3.5.4
+PYTHON_VERSION=3.6.6
 # Please update these links carefully, some versions won't work under Wine
 NSIS_FILENAME=nsis-3.03-setup.exe
 NSIS_URL=https://prdownloads.sourceforge.net/nsis/$NSIS_FILENAME?download
@@ -85,12 +85,12 @@ retry() {
 here=$(dirname $(readlink -e $0))
 set -e
 
-# Clean up Wine environment
-echo "Cleaning $WINEPREFIX"
-rm -rf $WINEPREFIX
-echo "done"
-
 wine 'wineboot'
+
+# HACK to work around https://bugs.winehq.org/show_bug.cgi?id=42474#c22
+# needed for python 3.6+
+rm -f /opt/wine-stable/lib/wine/fakedlls/api-ms-win-core-path-l1-1-0.dll
+rm -f /opt/wine-stable/lib/wine/api-ms-win-core-path-l1-1-0.dll.so
 
 cd /tmp/electrum-mona-build
 

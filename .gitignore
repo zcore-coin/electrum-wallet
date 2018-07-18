@@ -5,10 +5,9 @@ build/
 dist/
 tmp/
 *.egg/
-/electrum.py
 contrib/pyinstaller/
 Electrum_MONA.egg-info/
-gui/qt/icons_rc.py
+electrum/gui/qt/icons_rc.py
 locale/
 .devlocaltmp/
 *_trial_temp

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NAME_ROOT=electrum-mona
-PYTHON_VERSION=3.5.4
+PYTHON_VERSION=3.6.6
 
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
@@ -19,23 +19,7 @@ set -e
 mkdir -p tmp
 cd tmp
 
-if [ -d ./electrum-mona ]; then
-  rm ./electrum-mona -rf
-fi
-
-git clone https://github.com/wakiyamap/electrum-mona -b master
-
-pushd electrum-mona
-if [ ! -z "$1" ]; then
-    # a commit/tag/branch was specified
-    if ! git cat-file -e "$1" 2> /dev/null
-    then  # can't find target
-        # try pull requests
-        git config --local --add remote.origin.fetch '+refs/pull/*/merge:refs/remotes/origin/pr/*'
-        git fetch --all
-    fi
-    git checkout $1
-fi
+pushd $WINEPREFIX/drive_c/electrum-mona
 
 # Load electrum-icons and electrum-locale for this release
 git submodule init
@@ -59,11 +43,9 @@ popd
 find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
-rm -rf $WINEPREFIX/drive_c/electrum-mona
-cp -r electrum-mona $WINEPREFIX/drive_c/electrum-mona
-cp electrum-mona/LICENCE .
-cp -r ./electrum-mona/contrib/deterministic-build/electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/lib/
-cp ./electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/gui/qt/
+cp $WINEPREFIX/drive_c/electrum-mona/LICENCE .
+cp -r $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/electrum/
+cp $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/electrum/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt

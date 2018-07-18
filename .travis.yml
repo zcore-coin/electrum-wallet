@@ -33,7 +33,7 @@ jobs:
       install:
         - sudo docker build  --no-cache -t electrum-mona-wine-builder-img ./contrib/build-wine/docker/
       script:
-        - sudo docker run --name electrum-mona-wine-builder-cont -v $PWD:/opt/electrum-mona --rm --workdir /opt/electrum-mona/contrib/build-wine electrum-mona-wine-builder-img ./build.sh $TRAVIS_COMMIT
+        - sudo docker run --name electrum-mona-wine-builder-cont -v $PWD:/opt/wine64/drive_c/electrum-mona --rm --workdir /opt/wine64/drive_c/electrum-mona/contrib/build-wine electrum-mona-wine-builder-img ./build.sh
       after_success: true
     - os: osx
       language: c

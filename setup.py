@@ -15,7 +15,7 @@ with open('contrib/requirements/requirements.txt') as f:
 with open('contrib/requirements/requirements-hw.txt') as f:
     requirements_hw = f.read().splitlines()
 
-version = imp.load_source('version', 'lib/version.py')
+version = imp.load_source('version', 'electrum/version.py')
 
 if sys.version_info[:3] < (3, 4, 0):
     sys.exit("Error: Electrum requires Python version >= 3.4.0...")
@@ -54,36 +54,34 @@ setup(
     install_requires=requirements,
     extras_require=extras_require,
     packages=[
-        'electrum_mona',
-        'electrum_mona_gui',
-        'electrum_mona_gui.qt',
-        'electrum_mona_plugins',
-        'electrum_mona_plugins.audio_modem',
-        'electrum_mona_plugins.cosigner_pool',
-        'electrum_mona_plugins.email_requests',
-        'electrum_mona_plugins.greenaddress_instant',
-        'electrum_mona_plugins.hw_wallet',
-        'electrum_mona_plugins.keepkey',
-        'electrum_mona_plugins.labels',
-        'electrum_mona_plugins.ledger',
-        'electrum_mona_plugins.revealer',
-        'electrum_mona_plugins.trezor',
-        'electrum_mona_plugins.digitalbitbox',
-        'electrum_mona_plugins.virtualkeyboard',
+        'electrum',
+        'electrum.gui',
+        'electrum.gui.qt',
+        'electrum.plugins',
+        'electrum.plugins.audio_modem',
+        'electrum.plugins.cosigner_pool',
+        'electrum.plugins.email_requests',
+        'electrum.plugins.greenaddress_instant',
+        'electrum.plugins.hw_wallet',
+        'electrum.plugins.keepkey',
+        'electrum.plugins.labels',
+        'electrum.plugins.ledger',
+        'electrum.plugins.revealer',
+        'electrum.plugins.trezor',
+        'electrum.plugins.digitalbitbox',
+        'electrum.plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum_mona': 'lib',
-        'electrum_mona_gui': 'gui',
-        'electrum_mona_plugins': 'plugins',
+        'electrum': 'electrum'
     },
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
-        'electrum_mona': [
-            'wordlist/*.txt',
-            'locale/*/LC_MESSAGES/electrum.mo',
+        'electrum': [
+            'electrum/wordlist/*.txt',
+            'electrum/locale/*/LC_MESSAGES/electrum.mo',
         ],
     },
-    scripts=['electrum-mona'],
+    scripts=['electrum/electrum-mona'],
     data_files=data_files,
     description="Lightweight Monacoin Wallet",
     author="Thomas Voegtlin",
