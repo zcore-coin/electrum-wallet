@@ -23,6 +23,7 @@
 import binascii
 import os, sys, re, json
 from collections import defaultdict
+from typing import NamedTuple
 from datetime import datetime
 import decimal
 from decimal import Decimal
@@ -171,7 +172,7 @@ class PrintError(object):
 
     def print_error(self, *msg):
         if self.verbosity_filter in verbosity or verbosity == '*':
-            print_stderr("[%s]" % self.diagnostic_name(), *msg)
+            print_error("[%s]" % self.diagnostic_name(), *msg)
 
     def print_stderr(self, *msg):
         print_stderr("[%s]" % self.diagnostic_name(), *msg)
@@ -879,3 +880,13 @@ def make_dir(path, allow_symlink=True):
             raise Exception('Dangling link: ' + path)
         os.mkdir(path)
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+
+TxMinedStatus = NamedTuple("TxMinedStatus", [("height", int),
+                                             ("conf", int),
+                                             ("timestamp", int),
+                                             ("header_hash", str)])
+VerifiedTxInfo = NamedTuple("VerifiedTxInfo", [("height", int),
+                                               ("timestamp", int),
+                                               ("txpos", int),
+                                               ("header_hash", str)])
