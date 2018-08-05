@@ -396,8 +396,6 @@ class Blockchain(util.PrintError):
 
 
     def get_target(self, height, chain=None):
-        print(height)
-        print(len(self.checkpoints))
         if constants.net.TESTNET:
             return 0, 0
         elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
