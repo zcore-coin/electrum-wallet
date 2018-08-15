@@ -420,7 +420,7 @@ class Blockchain(util.PrintError):
             return 0, 0
         elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
             h, t = self.checkpoints[height // 2016]
-            return self.convbits(int(t)),int(t)
+            return self.convbits(t),t
         elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
             return 0, 0
         else:
@@ -469,10 +469,8 @@ class Blockchain(util.PrintError):
         # for each chunk, store the hash of the last block and the target after the chunk
         cp = []
         n = self.height() // 2016
-        from decimal import (Decimal, ROUND_DOWN)
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
             bits, target = self.get_target(index * 2016)
-            target = Decimal(target)
-            cp.append((h, str(target)))
+            cp.append((h, target))
         return cp
