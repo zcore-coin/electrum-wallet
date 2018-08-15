@@ -52,5 +52,11 @@
         "s": "50002",
         "t": "50001",
         "version": "1.2"
+    },
+    "ri7rzlmdaf4eqbza.onion": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.2"
     }
 }
