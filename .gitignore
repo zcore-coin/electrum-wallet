@@ -23,3 +23,5 @@ lib/.pytest_cache
 # tox files
 .cache/
 .coverage
+.pytest_cache
+.idea
