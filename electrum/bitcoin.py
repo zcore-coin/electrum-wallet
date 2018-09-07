@@ -469,42 +469,6 @@ def deserialize_privkey(key: str) -> (str, bytes, bool):
     secret_bytes = ecc.ECPrivkey.normalize_secret_bytes(secret_bytes)
     return txin_type, secret_bytes, compressed
 
-def deserialize_privkey_old(key: str) -> (str, bytes, bool):
-    if is_minikey(key):
-        return 'p2pkh', minikey_to_private_key(key), False
-
-    txin_type = None
-    if ':' in key:
-        txin_type, key = key.split(sep=':', maxsplit=1)
-        if txin_type not in WIF_SCRIPT_TYPES:
-            raise BitcoinException('unknown script type: {}'.format(txin_type))
-    try:
-        vch = DecodeBase58Check(key)
-    except BaseException:
-        neutered_privkey = str(key)[:3] + '..' + str(key)[-2:]
-        raise BitcoinException("cannot deserialize privkey {}"
-                               .format(neutered_privkey))
-
-    if txin_type is None:
-        # keys exported in version 3.0.x encoded script type in first byte
-        prefix_value = vch[0] - constants.net.WIF_PREFIX_OLD
-        try:
-            txin_type = WIF_SCRIPT_TYPES_INV[prefix_value]
-        except KeyError:
-            raise BitcoinException('invalid prefix ({}) for WIF key (1)'.format(vch[0]))
-    else:
-        # all other keys must have a fixed first byte
-        if vch[0] != constants.net.WIF_PREFIX_OLD:
-            raise BitcoinException('invalid prefix ({}) for WIF key (2)'.format(vch[0]))
-
-    if len(vch) not in [33, 34]:
-        raise BitcoinException('invalid vch len for WIF key: {}'.format(len(vch)))
-    compressed = len(vch) == 34
-    secret_bytes = vch[1:33]
-    # we accept secrets outside curve range; cast into range here:
-    secret_bytes = ecc.ECPrivkey.normalize_secret_bytes(secret_bytes)
-    return txin_type, secret_bytes, compressed
-
 
 def is_compressed(sec):
     return deserialize_privkey(sec)[2]
@@ -538,13 +502,6 @@ def is_address(addr):
 def is_private_key(key):
     try:
         k = deserialize_privkey(key)
-        return k is not False
-    except:
-        return False
-
-def is_private_key_old(key):
-    try:
-        k = deserialize_privkey_old(key)
         return k is not False
     except:
         return False

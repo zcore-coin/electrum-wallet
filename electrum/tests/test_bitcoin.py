@@ -11,8 +11,7 @@ from electrum.bitcoin import (
     deserialize_privkey, serialize_privkey, is_segwit_address,
     is_b58_address, address_to_scripthash, is_minikey, is_compressed, is_xpub,
     xpub_type, is_xprv, is_bip32_derivation, seed_type, EncodeBase58Check,
-    script_num_to_hex, push_script, add_number_to_script,int_to_hex, convert_bip32_path_to_list_of_uint32,
-    deserialize_privkey_old, is_private_key_old)
+    script_num_to_hex, push_script, add_number_to_script,int_to_hex, convert_bip32_path_to_list_of_uint32,)
 from electrum import ecc, crypto, constants
 from electrum.ecc import number_to_string, string_to_number
 from electrum.transaction import opcodes
@@ -157,16 +156,9 @@ class Test_bitcoin(SequentialTestCase):
     def test_msg_signing(self):
         msg1 = b'wakiyama tamami chan'
         msg2 = b'tottemo kawaii'
-        msg3 = b'yone'
-        msg4 = b'watanabe thanks'
 
         def sign_message_with_wif_privkey(wif_privkey, msg):
             txin_type, privkey, compressed = deserialize_privkey(wif_privkey)
-            key = ecc.ECPrivkey(privkey)
-            return key.sign_message(msg, compressed)
-
-        def sign_message_with_wif_privkey_old(wif_privkey, msg):
-            txin_type, privkey, compressed = deserialize_privkey_old(wif_privkey)
             key = ecc.ECPrivkey(privkey)
             return key.sign_message(msg, compressed)
 
@@ -176,22 +168,12 @@ class Test_bitcoin(SequentialTestCase):
         sig2 = sign_message_with_wif_privkey(
             'T3o9vVd82bASRouYDpSHo2KyFR82LB7FezpZAFDpLcbNd7AGuEJQ', msg2)
         addr2 = 'MLBCmvG4A7AqCD6MMYjf7YdV96YK5teZ5N'
-        sig3 = sign_message_with_wif_privkey_old(
-            'TM3TwXiEnEmKs64zCvXw2Jr9mkwgUgxNSvGyVC2nTYQMn2LcxM5C', msg3)
-        addr3 = 'MEexKwbCkfepLkRPi6EfWReurzxL9eBvkU'
-        sig4 = sign_message_with_wif_privkey_old(
-            'TPNSUD1m5JUFLRKZ5agm5H9JVACJDEPxwS1fYjiHB6khvvbefUR5', msg4)
-        addr4 = 'MNUye8sS7A5yeZVfgZD3XUwwcBgX9f27AS'
 
         sig1_b64 = base64.b64encode(sig1)
         sig2_b64 = base64.b64encode(sig2)
-        sig3_b64 = base64.b64encode(sig3)
-        sig4_b64 = base64.b64encode(sig4)
 
         self.assertEqual(sig1_b64, b'IDldTozCVViZ/m/gzvSf6EmZZ3ItDdM+RsI4PAxZdsb6ZQUmv3IgaJK+U4naOExaoTIVn0IY3Hoky0MWFAO6ac4=')
         self.assertEqual(sig2_b64, b'IOr6v1UPcFEoeon11dPNo+TbbLuAu8k8ccG527zmmDf/a26W6z+yAbsfTt01PKF7/UGhwJeCwybdnRXpPC2x4Hk=')
-        self.assertEqual(sig3_b64, b'IIr2gW2LrTNJV4EAm6PuBXzvZBv3PbumrJNJQIf96ofxLrylCQftFeZ/Y3070dW+GcEmLXxau6/sVQb0hcGX2MY=')
-        self.assertEqual(sig4_b64, b'H7WvBRrEqce85Kf56MtNZOoC3BcDR9mCqSL90Kt4swy0G4nbglT+CcKqojubEALUOJLY3ntm+hCbhD5rKzpyKCw=')
 
         self.assertTrue(ecc.verify_message_with_address(addr1, sig1, msg1))
         self.assertTrue(ecc.verify_message_with_address(addr2, sig2, msg2))
@@ -729,14 +711,6 @@ class Test_keyImport(SequentialTestCase):
             self.assertFalse(is_private_key(priv_details['pub']))
             self.assertFalse(is_private_key(priv_details['address']))
         self.assertFalse(is_private_key("not a privkey"))
-
-    def test_is_private_key_old(self):
-        for priv_details in self.priv_pub_addr_old:
-            self.assertTrue(is_private_key_old(priv_details['priv']))
-            self.assertTrue(is_private_key_old(priv_details['exported_privkey']))
-            self.assertFalse(is_private_key_old(priv_details['pub']))
-            self.assertFalse(is_private_key_old(priv_details['address']))
-        self.assertFalse(is_private_key_old("not a privkey"))
 
     @needs_test_with_all_ecc_implementations
     def test_serialize_privkey(self):

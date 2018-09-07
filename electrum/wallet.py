@@ -124,23 +124,8 @@ def sweep_preparations(privkeys, network, imax=100):
             # we also search for pay-to-pubkey outputs
             find_utxos_for_privkey('p2pk', privkey, compressed)
     if not inputs:
-        inputs = []
-        keypairs = {}
-        for sec in privkeys:
-            txin_type, privkey, compressed = bitcoin.deserialize_privkey_old(sec)
-            find_utxos_for_privkey(txin_type, privkey, compressed)
-            # do other lookups to increase support coverage
-            if is_minikey(sec):
-                # minikeys don't have a compressed byte
-                # we lookup both compressed and uncompressed pubkeys
-                find_utxos_for_privkey(txin_type, privkey, not compressed)
-            elif txin_type == 'p2pkh':
-                # WIF serialization does not distinguish p2pkh and p2pk
-                # we also search for pay-to-pubkey outputs
-                find_utxos_for_privkey('p2pk', privkey, compressed)
-        if not inputs:
-            raise Exception(_('No inputs found. (Note that inputs need to be confirmed)'))
-            # FIXME actually inputs need not be confirmed now, see https://github.com/kyuupichan/electrumx/issues/365
+        raise Exception(_('No inputs found. (Note that inputs need to be confirmed)'))
+        # FIXME actually inputs need not be confirmed now, see https://github.com/kyuupichan/electrumx/issues/365
     return inputs, keypairs
 
 

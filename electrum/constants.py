@@ -41,7 +41,6 @@ class BitcoinMainnet:
 
     TESTNET = False
     WIF_PREFIX = 0xB0
-    WIF_PREFIX_OLD = 0xB2
     ADDRTYPE_P2PKH = 50
     ADDRTYPE_P2SH = 55
     ADDRTYPE_P2SH_ALT = 5
