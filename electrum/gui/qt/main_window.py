@@ -2536,11 +2536,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         vbox.addLayout(Buttons(CancelButton(d), button))
         button.setEnabled(False)
 
-        # Do not import uncomporessed WIF key
-        def disable_uncompressed_key():
-            if text.startswith(6):
-                return False
-
         def get_address():
             addr = str(address_e.text()).strip()
             if bitcoin.is_address(addr):
@@ -2550,7 +2545,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             text = str(keys_e.toPlainText())
             return keystore.get_private_keys(text)
 
-        f = lambda: button.setEnabled(get_address() is not None and get_pk() is not None and disable_uncompressed_key())
+        f = lambda: button.setEnabled(get_address() is not None and get_pk() is not None)
         on_address = lambda text: address_e.setStyleSheet((ColorScheme.DEFAULT if get_address() else ColorScheme.RED).as_stylesheet())
         keys_e.textChanged.connect(f)
         address_e.textChanged.connect(f)
