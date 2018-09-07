@@ -25,7 +25,7 @@ pushd $WINEPREFIX/drive_c/electrum-mona
 git submodule init
 git submodule update
 
-VERSION=`git describe --tags --dirty`
+VERSION=`git describe --tags --dirty --always`
 echo "Last commit: $VERSION"
 
 pushd ./contrib/deterministic-build/electrum-locale
@@ -48,8 +48,8 @@ cp -r $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-loc
 cp $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/electrum/gui/qt/
 
 # build japanese version
-cp ../default-ja.patch $WINEPREFIX/drive_c/electrum-mona/gui/qt
-pushd $WINEPREFIX/drive_c/electrum-mona/gui/qt
+cp ../default-ja.patch $WINEPREFIX/drive_c/electrum-mona/electrum/gui/qt
+pushd $WINEPREFIX/drive_c/electrum-mona/electrum/gui/qt
 patch < default-ja.patch
 popd
 
