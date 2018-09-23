@@ -22,12 +22,13 @@
 # SOFTWARE.
 
 import threading
+import asyncio
 import itertools
 from collections import defaultdict
 
 from . import bitcoin
 from .bitcoin import COINBASE_MATURITY, TYPE_ADDRESS, TYPE_PUBKEY
-from .util import PrintError, profiler, bfh, VerifiedTxInfo, TxMinedStatus
+from .util import PrintError, profiler, bfh, VerifiedTxInfo, TxMinedStatus, aiosafe, SilentTaskGroup
 from .transaction import Transaction, TxOutput
 from .synchronizer import Synchronizer
 from .verifier import SPV
@@ -58,6 +59,8 @@ class AddressSynchronizer(PrintError):
         # verifier (SPV) and synchronizer are started in start_threads
         self.synchronizer = None
         self.verifier = None
+        self.sync_restart_lock = asyncio.Lock()
+        self.group = None
         # locks: if you need to take multiple ones, acquire them in the order they are defined here!
         self.lock = threading.RLock()
         self.transaction_lock = threading.RLock()
@@ -76,6 +79,12 @@ class AddressSynchronizer(PrintError):
         self.threadlocal_cache = threading.local()
 
         self.load_and_cleanup()
+
+    def with_transaction_lock(func):
+        def func_wrapper(self, *args, **kwargs):
+            with self.transaction_lock:
+                return func(self, *args, **kwargs)
+        return func_wrapper
 
     def load_and_cleanup(self):
         self.load_transactions()
@@ -134,28 +143,50 @@ class AddressSynchronizer(PrintError):
                 # add it in case it was previously unconfirmed
                 self.add_unverified_tx(tx_hash, tx_height)
 
-    def start_threads(self, network):
+    @aiosafe
+    async def on_default_server_changed(self, event):
+        async with self.sync_restart_lock:
+            self.stop_threads(write_to_disk=False)
+            await self._start_threads()
+
+    def start_network(self, network):
         self.network = network
         if self.network is not None:
-            self.verifier = SPV(self.network, self)
-            self.synchronizer = Synchronizer(self, network)
-            network.add_jobs([self.verifier, self.synchronizer])
-        else:
-            self.verifier = None
-            self.synchronizer = None
+            self.network.register_callback(self.on_default_server_changed, ['default_server_changed'])
+            asyncio.run_coroutine_threadsafe(self._start_threads(), network.asyncio_loop)
 
-    def stop_threads(self):
+    async def _start_threads(self):
+        interface = self.network.interface
+        if interface is None:
+            return  # we should get called again soon
+
+        self.verifier = SPV(self.network, self)
+        self.synchronizer = synchronizer = Synchronizer(self)
+        assert self.group is None, 'group already exists'
+        self.group = SilentTaskGroup()
+
+        async def job():
+            async with self.group as group:
+                await group.spawn(self.verifier.main(group))
+                await group.spawn(self.synchronizer.send_subscriptions(group))
+                await group.spawn(self.synchronizer.handle_status(group))
+                await group.spawn(self.synchronizer.main())
+            # we are being cancelled now
+            interface.session.unsubscribe(synchronizer.status_queue)
+        await interface.group.spawn(job)
+
+    def stop_threads(self, write_to_disk=True):
         if self.network:
-            self.network.remove_jobs([self.synchronizer, self.verifier])
-            self.synchronizer.release()
             self.synchronizer = None
             self.verifier = None
-            # Now no references to the synchronizer or verifier
-            # remain so they will be GC-ed
+            if self.group:
+                asyncio.run_coroutine_threadsafe(self.group.cancel_remaining(), self.network.asyncio_loop)
+                self.group = None
             self.storage.put('stored_height', self.get_local_height())
-        self.save_transactions()
-        self.save_verified_tx()
-        self.storage.write()
+        if write_to_disk:
+            self.save_transactions()
+            self.save_verified_tx()
+            self.storage.write()
 
     def add_address(self, address):
         if address not in self.history:
@@ -164,7 +195,7 @@ class AddressSynchronizer(PrintError):
         if self.synchronizer:
             self.synchronizer.add(address)
 
-    def get_conflicting_transactions(self, tx):
+    def get_conflicting_transactions(self, tx_hash, tx):
         """Returns a set of transaction hashes from the wallet history that are
         directly conflicting with tx, i.e. they have common outpoints being
         spent with tx. If the tx is already in wallet history, that will not be
@@ -183,18 +214,18 @@ class AddressSynchronizer(PrintError):
                 # this outpoint has already been spent, by spending_tx
                 assert spending_tx_hash in self.transactions
                 conflicting_txns |= {spending_tx_hash}
-            txid = tx.txid()
-            if txid in conflicting_txns:
+            if tx_hash in conflicting_txns:
                 # this tx is already in history, so it conflicts with itself
                 if len(conflicting_txns) > 1:
                     raise Exception('Found conflicting transactions already in wallet history.')
-                conflicting_txns -= {txid}
+                conflicting_txns -= {tx_hash}
             return conflicting_txns
 
     def add_transaction(self, tx_hash, tx, allow_unrelated=False):
         assert tx_hash, tx_hash
         assert tx, tx
         assert tx.is_complete()
+        # assert tx_hash == tx.txid()  # disabled as expensive; test done by Synchronizer.
         # we need self.transaction_lock but get_tx_height will take self.lock
         # so we need to take that too here, to enforce order of locks
         with self.lock, self.transaction_lock:
@@ -219,7 +250,7 @@ class AddressSynchronizer(PrintError):
             # When this method exits, there must NOT be any conflict, so
             # either keep this txn and remove all conflicting (along with dependencies)
             #     or drop this txn
-            conflicting_txns = self.get_conflicting_transactions(tx)
+            conflicting_txns = self.get_conflicting_transactions(tx_hash, tx)
             if conflicting_txns:
                 existing_mempool_txn = any(
                     self.get_tx_height(tx_hash2).height in (TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT)
@@ -497,8 +528,7 @@ class AddressSynchronizer(PrintError):
             delta = tx_deltas[tx_hash]
             tx_mined_status = self.get_tx_height(tx_hash)
             history.append((tx_hash, tx_mined_status, delta))
-        history.sort(key = lambda x: self.get_txpos(x[0]))
-        history.reverse()
+        history.sort(key = lambda x: self.get_txpos(x[0]), reverse=True)
         # 3. add balance
         c, u, x = self.get_balance(domain)
         balance = c + u + x
@@ -546,9 +576,12 @@ class AddressSynchronizer(PrintError):
             with self.lock:
                 # tx will be verified only if height > 0
                 self.unverified_tx[tx_hash] = tx_height
-            # to remove pending proof requests:
-            if self.verifier:
-                self.verifier.remove_spv_proof_for_tx(tx_hash)
+
+    def remove_unverified_tx(self, tx_hash, tx_height):
+        with self.lock:
+            new_height = self.unverified_tx.get(tx_hash)
+            if new_height == tx_height:
+                self.unverified_tx.pop(tx_hash, None)
 
     def add_verified_tx(self, tx_hash: str, info: VerifiedTxInfo):
         # Remove from the unverified map and add to the verified map
@@ -556,7 +589,7 @@ class AddressSynchronizer(PrintError):
             self.unverified_tx.pop(tx_hash, None)
             self.verified_tx[tx_hash] = info
         tx_mined_status = self.get_tx_height(tx_hash)
-        self.network.trigger_callback('verified', tx_hash, tx_mined_status)
+        self.network.trigger_callback('verified', self, tx_hash, tx_mined_status)
 
     def get_unverified_txs(self):
         '''Returns a map from tx hash to transaction height'''
@@ -610,6 +643,8 @@ class AddressSynchronizer(PrintError):
     def set_up_to_date(self, up_to_date):
         with self.lock:
             self.up_to_date = up_to_date
+        if self.network:
+            self.network.notify('status')
         if up_to_date:
             self.save_transactions(write=True)
             # if the verifier is also up to date, persist that too;
@@ -620,8 +655,9 @@ class AddressSynchronizer(PrintError):
     def is_up_to_date(self):
         with self.lock: return self.up_to_date
 
+    @with_transaction_lock
     def get_tx_delta(self, tx_hash, address):
-        "effect of tx on address"
+        """effect of tx on address"""
         delta = 0
         # substract the value of coins sent from address
         d = self.txi.get(tx_hash, {}).get(address, [])
@@ -633,8 +669,9 @@ class AddressSynchronizer(PrintError):
             delta += v
         return delta
 
+    @with_transaction_lock
     def get_tx_value(self, txid):
-        " effect of tx on the entire domain"
+        """effect of tx on the entire domain"""
         delta = 0
         for addr, d in self.txi.get(txid, {}).items():
             for n, v in d:
@@ -697,17 +734,18 @@ class AddressSynchronizer(PrintError):
         return is_relevant, is_mine, v, fee
 
     def get_addr_io(self, address):
-        h = self.get_address_history(address)
-        received = {}
-        sent = {}
-        for tx_hash, height in h:
-            l = self.txo.get(tx_hash, {}).get(address, [])
-            for n, v, is_cb in l:
-                received[tx_hash + ':%d'%n] = (height, v, is_cb)
-        for tx_hash, height in h:
-            l = self.txi.get(tx_hash, {}).get(address, [])
-            for txi, v in l:
-                sent[txi] = height
+        with self.lock, self.transaction_lock:
+            h = self.get_address_history(address)
+            received = {}
+            sent = {}
+            for tx_hash, height in h:
+                l = self.txo.get(tx_hash, {}).get(address, [])
+                for n, v, is_cb in l:
+                    received[tx_hash + ':%d'%n] = (height, v, is_cb)
+            for tx_hash, height in h:
+                l = self.txi.get(tx_hash, {}).get(address, [])
+                for txi, v in l:
+                    sent[txi] = height
         return received, sent
 
     def get_addr_utxo(self, address):

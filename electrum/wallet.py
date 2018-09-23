@@ -43,19 +43,17 @@ from .i18n import _
 from .util import (NotEnoughFunds, PrintError, UserCancelled, profiler,
                    format_satoshis, format_fee_satoshis, NoDynamicFeeEstimates,
                    TimeoutException, WalletFileException, BitcoinException,
-                   InvalidPassword, format_time)
-
+                   InvalidPassword, format_time, timestamp_to_datetime, Satoshis,
+                   Fiat)
 from .bitcoin import *
 from .version import *
 from .keystore import load_keystore, Hardware_KeyStore
 from .storage import multisig_type, STO_EV_PLAINTEXT, STO_EV_USER_PW, STO_EV_XPUB_PW
-
 from . import transaction, bitcoin, coinchooser, paymentrequest, contacts
 from .transaction import Transaction, TxOutput, TxOutputHwInfo
 from .plugin import run_hook
 from .address_synchronizer import (AddressSynchronizer, TX_HEIGHT_LOCAL,
                                    TX_HEIGHT_UNCONF_PARENT, TX_HEIGHT_UNCONFIRMED)
-
 from .paymentrequest import PR_PAID, PR_UNPAID, PR_UNKNOWN, PR_EXPIRED
 from .paymentrequest import InvoiceStore
 from .contacts import Contacts
@@ -390,7 +388,6 @@ class Abstract_Wallet(AddressSynchronizer):
 
     @profiler
     def get_full_history(self, domain=None, from_timestamp=None, to_timestamp=None, fx=None, show_addresses=False):
-        from .util import timestamp_to_datetime, Satoshis, Fiat
         out = []
         income = 0
         expenditures = 0
@@ -428,7 +425,7 @@ class Abstract_Wallet(AddressSynchronizer):
             else:
                 income += value
             # fiat computations
-            if fx and fx.is_enabled():
+            if fx and fx.is_enabled() and fx.get_history_config():
                 fiat_value = self.get_fiat_value(tx_hash, fx.ccy)
                 fiat_default = fiat_value is None
                 fiat_value = fiat_value if fiat_value is not None else value / Decimal(COIN) * self.price_at_timestamp(tx_hash, fx.timestamp_rate)  #
@@ -464,7 +461,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 'income': Satoshis(income),
                 'expenditures': Satoshis(expenditures)
             }
-            if fx and fx.is_enabled():
+            if fx and fx.is_enabled() and fx.get_history_config():
                 unrealized = self.unrealized_gains(domain, fx.timestamp_rate, fx.ccy)
                 summary['capital_gains'] = Fiat(capital_gains, fx.ccy)
                 summary['fiat_income'] = Fiat(fiat_income, fx.ccy)
@@ -1449,10 +1446,10 @@ class Deterministic_Wallet(Abstract_Wallet):
             if len(addresses) < limit:
                 self.create_new_address(for_change)
                 continue
-            if list(map(lambda a: self.address_is_old(a), addresses[-limit:] )) == limit*[False]:
-                break
-            else:
+            if any(map(self.address_is_old, addresses[-limit:])):
                 self.create_new_address(for_change)
+            else:
+                break
 
     def synchronize(self):
         with self.lock:

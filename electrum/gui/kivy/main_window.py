@@ -15,6 +15,7 @@ from electrum.util import profiler, InvalidPassword
 from electrum.plugin import run_hook
 from electrum.util import format_satoshis, format_satoshis_plain
 from electrum.paymentrequest import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum import blockchain
 from .i18n import _
 
 from kivy.app import App
@@ -93,8 +94,9 @@ class ElectrumWindow(App):
 
     auto_connect = BooleanProperty(False)
     def on_auto_connect(self, instance, x):
-        host, port, protocol, proxy, auto_connect = self.network.get_parameters()
-        self.network.set_parameters(host, port, protocol, proxy, self.auto_connect)
+        net_params = self.network.get_parameters()
+        net_params = net_params._replace(auto_connect=self.auto_connect)
+        self.network.set_parameters(net_params)
     def toggle_auto_connect(self, x):
         self.auto_connect = not self.auto_connect
 
@@ -114,10 +116,10 @@ class ElectrumWindow(App):
         from .uix.dialogs.choice_dialog import ChoiceDialog
         chains = self.network.get_blockchains()
         def cb(name):
-            for index, b in self.network.blockchains.items():
+            for index, b in blockchain.blockchains.items():
                 if name == b.get_name():
                     self.network.follow_chain(index)
-        names = [self.network.blockchains[b].get_name() for b in chains]
+        names = [blockchain.blockchains[b].get_name() for b in chains]
         if len(names) > 1:
             cur_chain = self.network.blockchain().get_name()
             ChoiceDialog(_('Choose your chain'), names, cur_chain, cb).open()
@@ -154,6 +156,7 @@ class ElectrumWindow(App):
 
     def on_quotes(self, d):
         Logger.info("on_quotes")
+        self._trigger_update_status()
         self._trigger_update_history()
 
     def on_history(self, d):
@@ -266,11 +269,11 @@ class ElectrumWindow(App):
         if self.network:
             self.num_blocks = self.network.get_local_height()
             self.num_nodes = len(self.network.get_interfaces())
-            host, port, protocol, proxy_config, auto_connect = self.network.get_parameters()
-            self.server_host = host
-            self.server_port = port
-            self.auto_connect = auto_connect
-            self.proxy_config = proxy_config if proxy_config else {}
+            net_params = self.network.get_parameters()
+            self.server_host = net_params.host
+            self.server_port = net_params.port
+            self.auto_connect = net_params.auto_connect
+            self.proxy_config = net_params.proxy if net_params.proxy else {}
 
         self.plugins = kwargs.get('plugins', [])
         self.gui_object = kwargs.get('gui_object', None)
@@ -487,7 +490,8 @@ class ElectrumWindow(App):
             activity.bind(on_new_intent=self.on_new_intent)
         # connect callbacks
         if self.network:
-            interests = ['updated', 'status', 'new_transaction', 'verified', 'interfaces']
+            interests = ['wallet_updated', 'network_updated', 'blockchain_updated',
+                         'status', 'new_transaction', 'verified']
             self.network.register_callback(self.on_network_event, interests)
             self.network.register_callback(self.on_fee, ['fee'])
             self.network.register_callback(self.on_fee_histogram, ['fee_histogram'])
@@ -509,7 +513,7 @@ class ElectrumWindow(App):
 
     def on_wizard_complete(self, wizard, wallet):
         if wallet:  # wizard returned a wallet
-            wallet.start_threads(self.daemon.network)
+            wallet.start_network(self.daemon.network)
             self.daemon.add_wallet(wallet)
             self.load_wallet(wallet)
         elif not self.wallet:
@@ -666,11 +670,15 @@ class ElectrumWindow(App):
 
     def on_network_event(self, event, *args):
         Logger.info('network event: '+ event)
-        if event == 'interfaces':
+        if event == 'network_updated':
             self._trigger_update_interfaces()
-        elif event == 'updated':
+            self._trigger_update_status()
+        elif event == 'wallet_updated':
             self._trigger_update_wallet()
             self._trigger_update_status()
+        elif event == 'blockchain_updated':
+            # to update number of confirmations in history
+            self._trigger_update_wallet()
         elif event == 'status':
             self._trigger_update_status()
         elif event == 'new_transaction':
@@ -696,7 +704,7 @@ class ElectrumWindow(App):
         if not self.wallet:
             self.status = _("No Wallet")
             return
-        if self.network is None or not self.network.is_running():
+        if self.network is None or not self.network.is_connected():
             status = _("Offline")
         elif self.network.is_connected():
             server_height = self.network.get_server_height()
@@ -877,7 +885,7 @@ class ElectrumWindow(App):
         Clock.schedule_once(lambda dt: on_success(tx))
 
     def _broadcast_thread(self, tx, on_complete):
-        ok, txid = self.network.broadcast_transaction(tx)
+        ok, txid = self.network.broadcast_transaction_from_non_network_thread(tx)
         Clock.schedule_once(lambda dt: on_complete(ok, txid))
 
     def broadcast(self, tx, pr=None):

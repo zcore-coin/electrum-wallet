@@ -4,9 +4,9 @@ Electrum-mona - Lightweight Monacoin client
 ::
 
   Licence: MIT Licence
-  Origin Author: Thomas Voegtlin
+  Author: Thomas Voegtlin
   Port Maintainer: WakiyamaP (Electrum-mona)
-  Language: Python
+  Language: Python (>= 3.6)
   Homepage: https://electrum-mona.org/
 
 

@@ -255,7 +255,7 @@ class Commands:
     def broadcast(self, tx):
         """Broadcast a transaction to the network. """
         tx = Transaction(tx)
-        return self.network.broadcast_transaction(tx)
+        return self.network.broadcast_transaction_from_non_network_thread(tx)
 
     @command('')
     def createmultisig(self, num, pubkeys):
@@ -851,6 +851,7 @@ def get_parser():
     parser_gui.add_argument("-o", "--offline", action="store_true", dest="offline", default=False, help="Run offline")
     parser_gui.add_argument("-m", action="store_true", dest="hide_gui", default=False, help="hide GUI on startup")
     parser_gui.add_argument("-L", "--lang", dest="language", default=None, help="default language used in GUI")
+    parser_gui.add_argument("--daemon", action="store_true", dest="daemon", default=False, help="keep daemon running after GUI is closed")
     add_network_options(parser_gui)
     add_global_options(parser_gui)
     # daemon

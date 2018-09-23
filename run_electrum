@@ -48,6 +48,7 @@ def check_imports():
         import qrcode
         import google.protobuf
         import jsonrpclib
+        import aiorpcx
     except ImportError as e:
         sys.exit("Error: %s. Try 'sudo pip install <module-name>'"%str(e))
     # the following imports are for pyinstaller
@@ -134,7 +135,7 @@ def run_non_RPC(config):
         if not config.get('offline'):
             network = Network(config)
             network.start()
-            wallet.start_threads(network)
+            wallet.start_network(network)
             print_msg("Recovering wallet...")
             wallet.synchronize()
             wallet.wait_until_synchronized()
@@ -414,7 +415,7 @@ if __name__ == '__main__':
         fd, server = daemon.get_fd_or_server(config)
         if fd is not None:
             plugins = init_plugins(config, config.get('gui', 'qt'))
-            d = daemon.Daemon(config, fd, True)
+            d = daemon.Daemon(config, fd)
             d.start()
             d.init_gui(config, plugins)
             sys.exit(0)
@@ -435,7 +436,7 @@ if __name__ == '__main__':
                         print_stderr("starting daemon (PID %d)" % pid)
                         sys.exit(0)
                 init_plugins(config, 'cmdline')
-                d = daemon.Daemon(config, fd, False)
+                d = daemon.Daemon(config, fd)
                 d.start()
                 if config.get('websocket_server'):
                     from electrum import websockets
