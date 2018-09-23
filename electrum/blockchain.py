@@ -166,6 +166,7 @@ class Blockchain(util.PrintError):
         self._size = os.path.getsize(p)//HEADER_SIZE if os.path.exists(p) else 0
 
     def verify_header(self, header: dict, prev_hash: str, target: int, expected_header_hash: str=None) -> None:
+        height = header.get('block_height')
         _hash = hash_header(header)
         if expected_header_hash and expected_header_hash != _hash:
             raise Exception("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
@@ -176,7 +177,7 @@ class Blockchain(util.PrintError):
             return
         if constants.net.TESTNET:
             return
-        bits = self.target_to_bits(target)
+        bits = self.convbits(target)
         if bits != header.get('bits'):
             raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         if height < 450000 :
@@ -190,6 +191,7 @@ class Blockchain(util.PrintError):
         num = len(data) // HEADER_SIZE
         start_height = index * 2016
         prev_hash = self.get_hash(start_height - 1)
+        headers = {}
         for i in range(num):
             height = start_height + i
             try:
@@ -199,7 +201,7 @@ class Blockchain(util.PrintError):
             raw_header = data[i*HEADER_SIZE : (i+1)*HEADER_SIZE]
             header = deserialize_header(raw_header, index*2016 + i)
             headers[header.get('block_height')] = header
-            bits, target = self.get_target(index*2016 + i, headers)
+            target = self.get_target(index*2016 + i, headers)
             self.verify_header(header, prev_hash, target, expected_header_hash)
             prev_hash = hash_header(header)
 
@@ -424,18 +426,17 @@ class Blockchain(util.PrintError):
         bnNew //= nTargetTimespan
         bnNew = min(bnNew, MAX_TARGET)
 
-        new_bits = self.convbits(bnNew)
-        return new_bits, bnNew
+        return bnNew
 
 
     def get_target(self, height, chain=None):
         if constants.net.TESTNET:
-            return 0, 0
+            return 0
         elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
             h, t = self.checkpoints[height // 2016]
-            return self.convbits(t),t
+            return t
         elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
-            return 0, 0
+            return 0
         else:
             return self.get_target_dgwv3(height, chain)
 
@@ -458,11 +459,11 @@ class Blockchain(util.PrintError):
         headers = {}
         headers[header.get('block_height')] = header
         try:
-            bits, target = self.get_target(height, headers)
+            target = self.get_target(height, headers)
         except MissingHeader:
             return False
         try:
-            self.verify_header(header, prev_hash, bits, target)
+            self.verify_header(header, prev_hash, target)
         except BaseException as e:
             return False
         return True
@@ -484,7 +485,7 @@ class Blockchain(util.PrintError):
         n = self.height() // 2016
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
-            bits, target = self.get_target(index * 2016)
+            target = self.get_target(index * 2016)
             cp.append((h, target))
         return cp
 
