@@ -129,14 +129,18 @@ class ExchangeBase(PrintError):
 class BitcoinAverage(ExchangeBase):
     async def get_rates(self, ccy):
         json1 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/crypto/ticker/MONABTC')
-        json2 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
-        return {ccy: Decimal(json1['last'])*Decimal(json2['last'])}
+        if ccy != "BTC":
+            json2 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
+            return {ccy: Decimal(json1['last'])*Decimal(json2['last'])}
+        return {ccy: Decimal(json1['last'])}
 
 class Bittrex(ExchangeBase):
     async def get_rates(self, ccy):
         json1 = await self.get_json('bittrex.com', '/api/v1.1/public/getticker?market=btc-mona')
-        json2 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
-        return {ccy: Decimal(json1['result']['Last'])*Decimal(json2['last'])}
+        if ccy != "BTC":
+            json2 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
+            return {ccy: Decimal(json1['result']['Last'])*Decimal(json2['last'])}
+        return {ccy: Decimal(json1['result']['Last'])}
 
 class Bitbank(ExchangeBase):
     async def get_rates(self, ccy):
@@ -315,7 +319,6 @@ class FxThread(ThreadJob):
     def exchange_rate(self) -> Decimal:
         """Returns the exchange rate as a Decimal"""
         rate = self.exchange.quotes.get(self.ccy)
-        print(rate)
         if rate is None:
             return Decimal('NaN')
         return Decimal(rate)
