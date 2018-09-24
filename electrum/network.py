@@ -350,6 +350,9 @@ class Network(PrintError):
             for i in FEE_ETA_TARGETS:
                 fee_tasks.append((i, await group.spawn(session.send_request('blockchain.estimatefee', [i]))))
         self.config.mempool_fees = histogram = histogram_task.result()
+        if histogram == []:
+            # [] is bad :\ It's dummy data.
+            self.config.mempool_fees = histogram = [[100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000]]
         self.print_error('fee_histogram', histogram)
         self.notify('fee_histogram')
         for i, task in fee_tasks:
