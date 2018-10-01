@@ -28,16 +28,17 @@ import os
 import time
 import traceback
 import sys
+import threading
+from typing import Dict
 
-# from jsonrpc import JSONRPCResponseManager
 import jsonrpclib
-from .jsonrpc import VerifyingJSONRPCServer
 
+from .jsonrpc import VerifyingJSONRPCServer
 from .version import ELECTRUM_VERSION
 from .network import Network
 from .util import json_decode, DaemonThread
 from .util import print_error, to_string
-from .wallet import Wallet
+from .wallet import Wallet, Abstract_Wallet
 from .storage import WalletStorage
 from .commands import known_commands, Commands
 from .simple_config import SimpleConfig
@@ -120,20 +121,26 @@ def get_rpc_credentials(config):
 
 class Daemon(DaemonThread):
 
-    def __init__(self, config, fd):
+    def __init__(self, config, fd=None, *, listen_jsonrpc=True):
         DaemonThread.__init__(self)
         self.config = config
+        if fd is None and listen_jsonrpc:
+            fd, server = get_fd_or_server(config)
+            if fd is None: raise Exception('failed to lock daemon; already running?')
         if config.get('offline'):
             self.network = None
         else:
             self.network = Network(config)
         self.fx = FxThread(config, self.network)
         if self.network:
-            self.network.start(self.fx.run())
+            self.network.start([self.fx.run])
         self.gui = None
-        self.wallets = {}
+        self.wallets = {}  # type: Dict[str, Abstract_Wallet]
         # Setup JSONRPC server
-        self.init_server(config, fd)
+        self.server = None
+        if listen_jsonrpc:
+            self.init_server(config, fd)
+        self.start()
 
     def init_server(self, config, fd):
         host = config.get('rpchost', '127.0.0.1')
@@ -163,6 +170,7 @@ class Daemon(DaemonThread):
         return True
 
     def run_daemon(self, config_options):
+        asyncio.set_event_loop(self.network.asyncio_loop)
         config = SimpleConfig(config_options)
         sub = config.get('subcommand')
         assert sub in [None, 'start', 'stop', 'status', 'load_wallet', 'close_wallet']
@@ -308,6 +316,7 @@ class Daemon(DaemonThread):
             gui_name = 'qt'
         gui = __import__('electrum.gui.' + gui_name, fromlist=['electrum'])
         self.gui = gui.ElectrumGui(config, self, plugins)
+        threading.current_thread().setName('GUI')
         try:
             self.gui.main()
         except BaseException as e:

@@ -51,8 +51,6 @@ class NotificationSession(ClientSession):
         self.subscriptions = defaultdict(list)
         self.cache = {}
         self.in_flight_requests_semaphore = asyncio.Semaphore(100)
-        # disable bandwidth limiting (used by superclass):
-        self.bw_limit = 0
 
     async def handle_request(self, request):
         # note: if server sends malformed request and we raise, the superclass
@@ -65,7 +63,7 @@ class NotificationSession(ClientSession):
                 for queue in self.subscriptions[key]:
                     await queue.put(request.args)
             else:
-                assert False, request.method
+                raise Exception('unexpected request: {}'.format(repr(request)))
 
     async def send_request(self, *args, timeout=-1, **kwargs):
         # note: the timeout starts after the request touches the wire!
@@ -78,7 +76,7 @@ class NotificationSession(ClientSession):
                     super().send_request(*args, **kwargs),
                     timeout)
             except asyncio.TimeoutError as e:
-                raise GracefulDisconnect('request timed out: {}'.format(args)) from e
+                raise RequestTimedOut('request timed out: {}'.format(args)) from e
 
     async def subscribe(self, method, params, queue):
         # note: until the cache is written for the first time,
@@ -107,11 +105,8 @@ class NotificationSession(ClientSession):
 
 
 class GracefulDisconnect(Exception): pass
-
-
+class RequestTimedOut(GracefulDisconnect): pass
 class ErrorParsingSSLCert(Exception): pass
-
-
 class ErrorGettingSSLCertFromServer(Exception): pass
 
 
@@ -135,8 +130,8 @@ def serialize_server(host: str, port: Union[str, int], protocol: str) -> str:
 class Interface(PrintError):
 
     def __init__(self, network, server, config_path, proxy):
-        self.exception = None
         self.ready = asyncio.Future()
+        self.got_disconnected = asyncio.Future()
         self.server = server
         self.host, self.port, self.protocol = deserialize_server(self.server)
         self.port = int(self.port)
@@ -146,12 +141,16 @@ class Interface(PrintError):
         self._requested_chunks = set()
         self.network = network
         self._set_proxy(proxy)
+        self.session = None
 
         self.tip_header = None
         self.tip = 0
 
-        # TODO combine?
-        self.fut = asyncio.get_event_loop().create_task(self.run())
+        # note that an interface dying MUST NOT kill the whole network,
+        # hence exceptions raised by "run" need to be caught not to kill
+        # main_taskgroup! the aiosafe decorator does this.
+        asyncio.run_coroutine_threadsafe(
+            self.network.main_taskgroup.spawn(self.run()), self.network.asyncio_loop)
         self.group = SilentTaskGroup()
 
     def diagnostic_name(self):
@@ -239,31 +238,30 @@ class Interface(PrintError):
             sslc.check_hostname = 0
         return sslc
 
-    def handle_graceful_disconnect(func):
+    def handle_disconnect(func):
         async def wrapper_func(self, *args, **kwargs):
             try:
                 return await func(self, *args, **kwargs)
             except GracefulDisconnect as e:
                 self.print_error("disconnecting gracefully. {}".format(e))
-                self.exception = e
+            finally:
+                await self.network.connection_down(self.server)
+                self.got_disconnected.set_result(1)
         return wrapper_func
 
     @aiosafe
-    @handle_graceful_disconnect
+    @handle_disconnect
     async def run(self):
         try:
             ssl_context = await self._get_ssl_context()
         except (ErrorParsingSSLCert, ErrorGettingSSLCertFromServer) as e:
-            self.exception = e
+            self.print_error('disconnecting due to: {}'.format(repr(e)))
             return
         try:
-            await self.open_session(ssl_context, exit_early=False)
+            await self.open_session(ssl_context)
         except (asyncio.CancelledError, OSError, aiorpcx.socks.SOCKSFailure) as e:
-            self.print_error('disconnecting due to: {} {}'.format(e, type(e)))
-            self.exception = e
+            self.print_error('disconnecting due to: {}'.format(repr(e)))
             return
-        # should never get here (can only exit via exception)
-        assert False
 
     def mark_ready(self):
         if self.ready.cancelled():
@@ -340,7 +338,7 @@ class Interface(PrintError):
             return conn, 0
         return conn, res['count']
 
-    async def open_session(self, sslc, exit_early):
+    async def open_session(self, sslc, exit_early=False):
         self.session = NotificationSession(self.host, self.port, ssl=sslc, proxy=self.proxy)
         async with self.session as session:
             try:
@@ -352,9 +350,9 @@ class Interface(PrintError):
             self.print_error("connection established. version: {}".format(ver))
 
             async with self.group as group:
-                await group.spawn(self.ping())
-                await group.spawn(self.run_fetch_blocks())
-                await group.spawn(self.monitor_connection())
+                await group.spawn(self.ping)
+                await group.spawn(self.run_fetch_blocks)
+                await group.spawn(self.monitor_connection)
                 # NOTE: group.__aexit__ will be called here; this is needed to notice exceptions in the group!
 
     async def monitor_connection(self):
@@ -368,11 +366,8 @@ class Interface(PrintError):
             await asyncio.sleep(300)
             await self.session.send_request('server.ping')
 
-    def close(self):
-        async def job():
-            self.fut.cancel()
-            await self.group.cancel_remaining()
-        asyncio.run_coroutine_threadsafe(job(), self.network.asyncio_loop)
+    async def close(self):
+        await self.group.cancel_remaining()
 
     async def run_fetch_blocks(self):
         header_queue = asyncio.Queue()
@@ -389,7 +384,7 @@ class Interface(PrintError):
             self.mark_ready()
             await self._process_header_at_tip()
             self.network.trigger_callback('network_updated')
-            self.network.switch_lagging_interface()
+            await self.network.switch_lagging_interface()
 
     async def _process_header_at_tip(self):
         height, header = self.tip, self.tip_header
@@ -517,7 +512,7 @@ class Interface(PrintError):
                 return 'fork_conflict', height
             self.print_error('forkpoint conflicts with existing fork', branch.path())
             self._raise_if_fork_conflicts_with_default_server(branch)
-            self._disconnect_from_interfaces_on_conflicting_blockchain(branch)
+            await self._disconnect_from_interfaces_on_conflicting_blockchain(branch)
             branch.write(b'', 0)
             branch.save_header(bad_header)
             self.blockchain = branch
@@ -543,8 +538,8 @@ class Interface(PrintError):
         if chain_to_delete == chain_of_default_server:
             raise GracefulDisconnect('refusing to overwrite blockchain of default server')
 
-    def _disconnect_from_interfaces_on_conflicting_blockchain(self, chain: Blockchain) -> None:
-        ifaces = self.network.disconnect_from_interfaces_on_given_blockchain(chain)
+    async def _disconnect_from_interfaces_on_conflicting_blockchain(self, chain: Blockchain) -> None:
+        ifaces = await self.network.disconnect_from_interfaces_on_given_blockchain(chain)
         if not ifaces: return
         servers = [interface.server for interface in ifaces]
         self.print_error("forcing disconnect of other interfaces: {}".format(servers))

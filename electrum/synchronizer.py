@@ -51,6 +51,7 @@ class Synchronizer(PrintError):
     '''
     def __init__(self, wallet):
         self.wallet = wallet
+        self.network = wallet.network
         self.asyncio_loop = wallet.network.asyncio_loop
         self.requested_tx = {}
         self.requested_histories = {}
@@ -73,6 +74,7 @@ class Synchronizer(PrintError):
         asyncio.run_coroutine_threadsafe(self._add(addr), self.asyncio_loop)
 
     async def _add(self, addr):
+        if addr in self.requested_addrs: return
         self.requested_addrs.add(addr)
         await self.add_queue.put(addr)
 
@@ -85,7 +87,7 @@ class Synchronizer(PrintError):
         # request address history
         self.requested_histories[addr] = status
         h = address_to_scripthash(addr)
-        result = await self.session.send_request("blockchain.scripthash.get_history", [h])
+        result = await self.network.get_history_for_scripthash(h)
         self.print_error("receiving history", addr, len(result))
         hashes = set(map(lambda item: item['tx_hash'], result))
         hist = list(map(lambda item: (item['tx_hash'], item['height']), result))
@@ -124,7 +126,7 @@ class Synchronizer(PrintError):
                 await group.spawn(self._get_transaction, tx_hash)
 
     async def _get_transaction(self, tx_hash):
-        result = await self.session.send_request('blockchain.transaction.get', [tx_hash])
+        result = await self.network.get_transaction(tx_hash)
         tx = Transaction(result)
         try:
             tx.deserialize()
