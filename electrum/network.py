@@ -355,7 +355,8 @@ class Network(PrintError):
         self.config.mempool_fees = histogram = histogram_task.result()
         if histogram == []:
             # [] is bad :\ It's dummy data.
-            self.config.mempool_fees = histogram = [[100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000], [100, 10000000]]
+            self.config.mempool_fees = histogram = [[11, 10000000], [11, 10000000], [11, 10000000], [11, 10000000], [11, 10000000],
+                                                    [11, 10000000], [11, 10000000], [11, 10000000], [11, 10000000], [11, 10000000]]
         self.print_error('fee_histogram', histogram)
         self.notify('fee_histogram')
         for i, task in fee_tasks:

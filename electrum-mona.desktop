@@ -17,5 +17,5 @@ MimeType=x-scheme-handler/monacoin;
 Actions=Testnet;
 
 [Desktop Action Testnet]
-Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-mona --testnet %u"
+Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum-mona --testnet %u"
 Name=Testnet mode
