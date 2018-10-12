@@ -77,7 +77,9 @@ def base_unit_name_to_decimal_point(unit_name: str) -> int:
         raise UnknownBaseUnit(unit_name) from None
 
 
-class NotEnoughFunds(Exception): pass
+class NotEnoughFunds(Exception):
+    def __str__(self):
+        return _("Insufficient funds")
 
 
 class NoDynamicFeeEstimates(Exception):
@@ -511,15 +513,23 @@ def format_satoshis(x, num_zeros=0, decimal_point=8, precision=None, is_diff=Fal
         return 'unknown'
     if precision is None:
         precision = decimal_point
+    # format string
     decimal_format = ".0" + str(precision) if precision > 0 else ""
     if is_diff:
         decimal_format = '+' + decimal_format
-    result = ("{:" + decimal_format + "f}").format(x / pow (10, decimal_point)).rstrip('0')
+    # initial result
+    scale_factor = pow(10, decimal_point)
+    if not isinstance(x, Decimal):
+        x = Decimal(x).quantize(Decimal('1E-8'))
+    result = ("{:" + decimal_format + "f}").format(x / scale_factor)
+    if "." not in result: result += "."
+    result = result.rstrip('0')
+    # extra decimal places
     integer_part, fract_part = result.split(".")
-    dp = DECIMAL_POINT
     if len(fract_part) < num_zeros:
         fract_part += "0" * (num_zeros - len(fract_part))
-    result = integer_part + dp + fract_part
+    result = integer_part + DECIMAL_POINT + fract_part
+    # leading/trailing whitespaces
     if whitespaces:
         result += " " * (decimal_point - len(fract_part))
         result = " " * (15 - len(result)) + result
@@ -847,7 +857,12 @@ VerifiedTxInfo = NamedTuple("VerifiedTxInfo", [("height", int),
                                                ("txpos", int),
                                                ("header_hash", str)])
 
-def make_aiohttp_session(proxy):
+
+def make_aiohttp_session(proxy: dict, headers=None, timeout=None):
+    if headers is None:
+        headers = {'User-Agent': 'Electrum'}
+    if timeout is None:
+        timeout = aiohttp.ClientTimeout(total=10)
     if proxy:
         connector = SocksConnector(
             socks_ver=SocksVer.SOCKS5 if proxy['mode'] == 'socks5' else SocksVer.SOCKS4,
@@ -857,9 +872,9 @@ def make_aiohttp_session(proxy):
             password=proxy.get('password', None),
             rdns=True
         )
-        return aiohttp.ClientSession(headers={'User-Agent' : 'Electrum'}, timeout=aiohttp.ClientTimeout(total=10), connector=connector)
+        return aiohttp.ClientSession(headers=headers, timeout=timeout, connector=connector)
     else:
-        return aiohttp.ClientSession(headers={'User-Agent' : 'Electrum'}, timeout=aiohttp.ClientTimeout(total=10))
+        return aiohttp.ClientSession(headers=headers, timeout=timeout)
 
 
 class SilentTaskGroup(TaskGroup):

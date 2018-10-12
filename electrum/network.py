@@ -361,8 +361,9 @@ class Network(PrintError):
         self.notify('fee_histogram')
         for i, task in fee_tasks:
             fee = int(task.result() * COIN)
-            self.config.update_fee_estimates(i, fee)
             self.print_error("fee_estimates[%d]" % i, fee)
+            if fee < 0: continue
+            self.config.update_fee_estimates(i, fee)
         self.notify('fee')
 
     def get_status_value(self, key):
@@ -679,16 +680,10 @@ class Network(PrintError):
 
     @best_effort_reliable
     async def broadcast_transaction(self, tx, timeout=10):
-        try:
-            out = await self.interface.session.send_request('blockchain.transaction.broadcast', [str(tx)], timeout=timeout)
-        except RequestTimedOut as e:
-            return False, "error: operation timed out"
-        except Exception as e:
-            return False, "error: " + str(e)
-
+        out = await self.interface.session.send_request('blockchain.transaction.broadcast', [str(tx)], timeout=timeout)
         if out != tx.txid():
-            return False, "error: " + out
-        return True, out
+            raise Exception(out)
+        return out  # txid
 
     @best_effort_reliable
     async def request_chunk(self, height, tip=None, *, can_return_early=False):
@@ -856,3 +851,54 @@ class Network(PrintError):
                     await self.interface.group.spawn(self._request_fee_estimates, self.interface)
 
             await asyncio.sleep(0.1)
+
+
+class NetworkJobOnDefaultServer(PrintError):
+    """An abstract base class for a job that runs on the main network
+    interface. Every time the main interface changes, the job is
+    restarted, and some of its internals are reset.
+    """
+    def __init__(self, network: Network):
+        asyncio.set_event_loop(network.asyncio_loop)
+        self.network = network
+        self.interface = None  # type: Interface
+        self._restart_lock = asyncio.Lock()
+        self._reset()
+        asyncio.run_coroutine_threadsafe(self._restart(), network.asyncio_loop)
+        network.register_callback(self._restart, ['default_server_changed'])
+
+    def _reset(self):
+        """Initialise fields. Called every time the underlying
+        server connection changes.
+        """
+        self.group = SilentTaskGroup()
+
+    async def _start(self, interface):
+        self.interface = interface
+        await interface.group.spawn(self._start_tasks)
+
+    async def _start_tasks(self):
+        """Start tasks in self.group. Called every time the underlying
+        server connection changes.
+        """
+        raise NotImplementedError()  # implemented by subclasses
+
+    async def stop(self):
+        await self.group.cancel_remaining()
+
+    @aiosafe
+    async def _restart(self, *args):
+        interface = self.network.interface
+        if interface is None:
+            return  # we should get called again soon
+
+        async with self._restart_lock:
+            await self.stop()
+            self._reset()
+            await self._start(interface)
+
+    @property
+    def session(self):
+        s = self.interface.session
+        assert s is not None
+        return s
