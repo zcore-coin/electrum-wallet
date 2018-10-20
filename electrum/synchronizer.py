@@ -30,9 +30,8 @@ from collections import defaultdict
 from aiorpcx import TaskGroup, run_in_thread
 
 from .transaction import Transaction
-from .util import bh2u, make_aiohttp_session
+from .util import bh2u, make_aiohttp_session, NetworkJobOnDefaultServer
 from .bitcoin import address_to_scripthash
-from .network import NetworkJobOnDefaultServer
 
 
 def history_status(h):
@@ -49,8 +48,8 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
     Every time a status changes, run a coroutine provided by the subclass.
     """
     def __init__(self, network):
-        NetworkJobOnDefaultServer.__init__(self, network)
         self.asyncio_loop = network.asyncio_loop
+        NetworkJobOnDefaultServer.__init__(self, network)
 
     def _reset(self):
         super()._reset()
