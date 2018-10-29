@@ -110,11 +110,12 @@ def pick_random_server(hostmap = None, protocol = 's', exclude_set = set()):
     return random.choice(eligible) if eligible else None
 
 
-NetworkParameters = NamedTuple("NetworkParameters", [("host", str),
-                                                     ("port", str),
-                                                     ("protocol", str),
-                                                     ("proxy", Optional[dict]),
-                                                     ("auto_connect", bool)])
+class NetworkParameters(NamedTuple):
+    host: str
+    port: str
+    protocol: str
+    proxy: Optional[dict]
+    auto_connect: bool
 
 
 proxy_modes = ['socks4', 'socks5']
@@ -164,12 +165,12 @@ class Network(PrintError):
     """
     verbosity_filter = 'n'
 
-    def __init__(self, config=None):
+    def __init__(self, config: SimpleConfig=None):
         global INSTANCE
         INSTANCE = self
         if config is None:
             config = {}  # Do not use mutables as default values!
-        self.config = SimpleConfig(config) if isinstance(config, dict) else config
+        self.config = SimpleConfig(config) if isinstance(config, dict) else config  # type: SimpleConfig
         self.num_server = 10 if not self.config.get('oneserver') else 0
         blockchain.blockchains = blockchain.read_blockchains(self.config)
         self.print_error("blockchains", list(blockchain.blockchains))
@@ -201,7 +202,7 @@ class Network(PrintError):
 
         self.banner = ''
         self.donation_address = ''
-        self.relay_fee = None
+        self.relay_fee = None  # type: Optional[int]
         # callbacks set by the GUI
         self.callbacks = defaultdict(list)      # note: needs self.callback_lock
 
@@ -221,6 +222,7 @@ class Network(PrintError):
         self.proxy = None
 
         self.asyncio_loop = asyncio.get_event_loop()
+        self.asyncio_loop.set_exception_handler(self.on_event_loop_exception)
         #self.asyncio_loop.set_debug(1)
         self._run_forever = asyncio.Future()
         self._thread = threading.Thread(target=self.asyncio_loop.run_until_complete,
@@ -236,6 +238,15 @@ class Network(PrintError):
     @staticmethod
     def get_instance():
         return INSTANCE
+
+    def on_event_loop_exception(self, loop, context):
+        """Suppress spurious messages it appears we cannot control."""
+        SUPPRESS_MESSAGE_REGEX = re.compile('SSL handshake|Fatal read error on|'
+                                            'SSL error in data received')
+        message = context.get('message')
+        if message and SUPPRESS_MESSAGE_REGEX.match(message):
+            return
+        loop.default_exception_handler(context)
 
     def with_recent_servers_lock(func):
         def func_wrapper(self, *args, **kwargs):
@@ -830,29 +841,32 @@ class Network(PrintError):
             self._jobs.append(job)
             await self.main_taskgroup.spawn(job)
 
+    @log_exceptions
     async def _stop(self, full_shutdown=False):
         self.print_error("stopping network")
         try:
-            asyncio.wait_for(await self.main_taskgroup.cancel_remaining(), timeout=2)
-        except asyncio.TimeoutError: pass
-        self.main_taskgroup = None
-
-        assert self.interface is None
-        assert not self.interfaces
-        self.connecting.clear()
-        self.server_queue = None
-        self.trigger_callback('network_updated')
-
-        if full_shutdown:
-            self._run_forever.set_result(1)
+            await asyncio.wait_for(self.main_taskgroup.cancel_remaining(), timeout=2)
+        except (asyncio.TimeoutError, asyncio.CancelledError) as e:
+            self.print_error(f"exc during main_taskgroup cancellation: {repr(e)}")
+        try:
+            self.main_taskgroup = None
+            self.interface = None  # type: Interface
+            self.interfaces = {}  # type: Dict[str, Interface]
+            self.connecting.clear()
+            self.server_queue = None
+            if not full_shutdown:
+                self.trigger_callback('network_updated')
+        finally:
+            if full_shutdown:
+                self._run_forever.set_result(1)
 
     def stop(self):
         assert self._thread != threading.current_thread(), 'must not be called from network thread'
         fut = asyncio.run_coroutine_threadsafe(self._stop(full_shutdown=True), self.asyncio_loop)
-        fut.result()
-
-    def join(self):
-        self._thread.join(1)
+        try:
+            fut.result(timeout=2)
+        except (asyncio.TimeoutError, asyncio.CancelledError): pass
+        self._thread.join(timeout=1)
 
     async def _ensure_there_is_a_main_interface(self):
         if self.is_connected():

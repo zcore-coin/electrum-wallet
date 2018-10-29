@@ -23,7 +23,7 @@
 import binascii
 import os, sys, re, json
 from collections import defaultdict
-from typing import NamedTuple, Union
+from typing import NamedTuple, Union, TYPE_CHECKING, Tuple, Optional
 from datetime import datetime
 import decimal
 from decimal import Decimal
@@ -45,6 +45,11 @@ from aiohttp_socks import SocksConnector, SocksVer
 from aiorpcx import TaskGroup
 
 from .i18n import _
+
+if TYPE_CHECKING:
+    from .network import Network
+    from .interface import Interface
+    from .simple_config import SimpleConfig
 
 
 def inv_dict(d):
@@ -626,6 +631,8 @@ mainnet_block_explorers = {
                         {'tx': 'tx/', 'addr': 'address/'}),
     'mona.chainseeker.info': ('https://mona.chainseeker.info/',
                         {'tx': 'tx/', 'addr': 'addr/'}),
+    'blockbook.electrum-mona.org': ('https://blockbook.electrum-mona.org/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 testnet_block_explorers = {
@@ -637,22 +644,27 @@ testnet_block_explorers = {
 
 def block_explorer_info():
     from . import constants
-    return testnet_block_explorers if constants.net.TESTNET else mainnet_block_explorers
+    return mainnet_block_explorers if not constants.net.TESTNET else testnet_block_explorers
 
-def block_explorer(config):
-    return config.get('block_explorer', 'insight.monaco-ex.org')
+def block_explorer(config: 'SimpleConfig') -> str:
+    from . import constants
+    default_ = 'insight.electrum-mona.org' if not constants.net.TESTNET else 'insight.monaco-ex.org'
+    be_key = config.get('block_explorer', default_)
+    be = block_explorer_info().get(be_key)
+    return be_key if be is not None else default_
 
-def block_explorer_tuple(config):
+def block_explorer_tuple(config: 'SimpleConfig') -> Optional[Tuple[str, dict]]:
     return block_explorer_info().get(block_explorer(config))
 
-def block_explorer_URL(config, kind, item):
+def block_explorer_URL(config: 'SimpleConfig', kind: str, item: str) -> Optional[str]:
     be_tuple = block_explorer_tuple(config)
     if not be_tuple:
         return
-    kind_str = be_tuple[1].get(kind)
-    if not kind_str:
+    explorer_url, explorer_dict = be_tuple
+    kind_str = explorer_dict.get(kind)
+    if kind_str is None:
         return
-    url_parts = [be_tuple[0], kind_str, item]
+    url_parts = [explorer_url, kind_str, item]
     return ''.join(url_parts)
 
 # URL decode
@@ -838,7 +850,7 @@ def log_exceptions(func):
             raise
         except BaseException as e:
             print_ = self.print_error if hasattr(self, 'print_error') else print_error
-            print_("Exception in", func.__name__, ":", e.__class__.__name__, repr(e))
+            print_("Exception in", func.__name__, ":", repr(e))
             try:
                 traceback.print_exc(file=sys.stderr)
             except BaseException as e2:
@@ -858,14 +870,18 @@ def ignore_exceptions(func):
     return wrapper
 
 
-TxMinedStatus = NamedTuple("TxMinedStatus", [("height", int),
-                                             ("conf", int),
-                                             ("timestamp", int),
-                                             ("header_hash", str)])
-VerifiedTxInfo = NamedTuple("VerifiedTxInfo", [("height", int),
-                                               ("timestamp", int),
-                                               ("txpos", int),
-                                               ("header_hash", str)])
+class TxMinedStatus(NamedTuple):
+    height: int
+    conf: int
+    timestamp: int
+    header_hash: str
+
+
+class VerifiedTxInfo(NamedTuple):
+    height: int
+    timestamp: int
+    txpos: int
+    header_hash: str
 
 
 def make_aiohttp_session(proxy: dict, headers=None, timeout=None):
@@ -901,10 +917,10 @@ class NetworkJobOnDefaultServer(PrintError):
     interface. Every time the main interface changes, the job is
     restarted, and some of its internals are reset.
     """
-    def __init__(self, network):
+    def __init__(self, network: 'Network'):
         asyncio.set_event_loop(network.asyncio_loop)
         self.network = network
-        self.interface = None
+        self.interface = None  # type: Interface
         self._restart_lock = asyncio.Lock()
         self._reset()
         asyncio.run_coroutine_threadsafe(self._restart(), network.asyncio_loop)
@@ -916,7 +932,7 @@ class NetworkJobOnDefaultServer(PrintError):
         """
         self.group = SilentTaskGroup()
 
-    async def _start(self, interface):
+    async def _start(self, interface: 'Interface'):
         self.interface = interface
         await interface.group.spawn(self._start_tasks)
 

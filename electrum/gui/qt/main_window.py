@@ -42,6 +42,7 @@ from PyQt5.QtCore import *
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import *
 
+import electrum
 from electrum import (keystore, simple_config, ecc, constants, util, bitcoin, commands,
                       coinchooser, paymentrequest)
 from electrum.bitcoin import COIN, is_address, TYPE_ADDRESS
@@ -56,8 +57,11 @@ from electrum.util import (format_time, format_satoshis, format_fee_satoshis,
                            UnknownBaseUnit, DECIMAL_POINT_DEFAULT)
 from electrum.transaction import Transaction, TxOutput
 from electrum.address_synchronizer import AddTransactionException
-from electrum.wallet import Multisig_Wallet, CannotBumpFee
+from electrum.wallet import Multisig_Wallet, CannotBumpFee, Abstract_Wallet
 from electrum.version import ELECTRUM_VERSION
+from electrum.network import Network
+from electrum.exchange_rate import FxThread
+from electrum.simple_config import SimpleConfig
 
 from .exception_window import Exception_Hook
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, FeerateEdit
@@ -101,19 +105,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     computing_privkeys_signal = pyqtSignal()
     show_privkeys_signal = pyqtSignal()
 
-    def __init__(self, gui_object, wallet):
+    def __init__(self, gui_object, wallet: Abstract_Wallet):
         QMainWindow.__init__(self)
 
         self.gui_object = gui_object
-        self.config = config = gui_object.config
+        self.config = config = gui_object.config  # type: SimpleConfig
 
         self.setup_exception_hook()
 
-        self.gui_object = gui_object
-        self.config = config = gui_object.config
-        self.network = gui_object.daemon.network
+        self.network = gui_object.daemon.network  # type: Network
         self.wallet = wallet
-        self.fx = gui_object.daemon.fx
+        self.fx = gui_object.daemon.fx  # type: FxThread
         self.invoices = wallet.invoices
         self.contacts = wallet.contacts
         self.tray = gui_object.tray
@@ -1948,18 +1950,24 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         console.history = self.config.get("console-history",[])
         console.history_index = len(console.history)
 
-        console.updateNamespace({'wallet' : self.wallet,
-                                 'network' : self.network,
-                                 'plugins' : self.gui_object.plugins,
-                                 'window': self})
-        console.updateNamespace({'util' : util, 'bitcoin':bitcoin})
+        console.updateNamespace({
+            'wallet': self.wallet,
+            'network': self.network,
+            'plugins': self.gui_object.plugins,
+            'window': self,
+            'config': self.config,
+            'electrum': electrum,
+            'daemon': self.gui_object.daemon,
+            'util': util,
+            'bitcoin': bitcoin,
+        })
 
         c = commands.Commands(self.config, self.wallet, self.network, lambda: self.console.set_json(True))
         methods = {}
         def mkfunc(f, method):
             return lambda *args: f(method, args, self.password_dialog)
         for m in dir(c):
-            if m[0]=='_' or m in ['network','wallet']: continue
+            if m[0]=='_' or m in ['network','wallet','config']: continue
             methods[m] = mkfunc(c._run, m)
 
         console.updateNamespace(methods)
@@ -2080,6 +2088,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         mpk_list = self.wallet.get_master_public_keys()
         vbox = QVBoxLayout()
         wallet_type = self.wallet.storage.get('wallet_type', '')
+        if self.wallet.is_watching_only():
+            wallet_type += ' [{}]'.format(_('watching-only'))
+        seed_available = _('True') if self.wallet.has_seed() else _('False')
+        keystore_types = [k.get_type_text() for k in self.wallet.get_keystores()]
         grid = QGridLayout()
         basename = os.path.basename(self.wallet.storage.path)
         grid.addWidget(QLabel(_("Wallet name")+ ':'), 0, 0)
@@ -2088,6 +2100,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(QLabel(wallet_type), 1, 1)
         grid.addWidget(QLabel(_("Script type")+ ':'), 2, 0)
         grid.addWidget(QLabel(self.wallet.txin_type), 2, 1)
+        grid.addWidget(QLabel(_("Seed available") + ':'), 3, 0)
+        grid.addWidget(QLabel(str(seed_available)), 3, 1)
+        if len(keystore_types) <= 1:
+            grid.addWidget(QLabel(_("Keystore type") + ':'), 4, 0)
+            ks_type = str(keystore_types[0]) if keystore_types else _('No keystore')
+            grid.addWidget(QLabel(ks_type), 4, 1)
         vbox.addLayout(grid)
         if self.wallet.is_deterministic():
             mpk_text = ShowQRTextEdit()
@@ -2099,7 +2117,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if len(mpk_list) > 1:
                 def label(key):
                     if isinstance(self.wallet, Multisig_Wallet):
-                        return _("cosigner") + ' ' + str(key+1)
+                        return _("cosigner") + f' {key+1} ( keystore: {keystore_types[key]} )'
                     return ''
                 labels = [label(i) for i in range(len(mpk_list))]
                 on_click = lambda clayout: show_mpk(clayout.selected_index())
@@ -2601,19 +2619,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         text = text_dialog(self, title, header_layout, _('Import'), allow_multi=True)
         if not text:
             return
-        bad = []
-        good = []
-        for key in str(text).split():
-            try:
-                addr = func(key)
-                good.append(addr)
-            except BaseException as e:
-                bad.append(key)
-                continue
-        if good:
-            self.show_message(_("The following addresses were added") + ':\n' + '\n'.join(good))
-        if bad:
-            self.show_critical(_("The following inputs could not be imported") + ':\n'+ '\n'.join(bad))
+        keys = str(text).split()
+        good_inputs, bad_inputs = func(keys)
+        if good_inputs:
+            msg = '\n'.join(good_inputs[:10])
+            if len(good_inputs) > 10: msg += '\n...'
+            self.show_message(_("The following addresses were added")
+                              + f' ({len(good_inputs)}):\n' + msg)
+        if bad_inputs:
+            msg = "\n".join(f"{key[:10]}... ({msg})" for key, msg in bad_inputs[:10])
+            if len(bad_inputs) > 10: msg += '\n...'
+            self.show_error(_("The following inputs could not be imported")
+                            + f' ({len(bad_inputs)}):\n' + msg)
         self.address_list.update()
         self.history_list.update()
 
@@ -2621,7 +2638,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         if not self.wallet.can_import_address():
             return
         title, msg = _('Import addresses'), _("Enter addresses")+':'
-        self._do_import(title, msg, self.wallet.import_address)
+        self._do_import(title, msg, self.wallet.import_addresses)
 
     @protected
     def do_import_privkey(self, password):
@@ -2631,7 +2648,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         header_layout = QHBoxLayout()
         header_layout.addWidget(QLabel(_("Enter private keys")+':'))
         header_layout.addWidget(InfoButton(WIF_HELP_TEXT), alignment=Qt.AlignRight)
-        self._do_import(title, header_layout, lambda x: self.wallet.import_private_key(x, password))
+        self._do_import(title, header_layout, lambda x: self.wallet.import_private_keys(x, password))
 
     def update_fiat(self):
         b = self.fx and self.fx.is_enabled()

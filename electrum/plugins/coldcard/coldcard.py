@@ -3,24 +3,20 @@
 #
 #
 from struct import pack, unpack
-import hashlib
 import os, sys, time, io
 import traceback
 
-from electrum import bitcoin
-from electrum.bitcoin import serialize_xpub, deserialize_xpub, InvalidMasterKeyVersionBytes
-from electrum import constants
-from electrum.bitcoin import TYPE_ADDRESS, int_to_hex
+from electrum.bip32 import serialize_xpub, deserialize_xpub, InvalidMasterKeyVersionBytes
 from electrum.i18n import _
-from electrum.plugin import BasePlugin, Device
+from electrum.plugin import Device
 from electrum.keystore import Hardware_KeyStore, xpubkey_to_pubkey, Xpub
 from electrum.transaction import Transaction
 from electrum.wallet import Standard_Wallet
 from electrum.crypto import hash_160
-from ..hw_wallet import HW_PluginBase
-from ..hw_wallet.plugin import is_any_tx_output_on_change_branch
 from electrum.util import print_error, bfh, bh2u, versiontuple
 from electrum.base_wizard import ScriptTypeNotSupported
+
+from ..hw_wallet import HW_PluginBase
 
 try:
     import hid
@@ -46,7 +42,7 @@ try:
             from electrum.ecc import ECPubkey
 
             xtype, depth, parent_fingerprint, child_number, chain_code, K_or_k \
-                = bitcoin.deserialize_xpub(expect_xpub)
+                = deserialize_xpub(expect_xpub)
 
             pubkey = ECPubkey(K_or_k)
             try:
@@ -378,7 +374,7 @@ class Coldcard_KeyStore(Hardware_KeyStore):
         # give empty bytes for error cases; it seems to clear the old signature box
         return b''
 
-    def build_psbt(self, tx, wallet=None, xfp=None):
+    def build_psbt(self, tx: Transaction, wallet=None, xfp=None):
         # Render a PSBT file, for upload to Coldcard.
         # 
         if xfp is None:
@@ -394,7 +390,7 @@ class Coldcard_KeyStore(Hardware_KeyStore):
             wallet.add_hw_info(tx)
 
         # wallet.add_hw_info installs this attr
-        assert hasattr(tx, 'output_info'), 'need data about outputs'
+        assert tx.output_info, 'need data about outputs'
 
         # Build map of pubkey needed as derivation from master, in PSBT binary format
         # 1) binary version of the common subpath for all keys

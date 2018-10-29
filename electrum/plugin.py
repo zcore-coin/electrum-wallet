@@ -22,19 +22,21 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from collections import namedtuple
 import traceback
 import sys
 import os
 import pkgutil
 import time
 import threading
+from typing import NamedTuple, Any, Union
 
-from .util import print_error
 from .i18n import _
-from .util import profiler, PrintError, DaemonThread, UserCancelled, ThreadJob
-from . import bitcoin
+from .util import (profiler, PrintError, DaemonThread, UserCancelled,
+                   ThreadJob, print_error)
+from . import bip32
 from . import plugins
+from .simple_config import SimpleConfig
+
 
 plugin_loaders = {}
 hook_names = set()
@@ -45,7 +47,7 @@ class Plugins(DaemonThread):
     verbosity_filter = 'p'
 
     @profiler
-    def __init__(self, config, is_local, gui_name):
+    def __init__(self, config: SimpleConfig, gui_name):
         DaemonThread.__init__(self)
         self.setName('Plugins')
         self.pkgpath = os.path.dirname(plugins.__file__)
@@ -257,14 +259,23 @@ class BasePlugin(PrintError):
         pass
 
 
-class DeviceNotFoundError(Exception):
-    pass
+class DeviceNotFoundError(Exception): pass
+class DeviceUnpairableError(Exception): pass
 
-class DeviceUnpairableError(Exception):
-    pass
 
-Device = namedtuple("Device", "path interface_number id_ product_key usage_page")
-DeviceInfo = namedtuple("DeviceInfo", "device label initialized")
+class Device(NamedTuple):
+    path: Union[str, bytes]
+    interface_number: int
+    id_: str
+    product_key: Any   # when using hid, often Tuple[int, int]
+    usage_page: int
+
+
+class DeviceInfo(NamedTuple):
+    device: Device
+    label: str
+    initialized: bool
+
 
 class DeviceMgr(ThreadJob, PrintError):
     '''Manages hardware clients.  A client communicates over a hardware
@@ -430,7 +441,7 @@ class DeviceMgr(ThreadJob, PrintError):
     def force_pair_xpub(self, plugin, handler, info, xpub, derivation, devices):
         # The wallet has not been previously paired, so let the user
         # choose an unpaired device and compare its first address.
-        xtype = bitcoin.xpub_type(xpub)
+        xtype = bip32.xpub_type(xpub)
         client = self.client_lookup(info.device.id_)
         if client and client.is_pairable():
             # See comment above for same code

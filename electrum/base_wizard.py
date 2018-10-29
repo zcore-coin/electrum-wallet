@@ -30,11 +30,17 @@ from functools import partial
 
 from . import bitcoin
 from . import keystore
+from .bip32 import is_bip32_derivation, xpub_type
 from .keystore import bip44_derivation, purpose48_derivation
-from .wallet import Imported_Wallet, Standard_Wallet, Multisig_Wallet, wallet_types, Wallet
-from .storage import STO_EV_USER_PW, STO_EV_XPUB_PW, get_derivation_used_for_hw_device_encryption
+from .wallet import (Imported_Wallet, Standard_Wallet, Multisig_Wallet,
+                     wallet_types, Wallet, Abstract_Wallet)
+from .storage import (WalletStorage, STO_EV_USER_PW, STO_EV_XPUB_PW,
+                      get_derivation_used_for_hw_device_encryption)
 from .i18n import _
 from .util import UserCancelled, InvalidPassword, WalletFileException
+from .simple_config import SimpleConfig
+from .plugin import Plugins
+
 
 # hardware device setup purpose
 HWD_SETUP_NEW_WALLET, HWD_SETUP_DECRYPT_WALLET = range(0, 2)
@@ -48,12 +54,12 @@ class GoBack(Exception): pass
 
 class BaseWizard(object):
 
-    def __init__(self, config, plugins, storage):
+    def __init__(self, config: SimpleConfig, plugins: Plugins, storage: WalletStorage):
         super(BaseWizard, self).__init__()
         self.config = config
         self.plugins = plugins
         self.storage = storage
-        self.wallet = None
+        self.wallet = None  # type: Abstract_Wallet
         self.stack = []
         self.plugin = None
         self.keystores = []
@@ -183,17 +189,23 @@ class BaseWizard(object):
         # will be reflected on self.storage
         if keystore.is_address_list(text):
             w = Imported_Wallet(self.storage)
-            for x in text.split():
-                w.import_address(x)
+            addresses = text.split()
+            good_inputs, bad_inputs = w.import_addresses(addresses)
         elif keystore.is_private_key_list(text):
             k = keystore.Imported_KeyStore({})
             self.storage.put('keystore', k.dump())
             w = Imported_Wallet(self.storage)
-            for x in keystore.get_private_keys(text):
-                w.import_private_key(x, None)
+            keys = keystore.get_private_keys(text)
+            good_inputs, bad_inputs = w.import_private_keys(keys, None)
             self.keystores.append(w.keystore)
         else:
             return self.terminate()
+        if bad_inputs:
+            msg = "\n".join(f"{key[:10]}... ({msg})" for key, msg in bad_inputs[:10])
+            if len(bad_inputs) > 10: msg += '\n...'
+            self.show_error(_("The following inputs could not be imported")
+                            + f' ({len(bad_inputs)}):\n' + msg)
+        # FIXME what if len(good_inputs) == 0 ?
         return self.run('create_wallet')
 
     def restore_from_key(self):
@@ -334,7 +346,7 @@ class BaseWizard(object):
             try:
                 self.choice_and_line_dialog(
                     run_next=f, title=_('Script type and Derivation path'), message1=message1,
-                    message2=message2, choices=choices, test_text=bitcoin.is_bip32_derivation)
+                    message2=message2, choices=choices, test_text=is_bip32_derivation)
                 return
             except ScriptTypeNotSupported as e:
                 self.show_error(e)
@@ -414,7 +426,6 @@ class BaseWizard(object):
     def on_keystore(self, k):
         has_xpub = isinstance(k, keystore.Xpub)
         if has_xpub:
-            from .bitcoin import xpub_type
             t1 = xpub_type(k.xpub)
         if self.wallet_type == 'standard':
             if has_xpub and t1 not in ['standard', 'p2wpkh', 'p2wpkh-p2sh']:

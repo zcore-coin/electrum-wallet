@@ -28,11 +28,11 @@ import ssl
 import sys
 import traceback
 import asyncio
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, TYPE_CHECKING
 from collections import defaultdict
 
 import aiorpcx
-from aiorpcx import ClientSession, Notification
+from aiorpcx import RPCSession, Notification
 
 from .util import PrintError, ignore_exceptions, log_exceptions, bfh, SilentTaskGroup
 from . import util
@@ -43,8 +43,11 @@ from . import blockchain
 from .blockchain import Blockchain
 from . import constants
 
+if TYPE_CHECKING:
+    from .network import Network
 
-class NotificationSession(ClientSession):
+
+class NotificationSession(RPCSession):
 
     def __init__(self, *args, **kwargs):
         super(NotificationSession, self).__init__(*args, **kwargs)
@@ -68,7 +71,7 @@ class NotificationSession(ClientSession):
     async def send_request(self, *args, timeout=-1, **kwargs):
         # note: the timeout starts after the request touches the wire!
         if timeout == -1:
-            timeout = 20 if not self.proxy else 30
+            timeout = 30
         # note: the semaphore implementation guarantees no starvation
         async with self.in_flight_requests_semaphore:
             try:
@@ -129,7 +132,7 @@ def serialize_server(host: str, port: Union[str, int], protocol: str) -> str:
 
 class Interface(PrintError):
 
-    def __init__(self, network, server, config_path, proxy):
+    def __init__(self, network: 'Network', server: str, config_path, proxy: dict):
         self.ready = asyncio.Future()
         self.got_disconnected = asyncio.Future()
         self.server = server
@@ -304,7 +307,9 @@ class Interface(PrintError):
     async def get_certificate(self):
         sslc = ssl.SSLContext()
         try:
-            async with aiorpcx.ClientSession(self.host, self.port, ssl=sslc, proxy=self.proxy) as session:
+            async with aiorpcx.Connector(RPCSession,
+                                         host=self.host, port=self.port,
+                                         ssl=sslc, proxy=self.proxy) as session:
                 return session.transport._ssl_protocol._sslpipe._sslobj.getpeercert(True)
         except ValueError:
             return None
@@ -337,8 +342,10 @@ class Interface(PrintError):
         return conn, res['count']
 
     async def open_session(self, sslc, exit_early=False):
-        self.session = NotificationSession(self.host, self.port, ssl=sslc, proxy=self.proxy)
-        async with self.session as session:
+        async with aiorpcx.Connector(NotificationSession,
+                                     host=self.host, port=self.port,
+                                     ssl=sslc, proxy=self.proxy) as session:
+            self.session = session  # type: NotificationSession
             try:
                 ver = await session.send_request('server.version', [ELECTRUM_VERSION, PROTOCOL_VERSION])
             except aiorpcx.jsonrpc.RPCError as e:
