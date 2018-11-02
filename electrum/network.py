@@ -168,6 +168,10 @@ class Network(PrintError):
     def __init__(self, config: SimpleConfig=None):
         global INSTANCE
         INSTANCE = self
+
+        self.asyncio_loop = asyncio.get_event_loop()
+        self._loop_thread = None  # type: threading.Thread  # set by caller; only used for sanity checks
+
         if config is None:
             config = {}  # Do not use mutables as default values!
         self.config = SimpleConfig(config) if isinstance(config, dict) else config  # type: SimpleConfig
@@ -221,32 +225,14 @@ class Network(PrintError):
         self.server_queue = None
         self.proxy = None
 
-        self.asyncio_loop = asyncio.get_event_loop()
-        self.asyncio_loop.set_exception_handler(self.on_event_loop_exception)
-        #self.asyncio_loop.set_debug(1)
-        self._run_forever = asyncio.Future()
-        self._thread = threading.Thread(target=self.asyncio_loop.run_until_complete,
-                                        args=(self._run_forever,),
-                                        name='Network')
-        self._thread.start()
-
     def run_from_another_thread(self, coro):
-        assert self._thread != threading.current_thread(), 'must not be called from network thread'
+        assert self._loop_thread != threading.current_thread(), 'must not be called from network thread'
         fut = asyncio.run_coroutine_threadsafe(coro, self.asyncio_loop)
         return fut.result()
 
     @staticmethod
     def get_instance():
         return INSTANCE
-
-    def on_event_loop_exception(self, loop, context):
-        """Suppress spurious messages it appears we cannot control."""
-        SUPPRESS_MESSAGE_REGEX = re.compile('SSL handshake|Fatal read error on|'
-                                            'SSL error in data received')
-        message = context.get('message')
-        if message and SUPPRESS_MESSAGE_REGEX.match(message):
-            return
-        loop.default_exception_handler(context)
 
     def with_recent_servers_lock(func):
         def func_wrapper(self, *args, **kwargs):
@@ -710,7 +696,7 @@ class Network(PrintError):
         return await self.interface.session.send_request('blockchain.transaction.get_merkle', [tx_hash, tx_height])
 
     @best_effort_reliable
-    async def broadcast_transaction(self, tx, timeout=10):
+    async def broadcast_transaction(self, tx, *, timeout=10):
         out = await self.interface.session.send_request('blockchain.transaction.broadcast', [str(tx)], timeout=timeout)
         if out != tx.txid():
             raise Exception(out)
@@ -721,8 +707,9 @@ class Network(PrintError):
         return await self.interface.request_chunk(height, tip=tip, can_return_early=can_return_early)
 
     @best_effort_reliable
-    async def get_transaction(self, tx_hash: str) -> str:
-        return await self.interface.session.send_request('blockchain.transaction.get', [tx_hash])
+    async def get_transaction(self, tx_hash: str, *, timeout=None) -> str:
+        return await self.interface.session.send_request('blockchain.transaction.get', [tx_hash],
+                                                         timeout=timeout)
 
     @best_effort_reliable
     async def get_history_for_scripthash(self, sh: str) -> List[dict]:
@@ -836,11 +823,6 @@ class Network(PrintError):
         self._jobs = jobs or []
         asyncio.run_coroutine_threadsafe(self._start(), self.asyncio_loop)
 
-    async def add_job(self, job):
-        async with self.restart_lock:
-            self._jobs.append(job)
-            await self.main_taskgroup.spawn(job)
-
     @log_exceptions
     async def _stop(self, full_shutdown=False):
         self.print_error("stopping network")
@@ -848,25 +830,20 @@ class Network(PrintError):
             await asyncio.wait_for(self.main_taskgroup.cancel_remaining(), timeout=2)
         except (asyncio.TimeoutError, asyncio.CancelledError) as e:
             self.print_error(f"exc during main_taskgroup cancellation: {repr(e)}")
-        try:
-            self.main_taskgroup = None
-            self.interface = None  # type: Interface
-            self.interfaces = {}  # type: Dict[str, Interface]
-            self.connecting.clear()
-            self.server_queue = None
-            if not full_shutdown:
-                self.trigger_callback('network_updated')
-        finally:
-            if full_shutdown:
-                self._run_forever.set_result(1)
+        self.main_taskgroup = None
+        self.interface = None  # type: Interface
+        self.interfaces = {}  # type: Dict[str, Interface]
+        self.connecting.clear()
+        self.server_queue = None
+        if not full_shutdown:
+            self.trigger_callback('network_updated')
 
     def stop(self):
-        assert self._thread != threading.current_thread(), 'must not be called from network thread'
+        assert self._loop_thread != threading.current_thread(), 'must not be called from network thread'
         fut = asyncio.run_coroutine_threadsafe(self._stop(full_shutdown=True), self.asyncio_loop)
         try:
             fut.result(timeout=2)
         except (asyncio.TimeoutError, asyncio.CancelledError): pass
-        self._thread.join(timeout=1)
 
     async def _ensure_there_is_a_main_interface(self):
         if self.is_connected():
