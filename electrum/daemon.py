@@ -30,15 +30,14 @@ import traceback
 import sys
 import threading
 from typing import Dict, Optional, Tuple
-import re
 
 import jsonrpclib
 
 from .jsonrpc import VerifyingJSONRPCServer
 from .version import ELECTRUM_VERSION
 from .network import Network
-from .util import json_decode, DaemonThread
-from .util import print_error, to_string
+from .util import (json_decode, DaemonThread, print_error, to_string,
+                   create_and_start_event_loop)
 from .wallet import Wallet, Abstract_Wallet
 from .storage import WalletStorage
 from .commands import known_commands, Commands
@@ -128,7 +127,7 @@ class Daemon(DaemonThread):
         if fd is None and listen_jsonrpc:
             fd, server = get_fd_or_server(config)
             if fd is None: raise Exception('failed to lock daemon; already running?')
-        self.create_and_start_event_loop()
+        self.asyncio_loop, self._stop_loop, self._loop_thread = create_and_start_event_loop()
         if config.get('offline'):
             self.network = None
         else:
@@ -195,18 +194,18 @@ class Daemon(DaemonThread):
                 response = False
         elif sub == 'status':
             if self.network:
-                p = self.network.get_parameters()
+                net_params = self.network.get_parameters()
                 current_wallet = self.cmd_runner.wallet
                 current_wallet_path = current_wallet.storage.path \
                                       if current_wallet else None
                 response = {
                     'path': self.network.config.path,
-                    'server': p[0],
+                    'server': net_params.host,
                     'blockchain_height': self.network.get_local_height(),
                     'server_height': self.network.get_server_height(),
                     'spv_nodes': len(self.network.get_interfaces()),
                     'connected': self.network.is_connected(),
-                    'auto_connect': p[4],
+                    'auto_connect': net_params.auto_connect,
                     'version': ELECTRUM_VERSION,
                     'wallets': {k: w.is_up_to_date()
                                 for k, w in self.wallets.items()},
@@ -330,22 +329,3 @@ class Daemon(DaemonThread):
         except BaseException as e:
             traceback.print_exc(file=sys.stdout)
             # app will exit now
-
-    def create_and_start_event_loop(self):
-        def on_exception(loop, context):
-            """Suppress spurious messages it appears we cannot control."""
-            SUPPRESS_MESSAGE_REGEX = re.compile('SSL handshake|Fatal read error on|'
-                                                'SSL error in data received')
-            message = context.get('message')
-            if message and SUPPRESS_MESSAGE_REGEX.match(message):
-                return
-            loop.default_exception_handler(context)
-
-        self.asyncio_loop = asyncio.get_event_loop()
-        self.asyncio_loop.set_exception_handler(on_exception)
-        # self.asyncio_loop.set_debug(1)
-        self._stop_loop = asyncio.Future()
-        self._loop_thread = threading.Thread(target=self.asyncio_loop.run_until_complete,
-                                             args=(self._stop_loop,),
-                                             name='EventLoop')
-        self._loop_thread.start()
