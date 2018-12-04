@@ -34,7 +34,7 @@ if ! which msgfmt > /dev/null 2>&1; then
     exit 1
 fi
 for i in ./locale/*; do
-    dir=$WINEPREFIX/drive_c/electrum/electrum/$i/LC_MESSAGES
+    dir=$WINEPREFIX/drive_c/electrum-mona/electrum_mona/$i/LC_MESSAGES
     mkdir -p $dir
     msgfmt --output-file=$dir/electrum.mo $i/electrum.po || true
 done
@@ -44,8 +44,8 @@ find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
 cp $WINEPREFIX/drive_c/electrum-mona/LICENCE .
-cp -r $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/electrum/
-cp $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/electrum/gui/qt/
+cp -r $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/electrum_mona/
+cp $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/electrum_mona/gui/qt/
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt

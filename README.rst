@@ -30,11 +30,8 @@ Qt interface, install the Qt dependencies::
     sudo apt-get install python3-pyqt5
 
 If you downloaded the official package (tar.gz), you can run
-<<<<<<< HEAD
-Electrum-mona from its root directory, without installing it on your
-=======
-Electrum from its root directory without installing it on your
->>>>>>> upstream/master
+
+Electrum-mona from its root directory without installing it on your
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum-mona from its root directory, just do::
 
@@ -46,13 +43,8 @@ You can also install Electrum-mona on your system, by running this command::
     python3 -m pip install .[fast]
 
 This will download and install the Python dependencies used by
-<<<<<<< HEAD
-Electrum-mona, instead of using the 'packages' directory.
-The 'full' extra contains some optional dependencies that we think
-=======
-Electrum instead of using the 'packages' directory.
+Electrum-mona instead of using the 'packages' directory.
 The 'fast' extra contains some optional dependencies that we think
->>>>>>> upstream/master
 are often useful but they are not strictly needed.
 
 If you cloned the git repository, you need to compile extra files
@@ -84,12 +76,12 @@ Render the SVG icons to PNGs (optional)::
 Compile the icons file for Qt::
 
     sudo apt-get install pyqt5-dev-tools
-    pyrcc5 icons.qrc -o electrum/gui/qt/icons_rc.py
+    pyrcc5 icons.qrc -o electrum_mona/gui/qt/icons_rc.py
 
 Compile the protobuf description file::
 
     sudo apt-get install protobuf-compiler
-    protoc --proto_path=electrum --python_out=electrum electrum/paymentrequest.proto
+    protoc --proto_path=electrum_mona --python_out=electrum_mona electrum_mona/paymentrequest.proto
 
 Create translations (optional)::
 
@@ -123,4 +115,4 @@ See `contrib/build-wine/`.
 Android
 -------
 
-See `electrum/gui/kivy/Readme.md` file.
+See `electrum_mona/gui/kivy/Readme.md` file.

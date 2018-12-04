@@ -11,8 +11,8 @@ recursive-include packages cacert.pem
 include icons.qrc
 graft icons
 
-graft electrum
-prune electrum/tests
+graft electrum_mona
+prune electrum_mona/tests
 
 global-exclude __pycache__
 global-exclude *.py[co]

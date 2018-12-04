@@ -6,7 +6,7 @@ import sys
 import os
 
 PACKAGE='Electrum-MONA'
-PYPKG='electrum'
+PYPKG='electrum_mona'
 MAIN_SCRIPT='run_electrum'
 ICONS_FILE='electrum.icns'
 
@@ -53,23 +53,23 @@ binaries += [b for b in collect_dynamic_libs('PyQt5') if 'macstyle' in b[0]]
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
 a = Analysis([electrum+ MAIN_SCRIPT,
-              electrum+'electrum/gui/qt/main_window.py',
-              electrum+'electrum/gui/text.py',
-              electrum+'electrum/util.py',
-              electrum+'electrum/wallet.py',
-              electrum+'electrum/simple_config.py',
-              electrum+'electrum/bitcoin.py',
-              electrum+'electrum/dnssec.py',
-              electrum+'electrum/commands.py',
-              electrum+'electrum/plugins/cosigner_pool/qt.py',
-              electrum+'electrum/plugins/email_requests/qt.py',
-              electrum+'electrum/plugins/trezor/client.py',
-              electrum+'electrum/plugins/trezor/qt.py',
-              electrum+'electrum/plugins/safe_t/client.py',
-              electrum+'electrum/plugins/safe_t/qt.py',
-              electrum+'electrum/plugins/keepkey/qt.py',
-              electrum+'electrum/plugins/ledger/qt.py',
-              electrum+'electrum/plugins/coldcard/qt.py',
+              electrum+'electrum_mona/gui/qt/main_window.py',
+              electrum+'electrum_mona/gui/text.py',
+              electrum+'electrum_mona/util.py',
+              electrum+'electrum_mona/wallet.py',
+              electrum+'electrum_mona/simple_config.py',
+              electrum+'electrum_mona/bitcoin.py',
+              electrum+'electrum_mona/dnssec.py',
+              electrum+'electrum_mona/commands.py',
+              electrum+'electrum_mona/plugins/cosigner_pool/qt.py',
+              electrum+'electrum_mona/plugins/email_requests/qt.py',
+              electrum+'electrum_mona/plugins/trezor/client.py',
+              electrum+'electrum_mona/plugins/trezor/qt.py',
+              electrum+'electrum_mona/plugins/safe_t/client.py',
+              electrum+'electrum_mona/plugins/safe_t/qt.py',
+              electrum+'electrum_mona/plugins/keepkey/qt.py',
+              electrum+'electrum_mona/plugins/ledger/qt.py',
+              electrum+'electrum_mona/plugins/coldcard/qt.py',
               ],
              binaries=binaries,
              datas=datas,

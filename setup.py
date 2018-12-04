@@ -26,7 +26,7 @@ with open('contrib/requirements/requirements-hw.txt') as f:
     requirements_hw = f.read().splitlines()
 
 # load version.py; needlessly complicated alternative to "imp.load_source":
-version_spec = importlib.util.spec_from_file_location('version', 'electrum/version.py')
+version_spec = importlib.util.spec_from_file_location('version', 'electrum_mona/version.py')
 version_module = version = importlib.util.module_from_spec(version_spec)
 version_spec.loader.exec_module(version_module)
 
@@ -68,7 +68,7 @@ class CustomInstallCommand(install):
             pass
         else:
             try:
-                path = os.path.join(self.install_lib, "electrum/gui/qt/icons_rc.py")
+                path = os.path.join(self.install_lib, "electrum_mona/gui/qt/icons_rc.py")
                 if not os.path.exists(path):
                     subprocess.call(["pyrcc5", "icons.qrc", "-o", path])
             except Exception as e:
@@ -82,22 +82,22 @@ setup(
     install_requires=requirements,
     extras_require=extras_require,
     packages=[
-        'electrum',
-        'electrum.gui',
-        'electrum.gui.qt',
-        'electrum.plugins',
-    ] + [('electrum.plugins.'+pkg) for pkg in find_packages('electrum/plugins')],
+        'electrum_mona',
+        'electrum_mona.gui',
+        'electrum_mona.gui.qt',
+        'electrum_mona.plugins',
+    ] + [('electrum_mona.plugins.'+pkg) for pkg in find_packages('electrum_mona/plugins')],
     package_dir={
-        'electrum': 'electrum'
+        'electrum_mona': 'electrum_mona'
     },
     package_data={
         '': ['*.txt', '*.json', '*.ttf', '*.otf'],
-        'electrum': [
+        'electrum_mona': [
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ],
     },
-    scripts=['electrum/electrum-mona'],
+    scripts=['electrum_mona/electrum-mona'],
     data_files=data_files,
     description="Lightweight Monacoin Wallet",
     author="Thomas Voegtlin",
