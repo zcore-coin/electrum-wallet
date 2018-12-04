@@ -30,7 +30,11 @@ Qt interface, install the Qt dependencies::
     sudo apt-get install python3-pyqt5
 
 If you downloaded the official package (tar.gz), you can run
+<<<<<<< HEAD
 Electrum-mona from its root directory, without installing it on your
+=======
+Electrum from its root directory without installing it on your
+>>>>>>> upstream/master
 system; all the python dependencies are included in the 'packages'
 directory. To run Electrum-mona from its root directory, just do::
 
@@ -42,8 +46,13 @@ You can also install Electrum-mona on your system, by running this command::
     python3 -m pip install .[fast]
 
 This will download and install the Python dependencies used by
+<<<<<<< HEAD
 Electrum-mona, instead of using the 'packages' directory.
 The 'full' extra contains some optional dependencies that we think
+=======
+Electrum instead of using the 'packages' directory.
+The 'fast' extra contains some optional dependencies that we think
+>>>>>>> upstream/master
 are often useful but they are not strictly needed.
 
 If you cloned the git repository, you need to compile extra files
@@ -103,7 +112,7 @@ This directory contains the python dependencies used by Electrum-mona.
 Mac OS X / macOS
 --------
 
-See `contrib/build-osx/`.
+See `contrib/osx/`.
 
 Windows
 -------

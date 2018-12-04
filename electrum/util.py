@@ -824,8 +824,8 @@ def ignore_exceptions(func):
 class TxMinedStatus(NamedTuple):
     height: int
     conf: int
-    timestamp: int
-    header_hash: str
+    timestamp: Optional[int]
+    header_hash: Optional[str]
 
 
 class VerifiedTxInfo(NamedTuple):

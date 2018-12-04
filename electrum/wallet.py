@@ -184,7 +184,7 @@ class Abstract_Wallet(AddressSynchronizer):
         self.invoices = InvoiceStore(self.storage)
         self.contacts = Contacts(self.storage)
 
-        self.coin_price_cache = {}
+        self._coin_price_cache = {}
 
     def load_and_cleanup(self):
         self.load_keystore()
@@ -1181,6 +1181,9 @@ class Abstract_Wallet(AddressSynchronizer):
                 total_price += self.coin_price(ser.split(':')[0], price_func, ccy, v)
         return total_price / (input_value/Decimal(COIN))
 
+    def clear_coin_price_cache(self):
+        self._coin_price_cache = {}
+
     def coin_price(self, txid, price_func, ccy, txin_value):
         """
         Acquisition price of a coin.
@@ -1189,12 +1192,12 @@ class Abstract_Wallet(AddressSynchronizer):
         if txin_value is None:
             return Decimal('NaN')
         cache_key = "{}:{}:{}".format(str(txid), str(ccy), str(txin_value))
-        result = self.coin_price_cache.get(cache_key, None)
+        result = self._coin_price_cache.get(cache_key, None)
         if result is not None:
             return result
         if self.txi.get(txid, {}) != {}:
             result = self.average_price(txid, price_func, ccy) * txin_value/Decimal(COIN)
-            self.coin_price_cache[cache_key] = result
+            self._coin_price_cache[cache_key] = result
             return result
         else:
             fiat_value = self.get_fiat_value(txid, ccy)
@@ -1379,8 +1382,8 @@ class Imported_Wallet(Simple_Wallet):
     def get_public_key(self, address):
         return self.addresses[address].get('pubkey')
 
-    def import_private_keys(self, keys: List[str], password: Optional[str]) -> Tuple[List[str],
-                                                                                     List[Tuple[str, str]]]:
+    def import_private_keys(self, keys: List[str], password: Optional[str],
+                            write_to_disk=True) -> Tuple[List[str], List[Tuple[str, str]]]:
         good_addr = []  # type: List[str]
         bad_keys = []  # type: List[Tuple[str, str]]
         for key in keys:
@@ -1398,7 +1401,7 @@ class Imported_Wallet(Simple_Wallet):
             self.add_address(addr)
         self.save_keystore()
         self.save_addresses()
-        self.save_transactions(write=True)
+        self.save_transactions(write=write_to_disk)
         return good_addr, bad_keys
 
     def import_private_key(self, key: str, password: Optional[str]) -> str:

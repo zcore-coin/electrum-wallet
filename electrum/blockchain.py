@@ -92,11 +92,20 @@ blockchains_lock = threading.RLock()
 
 
 def read_blockchains(config: 'SimpleConfig'):
-    blockchains[constants.net.GENESIS] = Blockchain(config=config,
-                                                    forkpoint=0,
-                                                    parent=None,
-                                                    forkpoint_hash=constants.net.GENESIS,
-                                                    prev_hash=None)
+    best_chain = Blockchain(config=config,
+                            forkpoint=0,
+                            parent=None,
+                            forkpoint_hash=constants.net.GENESIS,
+                            prev_hash=None)
+    blockchains[constants.net.GENESIS] = best_chain
+    # consistency checks
+    if best_chain.height() > constants.net.max_checkpoint():
+        header_after_cp = best_chain.read_header(constants.net.max_checkpoint()+1)
+        if not header_after_cp or not best_chain.can_connect(header_after_cp, check_height=False):
+            util.print_error("[blockchain] deleting best chain. cannot connect header after last cp to last cp.")
+            os.unlink(best_chain.path())
+            best_chain.update_size()
+    # forks
     fdir = os.path.join(util.get_headers_dir(config), 'forks')
     util.make_dir(fdir)
     # files are named as: fork2_{forkpoint}_{prev_hash}_{first_hash}
@@ -104,7 +113,7 @@ def read_blockchains(config: 'SimpleConfig'):
     l = sorted(l, key=lambda x: int(x.split('_')[1]))  # sort by forkpoint
 
     def delete_chain(filename, reason):
-        util.print_error("[blockchain]", reason, filename)
+        util.print_error(f"[blockchain] deleting chain {filename}: {reason}")
         os.unlink(os.path.join(fdir, filename))
 
     def instantiate_chain(filename):
@@ -228,10 +237,10 @@ class Blockchain(util.PrintError):
                           prev_hash=parent.get_hash(forkpoint-1))
         open(self.path(), 'w+').close()
         self.save_header(header)
-        # put into global dict
+        # put into global dict. note that in some cases
+        # save_header might have already put it there but that's OK
         chain_id = self.get_id()
         with blockchains_lock:
-            assert chain_id not in blockchains, (chain_id, list(blockchains))
             blockchains[chain_id] = self
         return self
 
@@ -368,11 +377,7 @@ class Blockchain(util.PrintError):
         self._forkpoint_hash, parent._forkpoint_hash = parent._forkpoint_hash, hash_raw_header(bh2u(parent_data[:HEADER_SIZE]))
         self._prev_hash, parent._prev_hash = parent._prev_hash, self._prev_hash
         # parent's new name
-        try:
-            os.rename(child_old_name, parent.path())
-        except OSError:
-            os.remove(parent.path())
-            os.rename(child_old_name, parent.path())
+        os.replace(child_old_name, parent.path())
         self.update_size()
         parent.update_size()
         # update pointers
@@ -412,7 +417,7 @@ class Blockchain(util.PrintError):
         delta = header.get('block_height') - self.forkpoint
         data = bfh(serialize_header(header))
         # headers are only _appended_ to the end:
-        assert delta == self.size()
+        assert delta == self.size(), (delta, self.size())
         assert len(data) == HEADER_SIZE
         self.write(data, delta*HEADER_SIZE)
         self.swap_with_parent()
