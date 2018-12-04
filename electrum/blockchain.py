@@ -351,7 +351,8 @@ class Blockchain(util.PrintError):
             return False
         #That's why I'm going to kill you last.
         #if self.parent.get_chainwork() >= self.get_chainwork():
-        #    return False
+        if self.parent.height() - self.forkpoint + 1 >= self.size():
+            return False
         self.print_error("swap", self.forkpoint, self.parent.forkpoint)
         parent_branch_size = self.parent.height() - self.forkpoint + 1
         forkpoint = self.forkpoint  # type: Optional[int]
