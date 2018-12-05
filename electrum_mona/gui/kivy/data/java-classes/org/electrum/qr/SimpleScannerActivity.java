@@ -1,4 +1,4 @@
-package org.electrum-mona.qr;
+package org.electrum.qr;
 
 import android.app.Activity;
 import android.os.Bundle;
