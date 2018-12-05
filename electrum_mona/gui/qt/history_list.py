@@ -31,7 +31,7 @@ from collections import OrderedDict
 
 from electrum_mona.address_synchronizer import TX_HEIGHT_LOCAL
 from electrum_mona.i18n import _
-from electrum_mona.util import block_explorer_URL, profiler, print_error, TxMinedStatus, Fiat
+from electrum_mona.util import block_explorer_URL, profiler, print_error, TxMinedStatus, OrderedDictWithIndex
 
 from .util import *
 
@@ -92,7 +92,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         self.setModel(self.proxy)
 
         self.txid_to_items = {}
-        self.transactions = OrderedDict()
+        self.transactions = OrderedDictWithIndex()
         self.summary = {}
         self.blue_brush = QBrush(QColor("#1E1EFF"))
         self.red_brush = QBrush(QColor("#BC1E1E"))
@@ -104,26 +104,9 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         self.end_timestamp = None
         self.years = []
         self.create_toolbar_buttons()
-
         self.wallet = self.parent.wallet  # type: Abstract_Wallet
-        fx = self.parent.fx
-        r = self.wallet.get_full_history(domain=self.get_domain(), from_timestamp=None, to_timestamp=None, fx=fx)
-        self.transactions.update([(x['txid'], x) for x in r['transactions']])
-        self.summary = r['summary']
-        if not self.years and self.transactions:
-            start_date = next(iter(self.transactions.values())).get('date') or date.today()
-            end_date = next(iter(reversed(self.transactions.values()))).get('date') or date.today()
-            self.years = [str(i) for i in range(start_date.year, end_date.year + 1)]
-            self.period_combo.insertItems(1, self.years)
-        if fx: fx.history_used_spot = False
         self.refresh_headers()
-        for tx_item in self.transactions.values():
-            self.insert_tx(tx_item)
         self.sortByColumn(0, Qt.AscendingOrder)
-
-    #def on_activated(self, idx: QModelIndex):
-    #    # TODO use siblingAtColumn when min Qt version is >=5.11
-    #    self.edit(idx.sibling(idx.row(), 2))
 
     def format_date(self, d):
         return str(datetime.date(d.year, d.month, d.day)) if d else _('None')
@@ -328,7 +311,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
 
     def ensure_fields_available(self, items, idx, txid):
         while len(items) < idx + 1:
-            row = list(self.transactions.keys()).index(txid)
+            row = self.transactions.get_pos_of_key(txid)
             qidx = self.std_model.index(row, len(items))
             assert qidx.isValid(), (self.std_model.columnCount(), idx)
             item = self.std_model.itemFromIndex(qidx)
@@ -338,6 +321,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
     @profiler
     def update(self):
         fx = self.parent.fx
+        if fx: fx.history_used_spot = False
         r = self.wallet.get_full_history(domain=self.get_domain(), from_timestamp=None, to_timestamp=None, fx=fx)
         seen = set()
         history = fx.show_history()
@@ -350,7 +334,6 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             txid = row['txid']
             if txid not in self.transactions:
                 self.transactions[txid] = row
-                self.transactions.move_to_end(txid, last=True)
                 self.insert_tx(row)
                 return
             else:
@@ -360,7 +343,6 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             seen.add(txid)
             if txid not in self.transactions:
                 self.transactions[txid] = row
-                self.transactions.move_to_end(txid, last=True)
                 self.insert_tx(row)
                 continue
             old = self.transactions[txid]
@@ -385,6 +367,13 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
                 assert removed_txid == txid, (idx, removed)
                 removed += 1
         self.apply_filter()
+        # update summary
+        self.summary = r['summary']
+        if not self.years and self.transactions:
+            start_date = next(iter(self.transactions.values())).get('date') or date.today()
+            end_date = next(iter(reversed(self.transactions.values()))).get('date') or date.today()
+            self.years = [str(i) for i in range(start_date.year, end_date.year + 1)]
+            self.period_combo.insertItems(1, self.years)
 
     def update_fiat(self, txid, row):
         cap_gains = self.parent.fx.get_history_capital_gains_config()
@@ -470,7 +459,9 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         org_idx: QModelIndex = self.indexAt(position)
         idx = self.proxy.mapToSource(org_idx)
         item: QStandardItem = self.std_model.itemFromIndex(idx)
-        assert item, 'create_menu: index not found in model'
+        if not item:
+            # can happen e.g. before list is populated for the first time
+            return
         tx_hash = idx.data(self.TX_HASH_ROLE)
         column = idx.column()
         assert tx_hash, "create_menu: no tx hash"
@@ -565,10 +556,15 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         self.parent.show_message(_("Your wallet history has been successfully exported."))
 
     def do_export_history(self, file_name, is_csv):
-        history = self.transactions.values()
+        hist = self.wallet.get_full_history(domain=self.get_domain(),
+                                            from_timestamp=None,
+                                            to_timestamp=None,
+                                            fx=self.parent.fx,
+                                            show_fees=True)
+        txns = hist['transactions']
         lines = []
         if is_csv:
-            for item in history:
+            for item in txns:
                 lines.append([item['txid'],
                               item.get('label', ''),
                               item['confirmations'],
@@ -593,4 +589,4 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
                     transaction.writerow(line)
             else:
                 from electrum_mona.util import json_encode
-                f.write(json_encode(history))
+                f.write(json_encode(txns))
