@@ -433,7 +433,7 @@ class ElectrumWindow(App):
         from jnius import autoclass, cast
         from android import activity
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
-        SimpleScannerActivity = autoclass("org.electrum-mona.qr.SimpleScannerActivity")
+        SimpleScannerActivity = autoclass("org.electrum.qr.SimpleScannerActivity")
         Intent = autoclass('android.content.Intent')
         intent = Intent(PythonActivity.mActivity, SimpleScannerActivity)
 
