@@ -322,7 +322,7 @@ class Daemon(DaemonThread):
         gui_name = config.get('gui', 'qt')
         if gui_name in ['lite', 'classic']:
             gui_name = 'qt'
-        gui = __import__('electrum.gui.' + gui_name, fromlist=['electrum'])
+        gui = __import__('electrum_mona.gui.' + gui_name, fromlist=['electrum_mona'])
         self.gui = gui.ElectrumGui(config, self, plugins)
         threading.current_thread().setName('GUI')
         try:

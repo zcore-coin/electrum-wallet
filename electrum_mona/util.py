@@ -57,7 +57,7 @@ def inv_dict(d):
     return {v: k for k, v in d.items()}
 
 
-base_units = {'MONA':8, 'mMONA':5, 'bits':2, 'sat':0}
+base_units = {'MONA':8, 'mMona':5, 'bits':2, 'sat':0}
 base_units_inverse = inv_dict(base_units)
 base_units_list = ['MONA', 'mMona', 'bits', 'sat']  # list(dict) does not guarantee order
 
