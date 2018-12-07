@@ -1061,7 +1061,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         wallet_online.receive_tx_callback(funding_txid, funding_tx, TX_HEIGHT_UNCONFIRMED)
 
         # create unsigned tx
-        outputs = [TxOutput(bitcoin.TYPE_ADDRESS, 'tb1qyw3c0rvn6kk2c688y3dygvckn57525y8qnxt3a', 2500000)]
+        outputs = [TxOutput(bitcoin.TYPE_ADDRESS, 'tmona1qtuynwzd0d6wptvyqmc6ehkm70zcamxpstvxpnz', 2500000)]
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1446655
@@ -1078,10 +1078,10 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_offline.sign_transaction(tx_copy, password=None)
         self.assertTrue(tx.is_complete())
         self.assertFalse(tx.is_segwit())
-        self.assertEqual('01000000015608436ec7dc01c95ca1ca91519f2dc62b6613ac3d6304cb56462f6081059e3b020000008b483045022100e3489a26b47412c617a77024db8f51c68ed13950d147425bdbc7d64d95477ce2022009d09a6f011a47f827ae6655a828c79b1cf43f7c89ab4f8bb36f175ba8298d8a014104e79eb77f2f3f989f5e9d090bc0af50afeb0d5bd6ec916f2022c5629ed022e84a87584ef647d69f073ea314a0f0c110ebe24ad64bc1922a10819ea264fc3f35f5fdffffff02a02526000000000016001423a3878d93d5acac68e7245a4433169d3d455087585d7200000000001976a914b6a6bbbc4cf9da58786a8acc58291e218d52130688acff121600',
+        self.assertEqual('01000000015608436ec7dc01c95ca1ca91519f2dc62b6613ac3d6304cb56462f6081059e3b020000008b4830450221009a0166493e75af3f49b9139ed1c081836bc5a49efcd2748af2187a1f2ef1f8a702206fba39a7d6864bac971e99a44534a7ec505ac8b38ca28a9b0db9ea5402cddcd2014104e79eb77f2f3f989f5e9d090bc0af50afeb0d5bd6ec916f2022c5629ed022e84a87584ef647d69f073ea314a0f0c110ebe24ad64bc1922a10819ea264fc3f35f5fdffffff02a0252600000000001600145f093709af6e9c15b080de359bdb7e78b1dd9830585d7200000000001976a914b6a6bbbc4cf9da58786a8acc58291e218d52130688acff121600',
                          str(tx))
-        self.assertEqual('5a88637fe51fc1780f61383d7d8cb44e6209dbc99e102a0efcfcbe877d203d7d', tx.txid())
-        self.assertEqual('5a88637fe51fc1780f61383d7d8cb44e6209dbc99e102a0efcfcbe877d203d7d', tx.wtxid())
+        self.assertEqual('c606416bc41d1100cf131d254af24d19c5bcc5c9adb21a5a64a9689c2152f209', tx.txid())
+        self.assertEqual('c606416bc41d1100cf131d254af24d19c5bcc5c9adb21a5a64a9689c2152f209', tx.wtxid())
 
     @needs_test_with_all_ecc_implementations
     @mock.patch.object(storage.WalletStorage, '_write')
