@@ -108,7 +108,7 @@ android.add_activities = org.electrum.qr.SimpleScannerActivity
 #android.ouya.icon.filename = %(source.dir)s/data/ouya_icon.png
 
 # (str) XML file to include as an intent filters in <activity> tag
-android.manifest.intent_filters = electrums/gui/kivy/tools/bitcoin_intent.xml
+android.manifest.intent_filters = electrum_mona/gui/kivy/tools/bitcoin_intent.xml
 
 # (str) launchMode to set for the main activity
 android.manifest.launch_mode = singleTask
