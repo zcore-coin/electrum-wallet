@@ -152,7 +152,7 @@ $PYTHON -m pip install $LYRA2RE_HASH_PYTHON_URL
 wget -q -O $LIB_GCC_FILENAME "$LIB_GCC_URL"
 verify_hash $LIB_GCC_FILENAME $LIB_GCC_SHA256
 tar Jxfv $LIB_GCC_FILENAME
-cp bin/libgcc_s_dw2-1.dll $WINEPREFIX/drive_c/python$PYTHON_VERSION/Lib/site-packages/
+cp bin/libgcc_s_dw2-1.dll $WINEPREFIX/drive_c/$PYTHON_FOLDER/Lib/site-packages/
 
 mkdir -p $WINEPREFIX/drive_c/tmp
 cp secp256k1/libsecp256k1.dll $WINEPREFIX/drive_c/tmp/
