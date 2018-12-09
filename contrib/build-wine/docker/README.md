@@ -35,14 +35,14 @@ folder.
         rm -rf $FRESH_CLONE && \
         mkdir -p $FRESH_CLONE && \
         cd $FRESH_CLONE  && \
-        git clone https://github.com/spesmilo/electrum.git && \
+        git clone https://github.com/wakiyamap/electrum-mona.git && \
         cd electrum
     ```
 
     And then build from this directory:
     ```
     $ git checkout $REV
-    $ sudo docker run \
+    $ sudo docker run -it \
         --name electrum-mona-wine-builder-cont \
         -v $PWD:/opt/wine64/drive_c/electrum-mona \
         --rm \
