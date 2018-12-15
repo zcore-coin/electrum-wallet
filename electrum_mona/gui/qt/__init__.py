@@ -44,7 +44,7 @@ from electrum_mona.plugin import run_hook
 from electrum_mona.storage import WalletStorage
 from electrum_mona.base_wizard import GoBack
 from electrum_mona.util import (UserCancelled, PrintError, profiler,
-                           WalletFileException, BitcoinException)
+                           WalletFileException, BitcoinException, get_new_wallet_name)
 
 from .installwizard import InstallWizard
 
@@ -105,7 +105,11 @@ class ElectrumGui(PrintError):
         self.efilter = OpenFileEventFilter(self.windows)
         self.app = QElectrumApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
-        self.timer = Timer()
+        # timer
+        self.timer = QTimer(self.app)
+        self.timer.setSingleShot(False)
+        self.timer.setInterval(500)  # msec
+
         self.nd = None
         self.network_updated_signal_obj = QNetworkUpdatedSignalObject()
         self._num_wizards_in_progress = 0
@@ -266,6 +270,10 @@ class ElectrumGui(PrintError):
             d = QMessageBox(QMessageBox.Warning, _('Error'),
                             _('Cannot create window for wallet') + ':\n' + str(e))
             d.exec_()
+            if app_is_starting:
+                wallet_dir = os.path.dirname(path)
+                path = os.path.join(wallet_dir, get_new_wallet_name(wallet_dir))
+                self.start_new_window(path, uri)
             return
         if uri:
             w.pay_to_URI(uri)

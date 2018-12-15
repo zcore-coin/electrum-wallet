@@ -167,7 +167,7 @@ class Commands:
         if keystore.is_address_list(text):
             wallet = Imported_Wallet(storage)
             addresses = text.split()
-            good_inputs, bad_inputs = wallet.import_addresses(addresses)
+            good_inputs, bad_inputs = wallet.import_addresses(addresses, write_to_disk=False)
             # FIXME tell user about bad_inputs
             if not good_inputs:
                 raise Exception("None of the given addresses can be imported")
@@ -323,7 +323,7 @@ class Commands:
     def deserialize(self, tx):
         """Deserialize a serialized transaction"""
         tx = Transaction(tx)
-        return tx.deserialize()
+        return tx.deserialize(force_full_parse=True)
 
     @command('n')
     def broadcast(self, tx):
