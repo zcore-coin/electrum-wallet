@@ -359,9 +359,8 @@ class Network(PrintError):
                 fee_tasks.append((i, await group.spawn(session.send_request('blockchain.estimatefee', [i]))))
         self.config.mempool_fees = histogram = histogram_task.result()
         if histogram == []:
-            # [] is bad :\ It's dummy data.
-            self.config.mempool_fees = histogram = [[10, 10000000], [10, 10000000], [10, 10000000], [10, 10000000], [10, 10000000],
-                                                    [10, 10000000], [10, 10000000], [10, 10000000], [10, 10000000], [10, 10000000]]
+            # [] is bad for monacoin :\ It's dummy data.
+            self.config.mempool_fees = histogram = [[10, 100000000]]
         self.print_error(f'fee_histogram {histogram}')
         self.notify('fee_histogram')
         fee_estimates_eta = {}
