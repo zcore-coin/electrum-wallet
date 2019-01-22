@@ -17,13 +17,13 @@
         "t": "50001",
         "version": "1.4"
     },
-    "electrumx1.monacoin.nl": {
+    "electrumx2.monacoin.nl": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
         "version": "1.4"
     },
-    "electrumx2.monacoin.nl": {
+    "electrumx3.monacoin.nl": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
