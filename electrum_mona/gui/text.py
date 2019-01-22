@@ -12,7 +12,7 @@ from electrum_mona.bitcoin import is_address, COIN, TYPE_ADDRESS
 from electrum_mona.transaction import TxOutput
 from electrum_mona.wallet import Wallet
 from electrum_mona.storage import WalletStorage
-from electrum_mona.network import NetworkParameters
+from electrum_mona.network import NetworkParameters, TxBroadcastError, BestEffortRequestFailed
 from electrum_mona.interface import deserialize_server
 
 _ = lambda x:x  # i18n
@@ -369,10 +369,12 @@ class ElectrumGui:
         self.show_message(_("Please wait..."), getchar=False)
         try:
             self.network.run_from_another_thread(self.network.broadcast_transaction(tx))
-        except Exception as e:
-            display_msg = _('The server returned an error when broadcasting the transaction.')
-            display_msg += '\n' + repr(e)
-            self.show_message(display_msg)
+        except TxBroadcastError as e:
+            msg = e.get_message_for_gui()
+            self.show_message(msg)
+        except BestEffortRequestFailed as e:
+            msg = repr(e)
+            self.show_message(msg)
         else:
             self.show_message(_('Payment sent.'))
             self.do_clear()
