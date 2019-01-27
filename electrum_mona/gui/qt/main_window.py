@@ -225,6 +225,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         gui_object.timer.timeout.connect(self.timer_actions)
         self.fetch_alias()
 
+        # If the option hasn't been set yet
+        if config.get('check_updates') is None:
+            choice = QMessageBox.question(self,
+                                 "Electrum - " + _("Enable update check"),
+                                 _("For security reasons we advise that you always use the latest version of Electrum.") + " " +
+                                 _("Would you like to be notified when there is a newer version of Electrum available?"),
+                                 QMessageBox.Yes,
+                                 QMessageBox.No)
+            config.set_key('check_updates', choice == QMessageBox.Yes, save=True)
+
+        if config.get('check_updates', False):
+            # The references to both the thread and the window need to be stored somewhere
+            # to prevent GC from getting in our way.
+            def on_version_received(v):
+                if UpdateCheck.is_newer(v):
+                    self.update_check_button.setText(_("Update to Electrum {} is available").format(v))
+                    self.update_check_button.clicked.connect(lambda: self.show_update_check(v))
+                    self.update_check_button.show()
+            self._update_check_thread = UpdateCheckThread(self)
+            self._update_check_thread.checked.connect(on_version_received)
+            self._update_check_thread.start()
+
     def on_history(self, b):
         self.wallet.clear_coin_price_cache()
         self.new_fx_history_signal.emit()
@@ -576,6 +598,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
+        help_menu.addAction(_("&Check for updates"), self.show_update_check)
         help_menu.addAction(_("&Official website"), lambda: webbrowser.open("https://electrum-mona.org"))
         help_menu.addSeparator()
         help_menu.addAction(_("&Documentation"), lambda: webbrowser.open("http://docs.electrum-mona.org")).setShortcut(QKeySequence.HelpContents)
@@ -604,6 +627,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                            _("Electrum-mona's icon from oimo at askmona.")  + "\n" + 
                            _("Uses icons from the Icons8 icon pack (icons8.com).")))
 
+    def show_update_check(self, version=None):
+        self.gui_object._update_check = UpdateCheck(self, version)
+
     def show_report_bug(self):
         msg = ' '.join([
             _("Please report any bugs as issues on github:<br/>"),
@@ -611,7 +637,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             _("Before reporting a bug, upgrade to the most recent version of Electrum (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
-        self.show_message(msg, title="Electrum - " + _("Reporting Bugs"), rich_text=True)
+        self.show_message(msg, title="Electrum-mona - " + _("Reporting Bugs"), rich_text=True)
 
     def notify_transactions(self):
         if self.tx_notification_queue.qsize() == 0:
@@ -1997,7 +2023,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         sb = QStatusBar()
         sb.setFixedHeight(35)
-        qtVersion = qVersion()
 
         self.balance_label = QLabel("Loading wallet...")
         self.balance_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -2008,6 +2033,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.search_box.textChanged.connect(self.do_search)
         self.search_box.hide()
         sb.addPermanentWidget(self.search_box)
+
+        self.update_check_button = QPushButton("")
+        self.update_check_button.setFlat(True)
+        self.update_check_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.update_check_button.setIcon(QIcon(":icons/update.png"))
+        self.update_check_button.hide()
+        sb.addPermanentWidget(self.update_check_button)
 
         self.lock_icon = QIcon()
         self.password_button = StatusBarButton(self.lock_icon, _("Password"), self.change_password_dialog )
@@ -2907,6 +2939,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         colortheme_combo.currentIndexChanged.connect(on_colortheme)
         gui_widgets.append((colortheme_label, colortheme_combo))
 
+        updatecheck_cb = QCheckBox(_("Automatically check for software updates"))
+        updatecheck_cb.setChecked(self.config.get('check_updates', False))
+        def on_set_updatecheck(v):
+            self.config.set_key('check_updates', v == Qt.Checked, save=True)
+        updatecheck_cb.stateChanged.connect(on_set_updatecheck)
+        gui_widgets.append((updatecheck_cb, None))
+
         usechange_cb = QCheckBox(_('Use change addresses'))
         usechange_cb.setChecked(self.wallet.use_change)
         if not self.config.is_modifiable('use_change'): usechange_cb.setEnabled(False)
@@ -3080,7 +3119,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tabs_info = [
             (fee_widgets, _('Fees')),
             (tx_widgets, _('Transactions')),
-            (gui_widgets, _('Appearance')),
+            (gui_widgets, _('General')),
             (fiat_widgets, _('Fiat')),
             (id_widgets, _('Identity')),
         ]
