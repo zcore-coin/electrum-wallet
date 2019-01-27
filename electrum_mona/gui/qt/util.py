@@ -829,7 +829,7 @@ class FromList(QTreeWidget):
 
 class UpdateCheck(QWidget, PrintError):
     url = "https://electrum-mona.org/version"
-    download_url = "https://github.com/wakiyamap/electrum-mona/releases"
+    download_url = "https://electrum-mona.org"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
         "MUJ1nBxpAzdGdNhTN1x3MCtyeBa4DbdqpK",
