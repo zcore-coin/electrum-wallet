@@ -7,7 +7,7 @@ tmp/
 *.egg/
 contrib/pyinstaller/
 Electrum_MONA.egg-info/
-electrum/locale/
+electrum_mona/locale/
 .devlocaltmp/
 *_trial_temp
 packages

@@ -81,9 +81,9 @@ jobs:
       services:
         - docker
       install:
-        - sudo docker build --no-cache -t electrum-appimage-builder-img ./contrib/build-linux/appimage/
+        - sudo docker build --no-cache -t electrum-mona-appimage-builder-img ./contrib/build-linux/appimage/
       script:
-        - sudo docker run --name electrum-appimage-builder-cont -v $PWD:/opt/electrum --rm --workdir /opt/electrum/contrib/build-linux/appimage electrum-appimage-builder-img ./build.sh
+        - sudo docker run --name electrum-mona-appimage-builder-cont -v $PWD:/opt/electrum-mona --rm --workdir /opt/electrum-mona/contrib/build-linux/appimage electrum-mona-appimage-builder-img ./build.sh
       after_success: true
     - stage: release check
       install:

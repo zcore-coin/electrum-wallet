@@ -17,18 +17,18 @@ folder.
 2. Build image
 
     ```
-    $ sudo docker build --no-cache -t electrum-appimage-builder-img contrib/build-linux/appimage
+    $ sudo docker build --no-cache -t electrum-mona-appimage-builder-img contrib/build-linux/appimage
     ```
 
 3. Build binary
 
     ```
     $ sudo docker run -it \
-        --name electrum-appimage-builder-cont \
-        -v $PWD:/opt/electrum \
+        --name electrum-mona-appimage-builder-cont \
+        -v $PWD:/opt/electrum-mona \
         --rm \
-        --workdir /opt/electrum/contrib/build-linux/appimage \
-        electrum-appimage-builder-img \
+        --workdir /opt/electrum-mona/contrib/build-linux/appimage \
+        electrum-mona-appimage-builder-img \
         ./build.sh
     ```
 
