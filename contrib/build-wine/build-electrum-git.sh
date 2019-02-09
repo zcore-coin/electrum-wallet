@@ -20,7 +20,7 @@ cd tmp
 
 pushd $WINEPREFIX/drive_c/electrum-mona
 
-# Load electrum-icons and electrum-locale for this release
+# Load electrum-locale for this release
 git submodule init
 git submodule update
 
@@ -42,9 +42,7 @@ popd
 find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
-cp $WINEPREFIX/drive_c/electrum-mona/LICENCE .
-cp -r $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-locale/locale $WINEPREFIX/drive_c/electrum-mona/electrum_mona/
-cp $WINEPREFIX/drive_c/electrum-mona/contrib/deterministic-build/electrum-icons/icons_rc.py $WINEPREFIX/drive_c/electrum-mona/electrum_mona/gui/qt/
+cp $WINEPREFIX/drive_c/electrum/LICENCE .
 
 # Install frozen dependencies
 $PYTHON -m pip install -r ../../deterministic-build/requirements.txt
@@ -52,7 +50,7 @@ $PYTHON -m pip install -r ../../deterministic-build/requirements.txt
 $PYTHON -m pip install -r ../../deterministic-build/requirements-hw.txt
 
 pushd $WINEPREFIX/drive_c/electrum-mona
-$PYTHON setup.py install
+$PYTHON -m pip install .
 popd
 
 cd ..
@@ -80,4 +78,4 @@ mv electrum-mona-setup.exe $NAME_ROOT-$VERSION-setup.exe
 cd ..
 
 echo "Done."
-md5sum dist/electrum*exe
+sha256sum dist/electrum*exe

@@ -3,9 +3,9 @@
 # Parameterize
 PYTHON_VERSION=3.6.4
 BUILDDIR=/tmp/electrum-mona-build
-PACKAGE=Electrum-MONA
+PACKAGE=ElectrumMONA
 GIT_REPO=https://github.com/wakiyamap/electrum-mona
-LIBSECP_VERSION=452d8e4d2a2f9f1b5be6b02e18f1ba102e5ca0b4
+LIBSECP_VERSION="b408c6a8b287003d1ade5709e6f7bc3c7f1d5be7"
 
 . $(dirname "$0")/base.sh
 
@@ -48,8 +48,14 @@ pyenv global $PYTHON_VERSION || \
 fail "Unable to use Python $PYTHON_VERSION"
 
 
+info "install dependencies specific to binaries"
+# note that this also installs pinned versions of both pip and setuptools
+python3 -m pip install -Ir ./contrib/deterministic-build/requirements-binaries.txt --user \
+    || fail "Could not install pyinstaller"
+
+
 info "Installing pyinstaller"
-python3 -m pip install -I --user pyinstaller==3.4 || fail "Could not install pyinstaller"
+python3 -m pip install -I --user pyinstaller==3.4 --no-use-pep517 || fail "Could not install pyinstaller"
 
 info "Using these versions for building $PACKAGE:"
 sw_vers
@@ -66,7 +72,6 @@ rm  -rf $BUILDDIR > /dev/null 2>&1
 mkdir $BUILDDIR
 
 cp -R ./contrib/deterministic-build/electrum-locale/locale/ ./electrum_mona/locale/
-cp    ./contrib/deterministic-build/electrum-icons/icons_rc.py ./electrum_mona/gui/qt/
 
 
 info "Downloading libusb..."
@@ -99,8 +104,7 @@ DoCodeSignMaybe "CalinsQRReader.app" "${d}/build/Release/CalinsQRReader.app" "$A
 
 
 info "Installing requirements..."
-python3 -m pip install -Ir ./contrib/deterministic-build/requirements.txt --user && \
-python3 -m pip install -Ir ./contrib/deterministic-build/requirements-binaries.txt --user || \
+python3 -m pip install -Ir ./contrib/deterministic-build/requirements.txt --user || \
 fail "Could not install requirements"
 
 info "Installing hardware wallet requirements..."
@@ -108,7 +112,7 @@ python3 -m pip install -Ir ./contrib/deterministic-build/requirements-hw.txt --u
 fail "Could not install hardware wallet requirements"
 
 info "Building $PACKAGE..."
-python3 setup.py install --user > /dev/null || fail "Could not build $PACKAGE"
+python3 -m pip install --user . > /dev/null || fail "Could not build $PACKAGE"
 
 info "Faking timestamps..."
 for d in ~/Library/Python/ ~/.pyenv .; do

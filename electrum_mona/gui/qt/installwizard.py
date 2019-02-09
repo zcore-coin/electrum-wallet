@@ -154,12 +154,12 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox.setStretchFactor(scroll, 1)
         outer_vbox.addLayout(hbox)
         outer_vbox.addLayout(Buttons(self.back_button, self.next_button))
-        self.set_icon(':icons/electrum.png')
+        self.set_icon('electrum.png')
         self.show()
         self.raise_()
         self.refresh_gui()  # Need for QT on MacOSX.  Lame.
 
-    def run_and_get_wallet(self, get_wallet_from_daemon):
+    def select_storage(self, path, get_wallet_from_daemon):
 
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
@@ -183,6 +183,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         vbox.addLayout(hbox2)
         self.set_layout(vbox, title=_('Electrum-mona wallet'))
 
+        self.storage = WalletStorage(path, manual_upgrades=True)
         wallet_folder = os.path.dirname(self.storage.path)
 
         def on_choose():
@@ -272,7 +273,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
                             None, _('Error'),
                             _('Failed to decrypt using this hardware device.') + '\n' +
                             _('If you use a passphrase, make sure it is correct.'))
-                        self.stack = []
+                        self.reset_stack()
                         return self.run_and_get_wallet(get_wallet_from_daemon)
                     except BaseException as e:
                         traceback.print_exc(file=sys.stdout)
@@ -284,7 +285,9 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
                         return
                 else:
                     raise Exception('Unexpected encryption version')
+        return True
 
+    def run_and_get_wallet(self):
         path = self.storage.path
         if self.storage.requires_split():
             self.hide()
@@ -329,7 +332,8 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
     def set_icon(self, filename):
         prior_filename, self.icon_filename = self.icon_filename, filename
-        self.logo.setPixmap(QPixmap(filename).scaledToWidth(60, mode=Qt.SmoothTransformation))
+        self.logo.setPixmap(QPixmap(icon_path(filename))
+                            .scaledToWidth(60, mode=Qt.SmoothTransformation))
         return prior_filename
 
     def set_layout(self, layout, title=None, next_enabled=True):

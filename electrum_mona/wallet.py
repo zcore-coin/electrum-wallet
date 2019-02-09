@@ -126,7 +126,7 @@ def sweep_preparations(privkeys, network: 'Network', imax=100):
 
 
 def sweep(privkeys, network: 'Network', config: 'SimpleConfig', recipient, fee=None, imax=100,
-          *, locktime=None):
+          *, locktime=None, tx_version=None):
     inputs, keypairs = sweep_preparations(privkeys, network, imax)
     total = sum(i.get('value') for i in inputs)
     if fee is None:
@@ -142,7 +142,7 @@ def sweep(privkeys, network: 'Network', config: 'SimpleConfig', recipient, fee=N
     if locktime is None:
         locktime = get_locktime_for_new_transaction(network)
 
-    tx = Transaction.from_io(inputs, outputs, locktime=locktime)
+    tx = Transaction.from_io(inputs, outputs, locktime=locktime, version=tx_version)
     # monacoin's rbf is disabled 
     # tx.set_rbt(True)
     tx.set_rbf(False)
@@ -446,6 +446,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 'height': tx_mined_status.height,
                 'confirmations': tx_mined_status.conf,
                 'timestamp': timestamp,
+                'incoming': True if value>0 else False,
                 'value': Satoshis(value),
                 'balance': Satoshis(balance),
                 'date': timestamp_to_datetime(timestamp),
@@ -525,6 +526,7 @@ class Abstract_Wallet(AddressSynchronizer):
         fiat_rate = self.price_at_timestamp(tx_hash, fx.timestamp_rate)
         fiat_value = fiat_value if fiat_value is not None else self.default_fiat_value(tx_hash, fx, value)
         fiat_fee = tx_fee / Decimal(COIN) * fiat_rate if tx_fee is not None else None
+        item['fiat_rate'] = Fiat(fiat_rate, fx.ccy)
         item['fiat_value'] = Fiat(fiat_value, fx.ccy)
         item['fiat_fee'] = Fiat(fiat_fee, fx.ccy) if fiat_fee else None
         item['fiat_default'] = fiat_default
@@ -721,11 +723,13 @@ class Abstract_Wallet(AddressSynchronizer):
         return tx
 
     def mktx(self, outputs, password, config, fee=None, change_addr=None,
-             domain=None, rbf=False, nonlocal_only=False):
+             domain=None, rbf=False, nonlocal_only=False, *, tx_version=None):
         coins = self.get_spendable_coins(domain, config, nonlocal_only=nonlocal_only)
         tx = self.make_unsigned_transaction(coins, outputs, config, fee, change_addr)
         #tx.set_rbf(rbf)
         tx.set_rbf(False)
+        if tx_version is not None:
+            tx.version = tx_version
         self.sign_transaction(tx, password)
         return tx
 

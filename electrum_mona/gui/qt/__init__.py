@@ -49,14 +49,6 @@ from electrum_mona.util import (UserCancelled, PrintError, profiler,
 from .installwizard import InstallWizard
 
 
-try:
-    from . import icons_rc
-except Exception as e:
-    print(e)
-    print("Error: Could not find icons file.")
-    print("Please run 'pyrcc5 icons.qrc -o electrum_mona/gui/qt/icons_rc.py'")
-    sys.exit(1)
-
 from .util import *   # * needed for plugins
 from .main_window import ElectrumWindow
 from .network_dialog import NetworkDialog
@@ -105,6 +97,7 @@ class ElectrumGui(PrintError):
         self.efilter = OpenFileEventFilter(self.windows)
         self.app = QElectrumApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
+        self.app.setWindowIcon(read_QIcon("electrum.png"))
         # timer
         self.timer = QTimer(self.app)
         self.timer.setSingleShot(False)
@@ -160,9 +153,9 @@ class ElectrumGui(PrintError):
 
     def tray_icon(self):
         if self.dark_icon:
-            return QIcon(':icons/electrum_dark_icon.png')
+            return read_QIcon('electrum_dark_icon.png')
         else:
-            return QIcon(':icons/electrum_light_icon.png')
+            return read_QIcon('electrum_light_icon.png')
 
     def toggle_tray_icon(self):
         self.dark_icon = not self.dark_icon
@@ -236,10 +229,10 @@ class ElectrumGui(PrintError):
             else:
                 return
         if not wallet:
-            storage = WalletStorage(path, manual_upgrades=True)
-            wizard = InstallWizard(self.config, self.app, self.plugins, storage)
+            wizard = InstallWizard(self.config, self.app, self.plugins, None)
             try:
-                wallet = wizard.run_and_get_wallet(self.daemon.get_wallet)
+                if wizard.select_storage(path, self.daemon.get_wallet):
+                    wallet = wizard.run_and_get_wallet()
             except UserCancelled:
                 pass
             except GoBack as e:

@@ -98,7 +98,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         vbox.addWidget(QLabel(_("Transaction ID:")))
         self.tx_hash_e  = ButtonsLineEdit()
         qr_show = lambda: parent.show_qrcode(str(self.tx_hash_e.text()), 'Transaction ID', parent=self)
-        qr_icon = ":icons/qrcode_white.png" if ColorScheme.dark_scheme else ":icons/qrcode.png"
+        qr_icon = "qrcode_white.png" if ColorScheme.dark_scheme else "qrcode.png"
         self.tx_hash_e.addButton(qr_icon, qr_show, _("Show as QR code"))
         self.tx_hash_e.setReadOnly(True)
         vbox.addWidget(self.tx_hash_e)
@@ -140,7 +140,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         b.setDefault(True)
 
         self.qr_button = b = QPushButton()
-        b.setIcon(QIcon(qr_icon))
+        b.setIcon(read_QIcon(qr_icon))
         b.clicked.connect(self.show_qr)
 
         self.copy_button = CopyButton(lambda: str(self.tx), parent.app)

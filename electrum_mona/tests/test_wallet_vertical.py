@@ -579,7 +579,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet1 -> wallet2
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet2.get_receiving_address(), 250000)]
-        tx = wallet1.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet1.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
 
         self.assertTrue(tx.is_complete())
         self.assertTrue(tx.is_segwit())
@@ -599,7 +599,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet2 -> wallet1
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet1.get_receiving_address(), 100000)]
-        tx = wallet2.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet2.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
 
         self.assertTrue(tx.is_complete())
         self.assertFalse(tx.is_segwit())
@@ -652,7 +652,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet1 -> wallet2
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet2.get_receiving_address(), 370000)]
-        tx = wallet1a.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet1a.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
         tx = Transaction(tx.serialize())  # simulates moving partial txn between cosigners
         self.assertFalse(tx.is_complete())
         wallet1b.sign_transaction(tx, password=None)
@@ -675,7 +675,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet2 -> wallet1
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet1a.get_receiving_address(), 100000)]
-        tx = wallet2.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet2.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
 
         self.assertTrue(tx.is_complete())
         self.assertFalse(tx.is_segwit())
@@ -743,7 +743,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet1 -> wallet2
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet2a.get_receiving_address(), 165000)]
-        tx = wallet1a.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet1a.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
         txid = tx.txid()
         tx = Transaction(tx.serialize())  # simulates moving partial txn between cosigners
         self.assertEqual(txid, tx.txid())
@@ -769,7 +769,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet2 -> wallet1
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet1a.get_receiving_address(), 100000)]
-        tx = wallet2a.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet2a.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
         txid = tx.txid()
         tx = Transaction(tx.serialize())  # simulates moving partial txn between cosigners
         self.assertEqual(txid, tx.txid())
@@ -823,7 +823,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet1 -> wallet2
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet2.get_receiving_address(), 1000000)]
-        tx = wallet1a.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet1a.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
 
         self.assertTrue(tx.is_complete())
         self.assertFalse(tx.is_segwit())
@@ -843,7 +843,7 @@ class TestWalletSending(TestCaseForTestnet):
 
         # wallet2 -> wallet1
         outputs = [TxOutput(bitcoin.TYPE_ADDRESS, wallet1a.get_receiving_address(), 300000)]
-        tx = wallet2.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
+        tx = wallet2.mktx(outputs=outputs, password=None, config=self.config, fee=5000, tx_version=1)
 
         self.assertTrue(tx.is_complete())
         self.assertTrue(tx.is_segwit())
@@ -883,6 +883,7 @@ class TestWalletSending(TestCaseForTestnet):
         tx = wallet.make_unsigned_transaction(coins, outputs, config=self.config, fixed_fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325501
+        tx.version = 1
         wallet.sign_transaction(tx, password=None)
 
         self.assertTrue(tx.is_complete())
@@ -904,6 +905,7 @@ class TestWalletSending(TestCaseForTestnet):
         # bump tx
         tx = wallet.bump_fee(tx=Transaction(tx.serialize()), delta=5000)
         tx.locktime = 1325501
+        tx.version = 1
         self.assertFalse(tx.is_complete())
 
         wallet.sign_transaction(tx, password=None)
@@ -934,6 +936,7 @@ class TestWalletSending(TestCaseForTestnet):
         tx = wallet.cpfp(funding_tx, fee=50000)
         tx.set_rbf(True)
         tx.locktime = 1325502
+        tx.version = 1
         wallet.sign_transaction(tx, password=None)
 
         self.assertTrue(tx.is_complete())
@@ -969,6 +972,7 @@ class TestWalletSending(TestCaseForTestnet):
         tx = wallet.make_unsigned_transaction(coins, outputs, config=self.config, fixed_fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325499
+        tx.version = 1
         wallet.sign_transaction(tx, password=None)
 
         self.assertTrue(tx.is_complete())
@@ -990,6 +994,7 @@ class TestWalletSending(TestCaseForTestnet):
         # bump tx
         tx = wallet.bump_fee(tx=Transaction(tx.serialize()), delta=5000)
         tx.locktime = 1325500
+        tx.version = 1
         self.assertFalse(tx.is_complete())
 
         wallet.sign_transaction(tx, password=None)
@@ -1020,6 +1025,7 @@ class TestWalletSending(TestCaseForTestnet):
         tx = wallet.cpfp(funding_tx, fee=50000)
         tx.set_rbf(True)
         tx.locktime = 1325501
+        tx.version = 1
         wallet.sign_transaction(tx, password=None)
 
         self.assertTrue(tx.is_complete())
@@ -1054,7 +1060,7 @@ class TestWalletSending(TestCaseForTestnet):
         privkeys = ['93NQ7CFbwTPyKDJLXe97jczw33fiLijam2SCZL3Uinz1NSbHrTu', ]
         network = NetworkMock()
         dest_addr = 'tmona1qtuynwzd0d6wptvyqmc6ehkm70zcamxpstvxpnz'
-        tx = sweep(privkeys, network, config=None, recipient=dest_addr, fee=5000, locktime=1325785)
+        tx = sweep(privkeys, network, config=None, recipient=dest_addr, fee=5000, locktime=1325785, tx_version=1)
 
         tx_copy = Transaction(tx.serialize())
         self.assertEqual('010000000129349e5641d79915e9d0282fdbaee8c3df0b6731bab9d70bf626e8588bde24ac01000000484730440220631ba847b49184781ad0162b9c3ea777abe436b361dabbf7032a81f62e80d5c202200ee882e8c45e89d71bee47f81a2b0b32085137502fec7d019684a708af8ff7f501feffffff01b82e0f00000000001600145f093709af6e9c15b080de359bdb7e78b1dd9830d93a1400',
@@ -1099,6 +1105,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1446655
+        tx.version = 1
 
         self.assertFalse(tx.is_complete())
         self.assertFalse(tx.is_segwit())
@@ -1141,6 +1148,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325340
+        tx.version = 1
 
         self.assertFalse(tx.is_complete())
         self.assertFalse(tx.is_segwit())
@@ -1181,6 +1189,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325341
+        tx.version = 1
 
         self.assertFalse(tx.is_complete())
         self.assertTrue(tx.is_segwit())
@@ -1222,6 +1231,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325341
+        tx.version = 1
 
         self.assertFalse(tx.is_complete())
         self.assertTrue(tx.is_segwit())
@@ -1258,6 +1268,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325340
+        tx.version = 1
 
         self.assertFalse(tx.is_complete())
         self.assertEqual(1, len(tx.inputs()))
@@ -1363,6 +1374,7 @@ class TestWalletOfflineSigning(TestCaseForTestnet):
         tx = wallet_online.mktx(outputs=outputs, password=None, config=self.config, fee=5000)
         tx.set_rbf(True)
         tx.locktime = 1325340
+        tx.version = 1
 
         self.assertFalse(tx.is_complete())
         self.assertEqual(1, len(tx.inputs()))

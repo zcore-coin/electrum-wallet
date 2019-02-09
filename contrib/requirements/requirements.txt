@@ -6,7 +6,7 @@ dnspython
 jsonrpclib-pelix
 qdarkstyle<2.6
 aiorpcx>=0.9,<0.11
-aiohttp
+aiohttp>=3.3.0
 aiohttp_socks
 certifi
 lyra2re2_hash==1.1.2

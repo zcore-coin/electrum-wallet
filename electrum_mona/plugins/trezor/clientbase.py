@@ -147,7 +147,7 @@ class TrezorClientBase(PrintError):
         else:
             msg = _("Confirm on your {} device to set a PIN")
         with self.run_flow(msg):
-            trezorlib.device.change_pin(remove)
+            trezorlib.device.change_pin(self.client, remove)
 
     def clear_session(self):
         '''Clear the session to force pin (and passphrase if enabled)
@@ -224,7 +224,7 @@ class TrezorClientBase(PrintError):
 
     def button_request(self, code):
         message = self.msg or MESSAGES.get(code) or MESSAGES['default']
-        self.handler.show_error(message.format(self.device), self.client.cancel)
+        self.handler.show_message(message.format(self.device), self.client.cancel)
 
     def get_pin(self, code=None):
         if code == 2:

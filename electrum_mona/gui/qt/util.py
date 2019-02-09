@@ -5,20 +5,17 @@ import sys
 import platform
 import queue
 import traceback
-from distutils.version import StrictVersion
-from functools import partial
+
+from functools import partial, lru_cache
 from typing import NamedTuple, Callable, Optional, TYPE_CHECKING
-import base64
 
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from electrum_mona import version
-from electrum_mona import ecc
-from electrum_mona import constants
 from electrum_mona.i18n import _, languages
-from electrum_mona.util import FileImportFailed, FileExportFailed, make_aiohttp_session, PrintError
+from electrum_mona.util import (FileImportFailed, FileExportFailed,
+                           resource_path)
 from electrum_mona.paymentrequest import PR_UNPAID, PR_PAID, PR_EXPIRED
 
 if TYPE_CHECKING:
@@ -36,9 +33,9 @@ else:
 dialogs = []
 
 pr_icons = {
-    PR_UNPAID:":icons/unpaid.png",
-    PR_PAID:":icons/confirmed.png",
-    PR_EXPIRED:":icons/expired.png"
+    PR_UNPAID:"unpaid.png",
+    PR_PAID:"confirmed.png",
+    PR_EXPIRED:"expired.png"
 }
 
 pr_tooltips = {
@@ -429,8 +426,6 @@ class MyTreeView(QTreeView):
         self.customContextMenuRequested.connect(create_menu)
         self.setUniformRowHeights(True)
 
-        self.icon_cache = IconCache()
-
         # Control which columns are editable
         if editable_columns is None:
             editable_columns = {stretch_column}
@@ -599,8 +594,9 @@ class ButtonsWidget(QWidget):
 
     def addButton(self, icon_name, on_click, tooltip):
         button = QToolButton(self)
-        button.setIcon(QIcon(icon_name))
+        button.setIcon(read_QIcon(icon_name))
         button.setIconSize(QSize(25,25))
+        button.setCursor(QCursor(Qt.PointingHandCursor))
         button.setStyleSheet("QToolButton { border: none; hover {border: 1px} pressed {border: 1px} padding: 0px; }")
         button.setVisible(True)
         button.setToolTip(tooltip)
@@ -610,7 +606,7 @@ class ButtonsWidget(QWidget):
 
     def addCopyButton(self, app):
         self.app = app
-        self.addButton(":icons/copy.png", self.on_copy, _("Copy to clipboard"))
+        self.addButton("copy.png", self.on_copy, _("Copy to clipboard"))
 
     def on_copy(self):
         self.app.clipboard().setText(self.text())
@@ -795,15 +791,14 @@ def get_parent_main_window(widget):
             return widget
     return None
 
-class IconCache:
 
-    def __init__(self):
-        self.__cache = {}
+def icon_path(icon_basename):
+    return resource_path('gui', 'icons', icon_basename)
 
-    def get(self, file_name):
-        if file_name not in self.__cache:
-            self.__cache[file_name] = QIcon(file_name)
-        return self.__cache[file_name]
+
+@lru_cache(maxsize=1000)
+def read_QIcon(icon_basename):
+    return QIcon(icon_path(icon_basename))
 
 
 def get_default_language():
@@ -825,123 +820,6 @@ class FromList(QTreeWidget):
         sm = QHeaderView.ResizeToContents
         self.header().setSectionResizeMode(0, sm)
         self.header().setSectionResizeMode(1, sm)
-
-
-class UpdateCheck(QWidget, PrintError):
-    url = "https://electrum-mona.org/version"
-    download_url = "https://electrum-mona.org"
-
-    VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
-        "MUJ1nBxpAzdGdNhTN1x3MCtyeBa4DbdqpK",
-    )
-
-    def __init__(self, main_window, latest_version=None):
-        self.main_window = main_window
-        QWidget.__init__(self)
-        self.setWindowTitle('Electrum-mona - ' + _('Update Check'))
-        self.content = QVBoxLayout()
-        self.content.setContentsMargins(*[10]*4)
-
-        self.heading_label = QLabel()
-        self.content.addWidget(self.heading_label)
-
-        self.detail_label = QLabel()
-        self.detail_label.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
-        self.detail_label.setOpenExternalLinks(True)
-        self.content.addWidget(self.detail_label)
-
-        self.pb = QProgressBar()
-        self.pb.setMaximum(0)
-        self.pb.setMinimum(0)
-        self.content.addWidget(self.pb)
-
-        versions = QHBoxLayout()
-        versions.addWidget(QLabel(_("Current version: {}".format(version.ELECTRUM_VERSION))))
-        self.latest_version_label = QLabel(_("Latest version: {}".format(" ")))
-        versions.addWidget(self.latest_version_label)
-        self.content.addLayout(versions)
-
-        self.update_view(latest_version)
-
-        self.update_check_thread = UpdateCheckThread(self.main_window)
-        self.update_check_thread.checked.connect(self.on_version_retrieved)
-        self.update_check_thread.failed.connect(self.on_retrieval_failed)
-        self.update_check_thread.start()
-
-        close_button = QPushButton(_("Close"))
-        close_button.clicked.connect(self.close)
-        self.content.addWidget(close_button)
-        self.setLayout(self.content)
-        self.show()
-
-    def on_version_retrieved(self, version):
-        self.update_view(version)
-
-    def on_retrieval_failed(self):
-        self.heading_label.setText('<h2>' + _("Update check failed") + '</h2>')
-        self.detail_label.setText(_("Sorry, but we were unable to check for updates. Please try again later."))
-        self.pb.hide()
-
-    @staticmethod
-    def is_newer(latest_version):
-        return latest_version > StrictVersion(version.ELECTRUM_VERSION)
-
-    def update_view(self, latest_version=None):
-        if latest_version:
-            self.pb.hide()
-            self.latest_version_label.setText(_("Latest version: {}".format(latest_version)))
-            if self.is_newer(latest_version):
-                self.heading_label.setText('<h2>' + _("There is a new update available") + '</h2>')
-                url = "<a href='{u}'>{u}</a>".format(u=UpdateCheck.download_url)
-                self.detail_label.setText(_("You can download the new version from {}.").format(url))
-            else:
-                self.heading_label.setText('<h2>' + _("Already up to date") + '</h2>')
-                self.detail_label.setText(_("You are already on the latest version of Electrum."))
-        else:
-            self.heading_label.setText('<h2>' + _("Checking for updates...") + '</h2>')
-            self.detail_label.setText(_("Please wait while Electrum checks for available updates."))
-
-
-class UpdateCheckThread(QThread, PrintError):
-    checked = pyqtSignal(object)
-    failed = pyqtSignal()
-
-    def __init__(self, main_window):
-        super().__init__()
-        self.main_window = main_window
-
-    async def get_update_info(self):
-        async with make_aiohttp_session(proxy=self.main_window.network.proxy) as session:
-            async with session.get(UpdateCheck.url) as result:
-                signed_version_dict = await result.json(content_type=None)
-                # example signed_version_dict:
-                # {
-                #     "version": "3.9.9",
-                #     "signatures": {
-                #         "MRkEwoPcvSPaC5WNtQMa7NGPy2tBKbp3Bm": "H84UFTdaBswxTrNty0gLlWiQEQhJA2Se5xVdhR9zFirKYg966IXEkC7km6phIJq+2CT3KwvKuj8YKaSCy1fErwg="
-                #     }
-                # }
-                version_num = signed_version_dict['version']
-                sigs = signed_version_dict['signatures']
-                for address, sig in sigs.items():
-                    if address not in UpdateCheck.VERSION_ANNOUNCEMENT_SIGNING_KEYS:
-                        continue
-                    sig = base64.b64decode(sig)
-                    msg = version_num.encode('utf-8')
-                    if ecc.verify_message_with_address(address=address, sig65=sig, message=msg,
-                                                       net=constants.BitcoinMainnet):
-                        self.print_error(f"valid sig for version announcement '{version_num}' from address '{address}'")
-                        break
-                else:
-                    raise Exception('no valid signature for version announcement')
-                return StrictVersion(version_num.strip())
-
-    def run(self):
-        try:
-            self.checked.emit(asyncio.run_coroutine_threadsafe(self.get_update_info(), self.main_window.network.asyncio_loop).result())
-        except Exception:
-            self.print_error(traceback.format_exc())
-            self.failed.emit()
 
 
 if __name__ == "__main__":
