@@ -492,7 +492,7 @@ class Blockchain(util.PrintError):
         return new_bits
 
 
-    def get_target_dgwv3(self, height, chain=None):
+    def get_target_dgwv3(self, height, chain=None) -> int:
 
         last = chain.get(height - 1)
         #last = self.read_header(height - 1)
@@ -556,7 +556,7 @@ class Blockchain(util.PrintError):
         return bnNew
 
 
-    def get_target(self, height, chain=None):
+    def get_target(self, height, chain=None) -> int:
         if constants.net.TESTNET:
             return 0
         elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
