@@ -1,9 +1,14 @@
+from functools import partial
+
 #from btchip.btchipPersoWizard import StartBTChipPersoDialog
+
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QInputDialog, QLabel, QVBoxLayout, QLineEdit
 
 from electrum_mona.i18n import _
 from electrum_mona.plugin import hook
 from electrum_mona.wallet import Standard_Wallet
-from electrum_mona.gui.qt.util import *
+from electrum_mona.gui.qt.util import WindowModalDialog
 
 from .ledger import LedgerPlugin
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase

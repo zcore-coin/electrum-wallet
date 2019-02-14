@@ -1,8 +1,9 @@
-from PyQt5.QtGui import *
+import random
+
 from PyQt5.QtWidgets import (QVBoxLayout, QGridLayout, QPushButton)
+
 from electrum_mona.plugin import BasePlugin, hook
 from electrum_mona.i18n import _
-import random
 
 
 class Plugin(BasePlugin):

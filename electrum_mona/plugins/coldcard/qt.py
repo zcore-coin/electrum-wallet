@@ -1,9 +1,13 @@
 import time
+from functools import partial
+
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QPushButton, QLabel, QVBoxLayout, QWidget, QGridLayout
 
 from electrum_mona.i18n import _
 from electrum_mona.plugin import hook
 from electrum_mona.wallet import Standard_Wallet
-from electrum_mona.gui.qt.util import *
+from electrum_mona.gui.qt.util import WindowModalDialog, CloseButton, get_parent_main_window
 
 from .coldcard import ColdcardPlugin
 from ..hw_wallet.qt import QtHandlerBase, QtPluginBase

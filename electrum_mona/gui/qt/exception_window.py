@@ -27,8 +27,8 @@ import traceback
 
 from PyQt5.QtCore import QObject
 import PyQt5.QtCore as QtCore
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QTextEdit,
+                             QMessageBox, QHBoxLayout, QVBoxLayout)
 
 from electrum_mona.i18n import _
 from electrum_mona.base_crash_reporter import BaseCrashReporter
