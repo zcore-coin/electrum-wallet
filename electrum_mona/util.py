@@ -659,6 +659,8 @@ mainnet_block_explorers = {
 }
 
 testnet_block_explorers = {
+    'testnet.blockbook.electrum-mona.org': ('https://testnet-blockbook.electrum-mona.org/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
     'insight.monaco-ex.org': ('https://testnet-mona.insight.monaco-ex.org/insight/',
                         {'tx': 'tx/', 'addr': 'address/'}),
     'system default': ('blockchain:',
