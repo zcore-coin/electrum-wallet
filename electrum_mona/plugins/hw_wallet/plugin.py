@@ -26,9 +26,9 @@
 
 from electrum_mona.plugin import BasePlugin, hook
 from electrum_mona.i18n import _
-from electrum_mona.bitcoin import is_address, TYPE_SCRIPT
+from electrum_mona.bitcoin import is_address, TYPE_SCRIPT, opcodes
 from electrum_mona.util import bfh, versiontuple, UserFacingException
-from electrum_mona.transaction import opcodes, TxOutput, Transaction
+from electrum_mona.transaction import TxOutput, Transaction
 
 
 class HW_PluginBase(BasePlugin):

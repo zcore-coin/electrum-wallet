@@ -30,7 +30,8 @@ from PyQt5.QtGui import QFontMetrics
 
 from electrum_mona import bitcoin
 from electrum_mona.util import bfh, PrintError
-from electrum_mona.transaction import TxOutput
+from electrum_mona.transaction import TxOutput, push_script
+from electrum_mona.bitcoin import opcodes
 
 from .qrtextedit import ScanQRTextEdit
 from .completion_text_edit import CompletionTextEdit
@@ -91,12 +92,10 @@ class PayToEdit(CompletionTextEdit, ScanQRTextEdit, PrintError):
             return bitcoin.TYPE_SCRIPT, script
 
     def parse_script(self, x):
-        from electrum_mona.transaction import opcodes, push_script
         script = ''
         for word in x.split():
             if word[0:3] == 'OP_':
-                assert word in opcodes.lookup
-                opcode_int = opcodes.lookup[word]
+                opcode_int = opcodes[word]
                 assert opcode_int < 256  # opcode is single-byte
                 script += bitcoin.int_to_hex(opcode_int)
             else:

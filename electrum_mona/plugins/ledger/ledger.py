@@ -3,8 +3,9 @@ import hashlib
 import sys
 import traceback
 
+from electrum_mona import ecc
 from electrum_mona.bitcoin import TYPE_ADDRESS, int_to_hex, var_int
-from electrum_mona.bip32 import serialize_xpub
+from electrum_mona.bip32 import BIP32Node
 from electrum_mona.i18n import _
 from electrum_mona.keystore import Hardware_KeyStore
 from electrum_mona.transaction import Transaction
@@ -112,8 +113,12 @@ class Ledger_Client():
         depth = len(splitPath)
         lastChild = splitPath[len(splitPath) - 1].split('\'')
         childnum = int(lastChild[0]) if len(lastChild) == 1 else 0x80000000 | int(lastChild[0])
-        xpub = serialize_xpub(xtype, nodeData['chainCode'], publicKey, depth, self.i4b(fingerprint), self.i4b(childnum))
-        return xpub
+        return BIP32Node(xtype=xtype,
+                         eckey=ecc.ECPubkey(publicKey),
+                         chaincode=nodeData['chainCode'],
+                         depth=depth,
+                         fingerprint=self.i4b(fingerprint),
+                         child_number=self.i4b(childnum)).to_xpub()
 
     def has_detached_pin_support(self, client):
         try:
@@ -490,7 +495,7 @@ class Ledger_KeyStore(Hardware_KeyStore):
             self.handler.show_error(_('Cancelled by user'))
             return
         except BTChipException as e:
-            if e.sw == 0x6985:  # cancelled by user
+            if e.sw in (0x6985, 0x6d00):  # cancelled by user
                 return
             elif e.sw == 0x6982:
                 raise  # pin lock. decorator will catch it

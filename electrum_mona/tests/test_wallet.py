@@ -4,15 +4,17 @@ import sys
 import os
 import json
 from decimal import Decimal
-from unittest import TestCase
 import time
 
 from io import StringIO
-from electrum_mona.storage import WalletStorage, FINAL_SEED_VERSION
-from electrum_mona.wallet import Abstract_Wallet
+from electrum_mona.storage import WalletStorage
+from electrum_mona.json_db import FINAL_SEED_VERSION
+from electrum_mona.wallet import (Abstract_Wallet, Standard_Wallet, create_new_wallet,
+                             restore_wallet_from_text)
 from electrum_mona.exchange_rate import ExchangeBase, FxThread
 from electrum_mona.util import TxMinedInfo
 from electrum_mona.bitcoin import COIN
+from electrum_mona.json_db import JsonDB
 
 from . import SequentialTestCase
 
@@ -73,7 +75,9 @@ class TestWalletStorage(WalletTestCase):
 
         with open(self.wallet_path, "r") as f:
             contents = f.read()
-        self.assertEqual(some_dict, json.loads(contents))
+        d = json.loads(contents)
+        for key, value in some_dict.items():
+            self.assertEqual(d[key], value)
 
 class FakeExchange(ExchangeBase):
     def __init__(self, rate):
@@ -94,7 +98,8 @@ class FakeWallet:
     def __init__(self, fiat_value):
         super().__init__()
         self.fiat_value = fiat_value
-        self.transactions = self.verified_tx = {'abc': 'Tx'}
+        self.db = JsonDB("{}", manual_upgrades=True)
+        self.db.transactions = self.db.verified_tx = {'abc':'Tx'}
 
     def get_tx_height(self, txid):
         # because we use a current timestamp, and history is empty,
@@ -109,8 +114,9 @@ class FakeWallet:
 txid = 'abc'
 ccy = 'TEST'
 
-class TestFiat(TestCase):
+class TestFiat(SequentialTestCase):
     def setUp(self):
+        super().setUp()
         self.value_sat = COIN
         self.fiat_value = {}
         self.wallet = FakeWallet(fiat_value=self.fiat_value)
@@ -138,3 +144,69 @@ class TestFiat(TestCase):
     def test_save_garbage(self):
         self.assertEqual(False, Abstract_Wallet.set_fiat_value(self.wallet, txid, ccy, 'garbage', self.fx, self.value_sat))
         self.assertNotIn(ccy, self.fiat_value)
+
+
+class TestCreateRestoreWallet(WalletTestCase):
+
+    def test_create_new_wallet(self):
+        passphrase = 'mypassphrase'
+        password = 'mypassword'
+        encrypt_file = True
+        d = create_new_wallet(path=self.wallet_path,
+                              passphrase=passphrase,
+                              password=password,
+                              encrypt_file=encrypt_file,
+                              segwit=True)
+        wallet = d['wallet']  # type: Standard_Wallet
+        wallet.check_password(password)
+        self.assertEqual(passphrase, wallet.keystore.get_passphrase(password))
+        self.assertEqual(d['seed'], wallet.keystore.get_seed(password))
+        self.assertEqual(encrypt_file, wallet.storage.is_encrypted())
+
+    def test_restore_wallet_from_text_mnemonic(self):
+        text = 'bitter grass shiver impose acquire brush forget axis eager alone wine silver'
+        passphrase = 'mypassphrase'
+        password = 'mypassword'
+        encrypt_file = True
+        d = restore_wallet_from_text(text,
+                                     path=self.wallet_path,
+                                     network=None,
+                                     passphrase=passphrase,
+                                     password=password,
+                                     encrypt_file=encrypt_file)
+        wallet = d['wallet']  # type: Standard_Wallet
+        self.assertEqual(passphrase, wallet.keystore.get_passphrase(password))
+        self.assertEqual(text, wallet.keystore.get_seed(password))
+        self.assertEqual(encrypt_file, wallet.storage.is_encrypted())
+        self.assertEqual('mona1q2ccr34wzep58d4239tl3x3734ttle92arr4e30', wallet.get_receiving_addresses()[0])
+
+    def test_restore_wallet_from_text_xpub(self):
+        text = 'zpub6nsHdRuY92FsMKdbn9BfjBCG6X8pyhCibNP6uDvpnw2cyrVhecvHRMa3Ne8kdJZxjxgwnpbHLkcR4bfnhHy6auHPJyDTQ3kianeuVLdkCYQ'
+        d = restore_wallet_from_text(text, path=self.wallet_path, network=None)
+        wallet = d['wallet']  # type: Standard_Wallet
+        self.assertEqual(text, wallet.keystore.get_master_public_key())
+        self.assertEqual('mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', wallet.get_receiving_addresses()[0])
+
+    def test_restore_wallet_from_text_xprv(self):
+        text = 'zprvAZswDvNeJeha8qZ8g7efN3FXYVJLaEUsE9TW6qXDEbVe74AZ75c2sZFZXPNFzxnhChDQ89oC8C5AjWwHmH1HeRKE1c4kKBQAmjUDdKDUZw2'
+        d = restore_wallet_from_text(text, path=self.wallet_path, network=None)
+        wallet = d['wallet']  # type: Standard_Wallet
+        self.assertEqual(text, wallet.keystore.get_master_private_key(password=None))
+        self.assertEqual('mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', wallet.get_receiving_addresses()[0])
+
+    def test_restore_wallet_from_text_addresses(self):
+        text = 'mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j'
+        d = restore_wallet_from_text(text, path=self.wallet_path, network=None)
+        wallet = d['wallet']  # type: Abstract_Wallet
+        self.assertEqual('mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', wallet.get_receiving_addresses()[0])
+        self.assertEqual(2, len(wallet.get_receiving_addresses()))
+
+    def test_restore_wallet_from_text_privkeys(self):
+        text = 'p2wpkh:T6v5Q8KEmjLmJoTxPfXfyNcCEFYC7Lfmwmp9Y8dce9knevo9ZkPk p2wpkh:TAgoypi14k5Y54svysG62xp5QFRWiF1W64zxaFRFPo2jMPSMoa5D'
+        d = restore_wallet_from_text(text, path=self.wallet_path, network=None)
+        wallet = d['wallet']  # type: Abstract_Wallet
+        addr0 = wallet.get_receiving_addresses()[0]
+        self.assertEqual('mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', addr0)
+        self.assertEqual('p2wpkh:T6v5Q8KEmjLmJoTxPfXfyNcCEFYC7Lfmwmp9Y8dce9knevo9ZkPk',
+                         wallet.export_private_key(addr0, password=None)[0])
+        self.assertEqual(2, len(wallet.get_receiving_addresses()))
