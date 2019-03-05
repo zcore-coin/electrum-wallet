@@ -28,7 +28,7 @@ import json
 import copy
 import threading
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Optional
 
 from . import util, bitcoin
 from .util import PrintError, profiler, WalletFileException, multisig_type, TxMinedInfo
@@ -41,6 +41,13 @@ OLD_SEED_VERSION = 4        # electrum versions < 2.0
 NEW_SEED_VERSION = 11       # electrum versions >= 2.0
 FINAL_SEED_VERSION = 18     # electrum >= 2.7 will set this to prevent
                             # old versions from overwriting new format
+
+
+class JsonDBJsonEncoder(util.MyEncoder):
+    def default(self, obj):
+        if isinstance(obj, Transaction):
+            return str(obj)
+        return super().default(obj)
 
 
 class JsonDB(PrintError):
@@ -88,8 +95,8 @@ class JsonDB(PrintError):
     @modifier
     def put(self, key, value):
         try:
-            json.dumps(key, cls=util.MyEncoder)
-            json.dumps(value, cls=util.MyEncoder)
+            json.dumps(key, cls=JsonDBJsonEncoder)
+            json.dumps(value, cls=JsonDBJsonEncoder)
         except:
             self.print_error(f"json error: cannot save {repr(key)} ({repr(value)})")
             return False
@@ -98,6 +105,12 @@ class JsonDB(PrintError):
                 self.data[key] = copy.deepcopy(value)
                 return True
         elif key in self.data:
+            # clear current contents in case of references
+            cur_val = self.data[key]
+            clear_method = getattr(cur_val, "clear", None)
+            if callable(clear_method):
+                clear_method()
+            # pop from dict to delete key
             self.data.pop(key)
             return True
         return False
@@ -107,7 +120,7 @@ class JsonDB(PrintError):
 
     @locked
     def dump(self):
-        return json.dumps(self.data, indent=4, sort_keys=True, cls=util.MyEncoder)
+        return json.dumps(self.data, indent=4, sort_keys=True, cls=JsonDBJsonEncoder)
 
     def load_data(self, s):
         try:
@@ -392,11 +405,9 @@ class JsonDB(PrintError):
 
         self.put('pruned_txo', None)
 
-        from .transaction import Transaction
-        transactions = self.get('transactions', {})  # txid -> raw_tx
+        transactions = self.get('transactions', {})  # txid -> Transaction
         spent_outpoints = defaultdict(dict)
-        for txid, raw_tx in transactions.items():
-            tx = Transaction(raw_tx)
+        for txid, tx in transactions.items():
             for txin in tx.inputs():
                 if txin['type'] == 'coinbase':
                     continue
@@ -576,18 +587,17 @@ class JsonDB(PrintError):
         self.spent_outpoints[prevout_hash][str(prevout_n)] = tx_hash
 
     @modifier
-    def add_transaction(self, tx_hash, tx):
-        self.transactions[tx_hash] = str(tx)
+    def add_transaction(self, tx_hash: str, tx: Transaction) -> None:
+        assert isinstance(tx, Transaction)
+        self.transactions[tx_hash] = tx
 
     @modifier
-    def remove_transaction(self, tx_hash):
-        tx = self.transactions.pop(tx_hash, None)
-        return Transaction(tx) if tx else None
+    def remove_transaction(self, tx_hash) -> Optional[Transaction]:
+        return self.transactions.pop(tx_hash, None)
 
     @locked
-    def get_transaction(self, tx_hash):
-        tx = self.transactions.get(tx_hash)
-        return Transaction(tx) if tx else None
+    def get_transaction(self, tx_hash: str) -> Optional[Transaction]:
+        return self.transactions.get(tx_hash)
 
     @locked
     def list_transactions(self):
@@ -596,6 +606,10 @@ class JsonDB(PrintError):
     @locked
     def get_history(self):
         return list(self.history.keys())
+
+    def is_addr_in_history(self, addr):
+        # does not mean history is non-empty!
+        return addr in self.history
 
     @locked
     def get_addr_history(self, addr):
@@ -632,6 +646,9 @@ class JsonDB(PrintError):
     def remove_verified_tx(self, txid):
         self.verified_tx.pop(txid, None)
 
+    def is_in_verified_tx(self, txid):
+        return txid in self.verified_tx
+
     @modifier
     def update_tx_fees(self, d):
         return self.tx_fees.update(d)
@@ -650,16 +667,86 @@ class JsonDB(PrintError):
             self.data[name] = {}
         return self.data[name]
 
+    @locked
+    def num_change_addresses(self):
+        return len(self.change_addresses)
+
+    @locked
+    def num_receiving_addresses(self):
+        return len(self.receiving_addresses)
+
+    @locked
+    def get_change_addresses(self):
+        return list(self.change_addresses)
+
+    @locked
+    def get_receiving_addresses(self):
+        return list(self.receiving_addresses)
+
+    @modifier
+    def add_change_address(self, addr):
+        self._addr_to_addr_index[addr] = (True, len(self.change_addresses))
+        self.change_addresses.append(addr)
+
+    @modifier
+    def add_receiving_address(self, addr):
+        self._addr_to_addr_index[addr] = (False, len(self.receiving_addresses))
+        self.receiving_addresses.append(addr)
+
+    @locked
+    def get_address_index(self, address):
+        return self._addr_to_addr_index.get(address)
+
+    @modifier
+    def add_imported_address(self, addr, d):
+        self.imported_addresses[addr] = d
+
+    @modifier
+    def remove_imported_address(self, addr):
+        self.imported_addresses.pop(addr)
+
+    @locked
+    def has_imported_address(self, addr):
+        return addr in self.imported_addresses
+
+    @locked
+    def get_imported_addresses(self):
+        return list(sorted(self.imported_addresses.keys()))
+
+    @locked
+    def get_imported_address(self, addr):
+        return self.imported_addresses.get(addr)
+
+    def load_addresses(self, wallet_type):
+        """ called from Abstract_Wallet.__init__ """
+        if wallet_type == 'imported':
+            self.imported_addresses = self.get_data_ref('addresses')
+        else:
+            self.get_data_ref('addresses')
+            for name in ['receiving', 'change']:
+                if name not in self.data['addresses']:
+                    self.data['addresses'][name] = []
+            self.change_addresses = self.data['addresses']['change']
+            self.receiving_addresses = self.data['addresses']['receiving']
+            self._addr_to_addr_index = {}  # key: address, value: (is_change, index)
+            for i, addr in enumerate(self.receiving_addresses):
+                self._addr_to_addr_index[addr] = (False, i)
+            for i, addr in enumerate(self.change_addresses):
+                self._addr_to_addr_index[addr] = (True, i)
+
     @profiler
     def load_transactions(self):
         # references in self.data
-        self.txi = self.get_data_ref('txi')  # txid -> address -> (prev_outpoint, value)
-        self.txo = self.get_data_ref('txo')  # txid -> address -> (output_index, value, is_coinbase)
+        self.txi = self.get_data_ref('txi')  # txid -> address -> list of (prev_outpoint, value)
+        self.txo = self.get_data_ref('txo')  # txid -> address -> list of (output_index, value, is_coinbase)
         self.transactions = self.get_data_ref('transactions')   # type: Dict[str, Transaction]
         self.spent_outpoints = self.get_data_ref('spent_outpoints')
-        self.history = self.get_data_ref('addr_history')  # address -> list(txid, height)
-        self.verified_tx = self.get_data_ref('verified_tx3') # txid -> TxMinedInfo.  Access with self.lock.
+        self.history = self.get_data_ref('addr_history')  # address -> list of (txid, height)
+        self.verified_tx = self.get_data_ref('verified_tx3')  # txid -> (height, timestamp, txpos, header_hash)
         self.tx_fees = self.get_data_ref('tx_fees')
+        # convert raw hex transactions to Transaction objects
+        for tx_hash, raw_tx in self.transactions.items():
+            self.transactions[tx_hash] = Transaction(raw_tx)
         # convert list to set
         for t in self.txi, self.txo:
             for d in t.values():

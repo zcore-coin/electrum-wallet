@@ -76,6 +76,8 @@ class AddressSynchronizer(PrintError):
         # thread local storage for caching stuff
         self.threadlocal_cache = threading.local()
 
+        self._get_addr_balance_cache = {}
+
         self.load_and_cleanup()
 
     def with_transaction_lock(func):
@@ -91,7 +93,7 @@ class AddressSynchronizer(PrintError):
         self.remove_local_transactions_we_dont_have()
 
     def is_mine(self, address):
-        return address in self.db.get_history()
+        return self.db.is_addr_in_history(address)
 
     def get_addresses(self):
         return sorted(self.db.get_history())
@@ -146,6 +148,10 @@ class AddressSynchronizer(PrintError):
         if self.network is not None:
             self.synchronizer = Synchronizer(self)
             self.verifier = SPV(self.network, self)
+            self.network.register_callback(self.on_blockchain_updated, ['blockchain_updated'])
+
+    def on_blockchain_updated(self, event, *args):
+        self._get_addr_balance_cache = {}  # invalidate cache
 
     def stop_threads(self, write_to_disk=True):
         if self.network:
@@ -155,12 +161,13 @@ class AddressSynchronizer(PrintError):
             if self.verifier:
                 asyncio.run_coroutine_threadsafe(self.verifier.stop(), self.network.asyncio_loop)
                 self.verifier = None
+            self.network.unregister_callback(self.on_blockchain_updated)
             self.storage.put('stored_height', self.get_local_height())
         if write_to_disk:
             self.storage.write()
 
     def add_address(self, address):
-        if address not in self.db.get_history():
+        if not self.db.get_addr_history(address):
             self.db.history[address] = []
             self.set_up_to_date(False)
         if self.synchronizer:
@@ -183,7 +190,7 @@ class AddressSynchronizer(PrintError):
                 if spending_tx_hash is None:
                     continue
                 # this outpoint has already been spent, by spending_tx
-                assert spending_tx_hash in self.db.list_transactions()
+                assert self.db.get_transaction(spending_tx_hash)
                 conflicting_txns |= {spending_tx_hash}
             if tx_hash in conflicting_txns:
                 # this tx is already in history, so it conflicts with itself
@@ -252,6 +259,7 @@ class AddressSynchronizer(PrintError):
                         if n == prevout_n:
                             if addr and self.is_mine(addr):
                                 self.db.add_txi_addr(tx_hash, addr, ser, v)
+                                self._get_addr_balance_cache.pop(addr, None)  # invalidate cache
                             return
             for txi in tx.inputs():
                 if txi['type'] == 'coinbase':
@@ -263,11 +271,12 @@ class AddressSynchronizer(PrintError):
                 add_value_from_prev_output()
             # add outputs
             for n, txo in enumerate(tx.outputs()):
-                v = txo[2]
+                v = txo.value
                 ser = tx_hash + ':%d'%n
                 addr = self.get_txout_address(txo)
                 if addr and self.is_mine(addr):
                     self.db.add_txo_addr(tx_hash, addr, n, v, is_coinbase)
+                    self._get_addr_balance_cache.pop(addr, None)  # invalidate cache
                     # give v to txi that spends me
                     next_tx = self.db.get_spent_outpoint(tx_hash, n)
                     if next_tx is not None:
@@ -302,6 +311,8 @@ class AddressSynchronizer(PrintError):
             tx = self.db.remove_transaction(tx_hash)
             remove_from_spent_outpoints()
             self._remove_tx_from_local_history(tx_hash)
+            for addr in itertools.chain(self.db.get_txi(tx_hash), self.db.get_txo(tx_hash)):
+                self._get_addr_balance_cache.pop(addr, None)  # invalidate cache
             self.db.remove_txi(tx_hash)
             self.db.remove_txo(tx_hash)
 
@@ -374,22 +385,21 @@ class AddressSynchronizer(PrintError):
     def remove_local_transactions_we_dont_have(self):
         for txid in itertools.chain(self.db.list_txi(), self.db.list_txo()):
             tx_height = self.get_tx_height(txid).height
-            if tx_height == TX_HEIGHT_LOCAL and txid not in self.db.list_transactions():
+            if tx_height == TX_HEIGHT_LOCAL and not self.db.get_transaction(txid):
                 self.remove_transaction(txid)
 
     def clear_history(self):
         with self.lock:
             with self.transaction_lock:
                 self.db.clear_history()
-                self.storage.modified = True  # FIXME hack..
                 self.storage.write()
 
     def get_txpos(self, tx_hash):
         """Returns (height, txpos) tuple, even if the tx is unverified."""
         with self.lock:
-            if tx_hash in self.db.list_verified_tx():
-                info = self.db.get_verified_tx(tx_hash)
-                return info.height, info.txpos
+            verified_tx_mined_info = self.db.get_verified_tx(tx_hash)
+            if verified_tx_mined_info:
+                return verified_tx_mined_info.height, verified_tx_mined_info.txpos
             elif tx_hash in self.unverified_tx:
                 height = self.unverified_tx[tx_hash]
                 return (height, 0) if height > 0 else ((1e9 - height), 0)
@@ -485,7 +495,7 @@ class AddressSynchronizer(PrintError):
         await self._address_history_changed_events[addr].wait()
 
     def add_unverified_tx(self, tx_hash, tx_height):
-        if tx_hash in self.db.list_verified_tx():
+        if self.db.is_in_verified_tx(tx_hash):
             if tx_height in (TX_HEIGHT_UNCONFIRMED, TX_HEIGHT_UNCONF_PARENT):
                 with self.lock:
                     self.db.remove_verified_tx(tx_hash)
@@ -548,10 +558,10 @@ class AddressSynchronizer(PrintError):
 
     def get_tx_height(self, tx_hash: str) -> TxMinedInfo:
         with self.lock:
-            if tx_hash in self.db.list_verified_tx():
-                info = self.db.get_verified_tx(tx_hash)
-                conf = max(self.get_local_height() - info.height + 1, 0)
-                return info._replace(conf=conf)
+            verified_tx_mined_info = self.db.get_verified_tx(tx_hash)
+            if verified_tx_mined_info:
+                conf = max(self.get_local_height() - verified_tx_mined_info.height + 1, 0)
+                return verified_tx_mined_info._replace(conf=conf)
             elif tx_hash in self.unverified_tx:
                 height = self.unverified_tx[tx_hash]
                 return TxMinedInfo(height=height, conf=0)
@@ -709,6 +719,9 @@ class AddressSynchronizer(PrintError):
         """Return the balance of a bitcoin address:
         confirmed and matured, unconfirmed, unmatured
         """
+        cached_value = self._get_addr_balance_cache.get(address)
+        if cached_value:
+            return cached_value
         received, sent = self.get_addr_io(address)
         c = u = x = 0
         local_height = self.get_local_height()
@@ -724,7 +737,12 @@ class AddressSynchronizer(PrintError):
                     c -= v
                 else:
                     u -= v
-        return c, u, x
+        result = c, u, x
+        # cache result.
+        # Cache needs to be invalidated if a transaction is added to/
+        # removed from history; or on new blocks (maturity...)
+        self._get_addr_balance_cache[address] = result
+        return result
 
     @with_local_height_cached
     def get_utxos(self, domain=None, excluded=None, mature=False, confirmed_only=False, nonlocal_only=False):

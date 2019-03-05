@@ -28,7 +28,7 @@ import sys
 import copy
 import traceback
 from functools import partial
-from typing import List, TYPE_CHECKING, Tuple, NamedTuple, Any
+from typing import List, TYPE_CHECKING, Tuple, NamedTuple, Any, Dict, Optional
 
 from . import bitcoin
 from . import keystore
@@ -61,6 +61,7 @@ class GoBack(Exception): pass
 class WizardStackItem(NamedTuple):
     action: Any
     args: Any
+    kwargs: Dict[str, Any]
     storage_data: dict
 
 
@@ -81,21 +82,21 @@ class BaseWizard(object):
     def set_icon(self, icon):
         pass
 
-    def run(self, *args):
+    def run(self, *args, **kwargs):
         action = args[0]
         args = args[1:]
         storage_data = copy.deepcopy(self.data)
-        self._stack.append(WizardStackItem(action, args, storage_data))
+        self._stack.append(WizardStackItem(action, args, kwargs, storage_data))
         if not action:
             return
         if type(action) is tuple:
             self.plugin, action = action
         if self.plugin and hasattr(self.plugin, action):
             f = getattr(self.plugin, action)
-            f(self, *args)
+            f(self, *args, **kwargs)
         elif hasattr(self, action):
             f = getattr(self, action)
-            f(*args)
+            f(*args, **kwargs)
         else:
             raise Exception("unknown action", action)
 
@@ -113,7 +114,7 @@ class BaseWizard(object):
         # FIXME only self.storage is properly restored
         self.data = copy.deepcopy(stack_item.storage_data)
         # rerun 'previous' frame
-        self.run(stack_item.action, *stack_item.args)
+        self.run(stack_item.action, *stack_item.args, **stack_item.kwargs)
 
     def reset_stack(self):
         self._stack = []
@@ -136,7 +137,7 @@ class BaseWizard(object):
         exc = None
         def on_finished():
             if exc is None:
-                self.terminate()
+                self.terminate(storage=storage)
             else:
                 raise exc
         def do_upgrade():
@@ -298,7 +299,8 @@ class BaseWizard(object):
                 _('Debug message') + '\n',
                 debug_msg
             ])
-            self.confirm_dialog(title=title, message=msg, run_next= lambda x: self.choose_hw_device(purpose))
+            self.confirm_dialog(title=title, message=msg,
+                                run_next=lambda x: self.choose_hw_device(purpose, storage=storage))
             return
         # select device
         self.devices = devices
@@ -325,15 +327,15 @@ class BaseWizard(object):
                             + _('Please try again.'))
             devmgr = self.plugins.device_manager
             devmgr.unpair_id(device_info.device.id_)
-            self.choose_hw_device(purpose)
+            self.choose_hw_device(purpose, storage=storage)
             return
         except (UserCancelled, GoBack):
-            self.choose_hw_device(purpose)
+            self.choose_hw_device(purpose, storage=storage)
             return
         except BaseException as e:
             traceback.print_exc(file=sys.stderr)
             self.show_error(str(e))
-            self.choose_hw_device(purpose)
+            self.choose_hw_device(purpose, storage=storage)
             return
         if purpose == HWD_SETUP_NEW_WALLET:
             def f(derivation, script_type):
@@ -568,6 +570,9 @@ class BaseWizard(object):
         storage.write()
         storage.load_plugins()
         return storage
+
+    def terminate(self, *, storage: Optional[WalletStorage] = None):
+        raise NotImplementedError()  # implemented by subclasses
 
     def show_xpub_and_add_cosigners(self, xpub):
         self.show_xpub_dialog(xpub=xpub, run_next=lambda x: self.run('choose_keystore'))

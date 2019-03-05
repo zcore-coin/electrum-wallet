@@ -54,7 +54,6 @@ class WalletStorage(PrintError):
         self._file_exists = self.path and os.path.exists(self.path)
 
         DB_Class = JsonDB
-        self.path = path
         self.print_error("wallet path", self.path)
         self.pubkey = None
         if self.file_exists():
@@ -119,7 +118,10 @@ class WalletStorage(PrintError):
             if encryption is disabled completely (self.is_encrypted() == False),
             or if encryption is enabled but the contents have already been decrypted.
         """
-        return bool(self.data)
+        try:
+            return bool(self.db.data)
+        except AttributeError:
+            return False
 
     def is_encrypted(self):
         """Return if storage encryption is currently enabled."""
@@ -217,6 +219,8 @@ class WalletStorage(PrintError):
         self.db.set_modified(True)
 
     def requires_upgrade(self):
+        if not self.is_past_initial_decryption():
+            raise Exception("storage not yet decrypted!")
         return self.db.requires_upgrade()
 
     def upgrade(self):
@@ -234,19 +238,10 @@ class WalletStorage(PrintError):
             storage = WalletStorage(path)
             storage.db.data = data
             storage.db.upgrade()
-            storage.modified = True
             storage.write()
             out.append(path)
         return out
 
     def get_action(self):
         action = run_hook('get_action', self)
-        if self.file_exists() and self.requires_upgrade():
-            if action:
-                raise WalletFileException('Incomplete wallet files cannot be upgraded.')
-            return 'upgrade_storage'
-        if action:
-            return action
-        if not self.file_exists():
-            return 'new'
-
+        return action
