@@ -138,7 +138,9 @@ class Commands:
 
     @command('')
     def create(self, passphrase=None, password=None, encrypt_file=True, segwit=False):
-        """Create a new wallet"""
+        """Create a new wallet.
+        If you want to be prompted for an argument, type '?' or ':' (concealed)
+        """
         d = create_new_wallet(path=self.config.get_wallet_path(),
                               passphrase=passphrase,
                               password=password,
@@ -153,9 +155,10 @@ class Commands:
     @command('')
     def restore(self, text, passphrase=None, password=None, encrypt_file=True):
         """Restore a wallet from text. Text can be a seed phrase, a master
-        public key, a master private key, a list of monacoin addresses
-        or monacoin private keys. If you want to be prompted for your
-        seed, type '?' or ':' (concealed) """
+        public key, a master private key, a list of bitcoin addresses
+        or bitcoin private keys.
+        If you want to be prompted for an argument, type '?' or ':' (concealed)
+        """
         d = restore_wallet_from_text(text,
                                      path=self.config.get_wallet_path(),
                                      passphrase=passphrase,
@@ -306,12 +309,12 @@ class Commands:
     @command('w')
     def freeze(self, address):
         """Freeze address. Freeze the funds at one of your wallet\'s addresses"""
-        return self.wallet.set_frozen_state([address], True)
+        return self.wallet.set_frozen_state_of_addresses([address], True)
 
     @command('w')
     def unfreeze(self, address):
         """Unfreeze address. Unfreeze the funds at one of your wallet\'s address"""
-        return self.wallet.set_frozen_state([address], False)
+        return self.wallet.set_frozen_state_of_addresses([address], False)
 
     @command('wp')
     def getprivatekeys(self, address, password=None):
@@ -542,7 +545,7 @@ class Commands:
         """List wallet addresses. Returns the list of all addresses in your wallet. Use optional arguments to filter the results."""
         out = []
         for addr in self.wallet.get_addresses():
-            if frozen and not self.wallet.is_frozen(addr):
+            if frozen and not self.wallet.is_frozen_address(addr):
                 continue
             if receiving and self.wallet.is_change(addr):
                 continue
@@ -734,6 +737,19 @@ class Commands:
         for tx_hash in to_delete:
             self.wallet.remove_transaction(tx_hash)
         self.wallet.storage.write()
+
+    @command('wn')
+    def get_tx_status(self, txid):
+        """Returns some information regarding the tx. For now, only confirmations.
+        The transaction must be related to the wallet.
+        """
+        if not is_hash256_str(txid):
+            raise Exception(f"{repr(txid)} is not a txid")
+        if not self.wallet.db.get_transaction(txid):
+            raise Exception("Transaction not in wallet.")
+        return {
+            "confirmations": self.wallet.get_tx_height(txid).conf,
+        }
 
     @command('')
     def help(self):
