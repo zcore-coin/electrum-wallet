@@ -467,7 +467,32 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 _("This means you will not be able to spend Bitcoins with it."),
                 _("Make sure you own the seed phrase or the private keys, before you request Bitcoins to be sent to this wallet.")
             ])
-            self.show_warning(msg, title=_('Information'))
+            self.show_warning(msg, title=_('Watch-only wallet'))
+
+    def warn_if_testnet(self):
+        if not constants.net.TESTNET:
+            return
+        # user might have opted out already
+        if self.config.get('dont_show_testnet_warning', False):
+            return
+        # only show once per process lifecycle
+        if getattr(self.gui_object, '_warned_testnet', False):
+            return
+        self.gui_object._warned_testnet = True
+        msg = ''.join([
+            _("You are in testnet mode."), ' ',
+            _("Testnet coins are worthless."), '\n',
+            _("Testnet is separate from the main Bitcoin network. It is used for testing.")
+        ])
+        cb = QCheckBox(_("Don't show this again."))
+        cb_checked = False
+        def on_cb(x):
+            nonlocal cb_checked
+            cb_checked = x == Qt.Checked
+        cb.stateChanged.connect(on_cb)
+        self.show_warning(msg, title=_('Testnet'), checkbox=cb)
+        if cb_checked:
+            self.config.set_key('dont_show_testnet_warning', True)
 
     def open_wallet(self):
         try:
@@ -732,6 +757,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         return text
 
     def format_fee_rate(self, fee_rate):
+        # fee_rate is in sat/kB
         return format_fee_satoshis(fee_rate/1000, num_zeros=self.num_zeros) + ' sat/byte'
 
     def get_decimal_point(self):
@@ -2668,14 +2694,22 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             if bitcoin.is_address(addr):
                 return addr
 
-        def get_pk():
+        def get_pk(*, raise_on_error=False):
             text = str(keys_e.toPlainText())
-            return keystore.get_private_keys(text)
+            return keystore.get_private_keys(text, raise_on_error=raise_on_error)
 
-        f = lambda: button.setEnabled(get_address() is not None and get_pk() is not None)
+        def on_edit():
+            valid_privkeys = False
+            try:
+                valid_privkeys = get_pk(raise_on_error=True) is not None
+            except Exception as e:
+                button.setToolTip(f'{_("Error")}: {str(e)}')
+            else:
+                button.setToolTip('')
+            button.setEnabled(get_address() is not None and valid_privkeys)
         on_address = lambda text: address_e.setStyleSheet((ColorScheme.DEFAULT if get_address() else ColorScheme.RED).as_stylesheet())
-        keys_e.textChanged.connect(f)
-        address_e.textChanged.connect(f)
+        keys_e.textChanged.connect(on_edit)
+        address_e.textChanged.connect(on_edit)
         address_e.textChanged.connect(on_address)
         on_address(str(address_e.text()))
         if not d.exec_():
@@ -3275,6 +3309,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def cpfp(self, parent_tx, new_tx):
         total_size = parent_tx.estimated_size() + new_tx.estimated_size()
+        parent_fee = self.wallet.get_tx_fee(parent_tx)
+        if parent_fee is None:
+            self.show_error(_("Can't CPFP: unknown fee for parent transaction."))
+            return
         d = WindowModalDialog(self, _('Child Pays for Parent'))
         vbox = QVBoxLayout(d)
         msg = (
@@ -3299,21 +3337,42 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(output_amount, 2, 1)
         fee_e = BTCAmountEdit(self.get_decimal_point)
         # FIXME with dyn fees, without estimates, there are all kinds of crashes here
-        def f(x):
-            a = max_fee - fee_e.get_amount()
-            output_amount.setText((self.format_amount(a) + ' ' + self.base_unit()) if a else '')
-        fee_e.textChanged.connect(f)
-        fee = self.config.fee_per_kb() * total_size / 1000
+        combined_fee = QLabel('')
+        combined_feerate = QLabel('')
+        def on_fee_edit(x):
+            out_amt = max_fee - fee_e.get_amount()
+            out_amt_str = (self.format_amount(out_amt) + ' ' + self.base_unit()) if out_amt else ''
+            output_amount.setText(out_amt_str)
+            comb_fee = parent_fee + fee_e.get_amount()
+            comb_fee_str = (self.format_amount(comb_fee) + ' ' + self.base_unit()) if comb_fee else ''
+            combined_fee.setText(comb_fee_str)
+            comb_feerate = comb_fee / total_size * 1000
+            comb_feerate_str = self.format_fee_rate(comb_feerate) if comb_feerate else ''
+            combined_feerate.setText(comb_feerate_str)
+        fee_e.textChanged.connect(on_fee_edit)
+        def get_child_fee_from_total_feerate(fee_per_kb):
+            fee = fee_per_kb * total_size / 1000 - parent_fee
+            fee = min(max_fee, fee)
+            fee = max(total_size, fee)  # pay at least 1 sat/byte for combined size
+            return fee
+        suggested_feerate = self.config.fee_per_kb()
+        if suggested_feerate is None:
+            self.show_error(f'''{_("Can't CPFP'")}: {_('Dynamic fee estimates not available')}''')
+            return
+        fee = get_child_fee_from_total_feerate(suggested_feerate)
         fee_e.setAmount(fee)
-        grid.addWidget(QLabel(_('Fee' + ':')), 3, 0)
+        grid.addWidget(QLabel(_('Fee for child') + ':'), 3, 0)
         grid.addWidget(fee_e, 3, 1)
         def on_rate(dyn, pos, fee_rate):
-            fee = fee_rate * total_size / 1000
-            fee = min(max_fee, fee)
+            fee = get_child_fee_from_total_feerate(fee_rate)
             fee_e.setAmount(fee)
         fee_slider = FeeSlider(self, self.config, on_rate)
         fee_slider.update()
         grid.addWidget(fee_slider, 4, 1)
+        grid.addWidget(QLabel(_('Total fee') + ':'), 5, 0)
+        grid.addWidget(combined_fee, 5, 1)
+        grid.addWidget(QLabel(_('Total feerate') + ':'), 6, 0)
+        grid.addWidget(combined_feerate, 6, 1)
         vbox.addLayout(grid)
         vbox.addLayout(Buttons(CancelButton(d), OkButton(d)))
         if not d.exec_():
@@ -3328,7 +3387,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.show_transaction(new_tx)
 
     def bump_fee_dialog(self, tx):
-        is_relevant, is_mine, v, fee = self.wallet.get_wallet_delta(tx)
+        fee = self.wallet.get_tx_fee(tx)
         if fee is None:
             self.show_error(_("Can't bump fee: unknown fee for original transaction."))
             return
