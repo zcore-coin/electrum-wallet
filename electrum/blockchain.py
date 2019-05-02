@@ -22,18 +22,18 @@
 # SOFTWARE.
 import os
 import threading
+import zny_yespower_0_5
 from typing import Optional, Dict
 
 from . import util
 from .bitcoin import hash_encode, int_to_hex, rev_hex
-from .crypto import sha256d
 from . import constants
 from .util import bfh, bh2u
 from .simple_config import SimpleConfig
 
 
 HEADER_SIZE = 80  # bytes
-MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+MAX_TARGET = 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
 
 class MissingHeader(Exception):
@@ -76,7 +76,7 @@ def hash_header(header: dict) -> str:
 
 
 def hash_raw_header(header: str) -> str:
-    return hash_encode(sha256d(bfh(header)))
+    return hash_encode(zny_yespower_0_5.getPoWHash(bfh(header)))
 
 
 # key: blockhash hex at forkpoint
@@ -451,6 +451,66 @@ class Blockchain(util.PrintError):
                 raise MissingHeader(height)
             return hash_header(header)
 
+    def get_target_dgwv3(self, height, chain=None):
+
+        last = chain.get(height - 1)
+        #last = self.read_header(height - 1)
+        if last is None:
+            last = self.read_header(height - 1)
+            #last = chain.get(height - 1)
+
+        # params
+        BlockLastSolved = last
+        BlockReading = last
+        BlockCreating = height
+        nActualTimespan = 0
+        LastBlockTime = 0
+        PastBlocksMin = 24
+        PastBlocksMax = 24
+        CountBlocks = 0
+        PastDifficultyAverage = 0
+        PastDifficultyAveragePrev = 0
+        bnNum = 0
+
+        # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
+        if height < len(self.checkpoints)*2016 + PastBlocksMax:
+            return 0, 0
+        for i in range(1, PastBlocksMax + 1):
+            CountBlocks += 1
+
+            if CountBlocks <= PastBlocksMin:
+                if CountBlocks == 1:
+                    PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
+                else:
+                    bnNum = self.bits_to_target(BlockReading.get('bits'))
+                    PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
+                PastDifficultyAveragePrev = PastDifficultyAverage
+
+            if LastBlockTime > 0:
+                Diff = (LastBlockTime - BlockReading.get('timestamp'))
+                nActualTimespan += Diff
+            LastBlockTime = BlockReading.get('timestamp')
+
+            BlockReading = chain.get((height-1) - CountBlocks)
+            #BlockReading = self.read_header((height-1) - CountBlocks)
+            if BlockReading is None:
+                BlockReading = self.read_header((height-1) - CountBlocks)
+                #BlockReading = chain.get((height-1) - CountBlocks)
+
+
+        bnNew = PastDifficultyAverage
+        nTargetTimespan = CountBlocks * 90 #1.5 miniutes
+
+        nActualTimespan = max(nActualTimespan, nTargetTimespan//3)
+        nActualTimespan = min(nActualTimespan, nTargetTimespan*3)
+
+        # retarget
+        bnNew *= nActualTimespan
+        bnNew //= nTargetTimespan
+        bnNew = min(bnNew, MAX_TARGET)
+
+        return bnNew
+
     def get_target(self, index: int) -> int:
         # compute target from chunk x, used in chunk x+1
         if constants.net.TESTNET:
@@ -461,20 +521,7 @@ class Blockchain(util.PrintError):
             h, t = self.checkpoints[index]
             return t
         # new target
-        first = self.read_header(index * 2016)
-        last = self.read_header(index * 2016 + 2015)
-        if not first or not last:
-            raise MissingHeader()
-        bits = last.get('bits')
-        target = self.bits_to_target(bits)
-        nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 14 * 24 * 60 * 60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan // 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        new_target = min(MAX_TARGET, (target * nActualTimespan) // nTargetTimespan)
-        # not any target can be represented in 32 bits:
-        new_target = self.bits_to_target(self.target_to_bits(new_target))
-        return new_target
+        return self.get_target_dgwv3(height, chain)
 
     @classmethod
     def bits_to_target(cls, bits: int) -> int:

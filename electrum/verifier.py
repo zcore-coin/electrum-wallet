@@ -25,9 +25,9 @@ import asyncio
 from typing import Sequence, Optional, TYPE_CHECKING
 
 import aiorpcx
+import zny_yespower_0_5
 
 from .util import bh2u, TxMinedInfo, NetworkJobOnDefaultServer
-from .crypto import sha256d
 from .bitcoin import hash_decode, hash_encode
 from .transaction import Transaction
 from .blockchain import hash_header
@@ -149,7 +149,7 @@ class SPV(NetworkJobOnDefaultServer):
             raise MerkleVerificationFailure(e)
 
         for i, item in enumerate(merkle_branch_bytes):
-            h = sha256d(item + h) if ((leaf_pos_in_tree >> i) & 1) else sha256d(h + item)
+            h = zny_yespower_0_5.getPoWHash(item + h) if ((leaf_pos_in_tree >> i) & 1) else zny_yespower_0_5.getPoWHash(h + item)
             cls._raise_if_valid_tx(bh2u(h))
         return hash_encode(h)
 
