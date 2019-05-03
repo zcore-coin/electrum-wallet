@@ -469,8 +469,12 @@ class Blockchain(util.PrintError):
         PastTargetAvg = 0
         bnTarget = 0
 
+        # DGWv3 PastBlocks = 24 Because checkpoint don't have preblock data.
+        if height < len(self.checkpoints)*2016 + PastBlocks:
+            return 0, 0
+
         if last is None or height-1 < PastBlocks:
-            return 0x1e0fffff, MAX_TARGET
+            return 0x1e3fffff, MAX_TARGET
 
         for CountBlocks in range(1, PastBlocks):
             bnTarget = self.bits_to_target(pindex.get('bits'))
