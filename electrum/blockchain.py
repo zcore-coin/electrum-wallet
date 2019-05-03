@@ -462,46 +462,33 @@ class Blockchain(util.PrintError):
             #last = chain.get(height - 1)
 
         # params
-        BlockLastSolved = last
-        BlockReading = last
-        BlockCreating = height
+        pindex = last
         nActualTimespan = 0
-        LastBlockTime = 0
-        PastBlocksMin = 24
-        PastBlocksMax = 24
+        PastBlocks = 24
         CountBlocks = 0
-        PastDifficultyAverage = 0
-        PastDifficultyAveragePrev = 0
-        bnNum = 0
+        PastTargetAvg = 0
+        bnTarget = 0
 
-        # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
-        if height < len(self.checkpoints)*2016 + PastBlocksMax:
-            return 0, 0
-        for i in range(1, PastBlocksMax + 1):
-            CountBlocks += 1
+        if last is None or height-1 < PastBlocks:
+            return 0x1e0fffff, MAX_TARGET
 
-            if CountBlocks <= PastBlocksMin:
-                if CountBlocks == 1:
-                    PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
-                else:
-                    bnNum = self.bits_to_target(BlockReading.get('bits'))
-                    PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
-                PastDifficultyAveragePrev = PastDifficultyAverage
+        for CountBlocks in range(1, PastBlocks):
+            bnTarget = self.bits_to_target(pindex.get('bits'))
+            PastTargetAvg += bnTarget
 
-            if LastBlockTime > 0:
-                Diff = (LastBlockTime - BlockReading.get('timestamp'))
-                nActualTimespan += Diff
-            LastBlockTime = BlockReading.get('timestamp')
+            pindex = chain.get((height-1) - CountBlocks)
+            #pindex = self.read_header((height-1) - CountBlocks)
+            if pindex is None:
+                pindex = self.read_header((height-1) - CountBlocks)
+                #pindex = chain.get((height-1) - CountBlocks)
 
-            BlockReading = chain.get((height-1) - CountBlocks)
-            #BlockReading = self.read_header((height-1) - CountBlocks)
-            if BlockReading is None:
-                BlockReading = self.read_header((height-1) - CountBlocks)
-                #BlockReading = chain.get((height-1) - CountBlocks)
+        PastTargetAvg //= PastBlocks
 
+        bnNew = PastTargetAvg
 
-        bnNew = PastDifficultyAverage
-        nTargetTimespan = CountBlocks * 90 #1.5 miniutes
+        nActualTimespan = last.get('timestamp') - pindex.get('timestamp')
+
+        nTargetTimespan = PastBlocks * 90 #1.5 miniutes
 
         nActualTimespan = max(nActualTimespan, nTargetTimespan//3)
         nActualTimespan = min(nActualTimespan, nTargetTimespan*3)
