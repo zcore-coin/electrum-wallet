@@ -271,7 +271,7 @@ class Blockchain(util.PrintError):
         num = len(data) // HEADER_SIZE
         start_height = index * 2016
         prev_hash = self.get_hash(start_height - 1)
-        target = self.get_target(index-1)
+        headers = {}
         for i in range(num):
             height = start_height + i
             try:
@@ -280,6 +280,8 @@ class Blockchain(util.PrintError):
                 expected_header_hash = None
             raw_header = data[i*HEADER_SIZE : (i+1)*HEADER_SIZE]
             header = deserialize_header(raw_header, index*2016 + i)
+            headers[header.get('block_height')] = header
+            target = self.get_target(index*2016 + i, headers)
             self.verify_header(header, prev_hash, target, expected_header_hash)
             prev_hash = hash_header(header)
 
@@ -511,7 +513,8 @@ class Blockchain(util.PrintError):
 
         return bnNew
 
-    def get_target(self, index: int) -> int:
+
+    def get_target(self, height, chain=None) -> int:
         # compute target from chunk x, used in chunk x+1
         if constants.net.TESTNET:
             return 0
@@ -547,7 +550,7 @@ class Blockchain(util.PrintError):
     def chainwork_of_header_at_height(self, height: int) -> int:
         """work done by single header at given height"""
         chunk_idx = height // 2016 - 1
-        target = self.get_target(chunk_idx)
+        target = self.get_target(index * 2016)
         work = ((2 ** 256 - target - 1) // (target + 1)) + 1
         return work
 
@@ -593,8 +596,10 @@ class Blockchain(util.PrintError):
             return False
         if prev_hash != header.get('prev_block_hash'):
             return False
+        headers = {}
+        headers[header.get('block_height')] = header
         try:
-            target = self.get_target(height // 2016 - 1)
+            target = self.get_target(height, headers)
         except MissingHeader:
             return False
         try:
@@ -621,7 +626,7 @@ class Blockchain(util.PrintError):
         n = self.height() // 2016
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
-            target = self.get_target(index)
+            target = self.get_target(index * 2016)
             cp.append((h, target))
         return cp
 
