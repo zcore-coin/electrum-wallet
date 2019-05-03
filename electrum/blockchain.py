@@ -453,7 +453,7 @@ class Blockchain(util.PrintError):
                 raise MissingHeader(height)
             return hash_header(header)
 
-    def get_target_dgwv3(self, height, chain=None):
+    def get_target_dgwv3(self, height, chain=None) -> int:
 
         last = chain.get(height - 1)
         #last = self.read_header(height - 1)
@@ -518,10 +518,10 @@ class Blockchain(util.PrintError):
         # compute target from chunk x, used in chunk x+1
         if constants.net.TESTNET:
             return 0
-        if index == -1:
+        if height == -1:
             return MAX_TARGET
-        if index < len(self.checkpoints):
-            h, t = self.checkpoints[index]
+        if height < len(self.checkpoints):
+            h, t = self.checkpoints[height]
             return t
         # new target
         return self.get_target_dgwv3(height, chain)
