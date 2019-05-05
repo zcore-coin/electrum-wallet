@@ -509,11 +509,12 @@ class Blockchain(util.PrintError):
         # compute target from chunk x, used in chunk x+1
         if constants.net.TESTNET:
             return 0
-        if height == -1:
-            return MAX_TARGET
-        if height < len(self.checkpoints):
-            h, t = self.checkpoints[height]
+        elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
+            h, t = self.checkpoints[height // 2016]
             return t
+        elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
+            return 0
+        else:
         # new target
         return self.get_target_dgwv3(height, chain)
 
