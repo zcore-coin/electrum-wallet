@@ -465,7 +465,6 @@ class Blockchain(util.PrintError):
         pindex = last
         nActualTimespan = 0
         PastBlocks = 24
-        CountBlocks = 0
         PastTargetAvg = 0
         bnTarget = 0
 
@@ -476,15 +475,15 @@ class Blockchain(util.PrintError):
         if last is None or height-1 < PastBlocks:
             return 0x1e3fffff, MAX_TARGET
 
-        for CountBlocks in range(1, PastBlocks):
+        for i in range(1, PastBlocks + 1):
             bnTarget = self.bits_to_target(pindex.get('bits'))
             PastTargetAvg += bnTarget
 
-            pindex = chain.get((height-1) - CountBlocks)
-            #pindex = self.read_header((height-1) - CountBlocks)
+            pindex = chain.get((height-1) - i)
+            #pindex = self.read_header((height-1) - i)
             if pindex is None:
-                pindex = self.read_header((height-1) - CountBlocks)
-                #pindex = chain.get((height-1) - CountBlocks)
+                pindex = self.read_header((height-1) - i)
+                #pindex = chain.get((height-1) - i)
 
         PastTargetAvg //= PastBlocks
 
