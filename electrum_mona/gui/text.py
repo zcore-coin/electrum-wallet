@@ -5,15 +5,17 @@ import datetime
 import locale
 from decimal import Decimal
 import getpass
+import logging
 
 import electrum_mona
-from electrum_mona.util import format_satoshis, set_verbosity
+from electrum_mona.util import format_satoshis
 from electrum_mona.bitcoin import is_address, COIN, TYPE_ADDRESS
 from electrum_mona.transaction import TxOutput
 from electrum_mona.wallet import Wallet
 from electrum_mona.storage import WalletStorage
 from electrum_mona.network import NetworkParameters, TxBroadcastError, BestEffortRequestFailed
 from electrum_mona.interface import deserialize_server
+from electrum_mona.logging import console_stderr_handler
 
 _ = lambda x:x  # i18n
 
@@ -52,7 +54,7 @@ class ElectrumGui:
         self.set_cursor(0)
         self.w = curses.newwin(10, 50, 5, 5)
 
-        set_verbosity(False)
+        console_stderr_handler.setLevel(logging.CRITICAL)
         self.tab = 0
         self.pos = 0
         self.popup_pos = 0
