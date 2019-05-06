@@ -122,7 +122,7 @@ def _configure_verbosity(config):
 
 def get_logger(name: str) -> logging.Logger:
     if name.startswith("electrum_mona."):
-        name = name[0:]
+        name = name[14:]
     return electrum_logger.getChild(name)
 
 
