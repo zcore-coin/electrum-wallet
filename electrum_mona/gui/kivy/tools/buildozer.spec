@@ -19,7 +19,11 @@ source.include_exts = py,png,jpg,kv,atlas,ttf,txt,gif,pem,mo,vs,fs,json
 source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin, build, dist, contrib, electrum_mona/gui/qt, electrum_mona/gui/kivy/tools, electrum_mona/gui/kivy/theming/light
+source.exclude_dirs = bin, build, dist, contrib,
+    electrum_mona/tests,
+    electrum_mona/gui/qt,
+    electrum_mona/gui/kivy/tools,
+    electrum_mona/gui/kivy/theming/light
 # (list) List of exclusions using pattern matching
 source.exclude_patterns = Makefile,setup*
 

@@ -5,7 +5,6 @@ build/
 dist/
 tmp/
 *.egg/
-contrib/pyinstaller/
 Electrum_MONA.egg-info/
 electrum_mona/locale/
 .devlocaltmp/
@@ -26,3 +25,9 @@ electrum_mona/gui/kivy/theming/light.atlas
 .cache/
 .coverage
 .pytest_cache
+
+# build workspaces
+contrib/build-wine/tmp/
+contrib/build-wine/fresh_clone/
+contrib/build-linux/appimage/build/
+contrib/build-linux/appimage/.cache/
