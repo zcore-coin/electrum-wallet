@@ -515,7 +515,8 @@ class Blockchain(util.PrintError):
         elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
             return 0
         else:
-            return self.get_target_dgwv3(height, chain)
+            return
+#            return self.get_target_dgwv3(height, chain)
 
     @classmethod
     def bits_to_target(cls, bits: int) -> int:
