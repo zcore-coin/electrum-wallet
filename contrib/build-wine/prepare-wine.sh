@@ -13,6 +13,8 @@ LIBUSB_FILENAME=libusb-1.0.22.7z
 LIBUSB_URL=https://prdownloads.sourceforge.net/project/libusb/libusb-1.0/libusb-1.0.22/$LIBUSB_FILENAME?download
 LIBUSB_SHA256=671f1a420757b4480e7fadc8313d6fb3cbb75ca00934c417c1efa6e77fb8779b
 
+YESPOWER_PYTHON_URL=https://github.com/bitzeny-electrum/zny_yespower_0_5_python3/releases/download/v1.0.1/zny_yespower_0_5-1.0.1-cp36-cp36m-win32.whl
+
 PYTHON_VERSION=3.6.8
 
 ## These settings probably don't need change
@@ -77,6 +79,9 @@ verify_hash $LIBUSB_FILENAME "$LIBUSB_SHA256"
 7z x -olibusb $LIBUSB_FILENAME -aoa
 
 cp libusb/MS32/dll/libusb-1.0.dll $WINEPREFIX/drive_c/$PYTHON_FOLDER/
+
+# install zny_yespower_0_5
+$PYTHON -m pip install $YESPOWER_PYTHON_URL
 
 mkdir -p $WINEPREFIX/drive_c/tmp
 cp secp256k1/libsecp256k1.dll $WINEPREFIX/drive_c/tmp/
