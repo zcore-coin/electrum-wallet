@@ -553,10 +553,10 @@ class Blockchain(Logger):
 
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
         if height < len(self.checkpoints)*2016 + PastBlocksMax:
-            return 0, 0
+            return 0
         #thanks watanabe!! http://askmona.org/5288#res_61
         if BlockLastSolved is None or height-1 < 450024:
-            return 0x1e0fffff, MAX_TARGET
+            return MAX_TARGET
         for i in range(1, PastBlocksMax + 1):
             CountBlocks += 1
 
