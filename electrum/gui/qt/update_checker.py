@@ -18,11 +18,11 @@ from electrum.util import PrintError, make_aiohttp_session
 
 
 class UpdateCheck(QWidget, PrintError):
-    url = "https://bitzeny-electrum.github.io/version"
-    download_url = "https://bitzeny-electrum.github.io/#download"
+    url = "https://raw.githubusercontent.com/bitzeny-electrum/bitzeny-electrum.github.io/master/version"
+    download_url = "https://zny.electrum-jp.net"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
-        "13xjmVAB1EATPP8RshTE8S8sNwwSUM9p1P",
+        "ZwbjGkzEBuY9CCuwoRkna3LBRAGY2HcWMH",
     )
 
     def __init__(self, main_window, latest_version=None):
