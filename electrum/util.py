@@ -650,19 +650,15 @@ mainnet_block_explorers = {
                        {'tx': 'tx/', 'addr': 'address/'}),
     'zeny.insight.monaco-ex.org': ('https://zeny.insight.monaco-ex.org/',
                        {'tx': 'tx/', 'addr': 'address/'}),
-    'zeny.blockbook.zenypota.net': ('https://zeny.blockbook.zenypota.net/',
-                       {'tx': 'tx/', 'addr': 'address/'}),
     'zny.blockbook.ovh': ('https://zny.blockbook.ovh/',
                        {'tx': 'tx/', 'addr': 'address/'}),
-    'system default': ('blockchain:/',
-                       {'tx': 'tx/', 'addr': 'address/'})
 }
 
 testnet_block_explorers = {
     'test-zny.blockbook.ovh': ('https://test-zny.blockbook.ovh/',
                        {'tx': 'tx/', 'addr': 'address/'}),
     'system default': ('blockchain:',
-                       {'tx': 'tx/', 'addr': 'address/'})
+                       {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 def block_explorer_info():
