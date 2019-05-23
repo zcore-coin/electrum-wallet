@@ -650,6 +650,8 @@ mainnet_block_explorers = {
                        {'tx': 'tx/', 'addr': 'address/'}),
     'zeny.insight.monaco-ex.org': ('https://zeny.insight.monaco-ex.org/',
                        {'tx': 'tx/', 'addr': 'address/'}),
+    'electrumx1.bitzeny.site': ('https://electrumx1.bitzeny.site/',
+                       {'tx': 'tx/', 'addr': 'address/'}),
     'zny.blockbook.ovh': ('https://zny.blockbook.ovh/',
                        {'tx': 'tx/', 'addr': 'address/'}),
 }
