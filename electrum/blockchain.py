@@ -253,20 +253,23 @@ class Blockchain(util.PrintError):
 
     @classmethod
     def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None) -> None:
-        return # pass verify header...
-#        _hash = hash_header(header)
-#        if expected_header_hash and expected_header_hash != _hash:
-#            raise Exception("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
-#        if prev_hash != header.get('prev_block_hash'):
-#            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-#        if constants.net.TESTNET:
-#            return
-#        bits = cls.target_to_bits(target)
-#        if bits != header.get('bits'):
-#            raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-#        block_hash_as_num = int.from_bytes(bfh(_hash), byteorder='big')
-#        if block_hash_as_num > target:
-#            raise Exception(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
+        height = header.get('block_height')
+        _hash = hash_header(header)
+        #return
+        if expected_header_hash and expected_header_hash != _hash:
+            raise Exception("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
+        if prev_hash != header.get('prev_block_hash'):
+            raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+        if constants.net.TESTNET:
+            return
+        if height % 2016 != 0 and height // 2016 < len(constants.net.CHECKPOINTS) or height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 25:
+            return
+        bits = cls.target_to_bits(target)
+        if bits != header.get('bits'):
+            raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        block_hash_as_num = int.from_bytes(bfh(_hash), byteorder='big')
+        if block_hash_as_num > target:
+            raise Exception(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
 
     def verify_chunk(self, index: int, data: bytes) -> None:
         num = len(data) // HEADER_SIZE
@@ -469,12 +472,12 @@ class Blockchain(util.PrintError):
         PastTargetAvg = 0
         bnTarget = 0
 
-        # DGWv3 PastBlocks = 24 Because checkpoint don't have preblock data.
-        if height < len(self.checkpoints)*2016 + PastBlocks:
+        # DGWv3 PastBlocks = 25 Because checkpoint don't have preblock data.
+        if height < len(self.checkpoints)*2016 + PastBlocks + 1:
             return 0
 
-        if last is None or height-1 < PastBlocks:
-            return 0x1e3fffff
+        if last is None or height - 1 < PastBlocks:
+            return MAX_TARGET
 
         for i in range(1, PastBlocks + 1):
             bnTarget = self.bits_to_target(pindex.get('bits'))
@@ -515,18 +518,16 @@ class Blockchain(util.PrintError):
         elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
             return 0
         else:
-            return
-#            return self.get_target_dgwv3(height, chain)
+            return self.get_target_dgwv3(height, chain)
 
     @classmethod
     def bits_to_target(cls, bits: int) -> int:
-        bitsN = (bits >> 24) & 0xff
-        if not (0x03 <= bitsN <= 0x1d):
-            raise Exception("First part of bits should be in [0x03, 0x1d]")
-        bitsBase = bits & 0xffffff
-        if not (0x8000 <= bitsBase <= 0x7fffff):
-            raise Exception("Second part of bits should be in [0x8000, 0x7fffff]")
-        return bitsBase << (8 * (bitsN-3))
+        MM = 256*256*256
+        a = bits%MM
+        if a < 0x8000:
+            a *= 256
+        target = (a) * pow(2, 8 * (bits//MM - 3))
+        return target
 
     @classmethod
     def target_to_bits(cls, target: int) -> int:
