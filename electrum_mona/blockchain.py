@@ -536,7 +536,6 @@ class Blockchain(Logger):
         #last = self.read_header(height - 1)
         if last is None:
             last = self.read_header(height - 1)
-            #last = chain.get(height - 1)
 
         # params
         BlockLastSolved = last
@@ -577,7 +576,6 @@ class Blockchain(Logger):
             #BlockReading = self.read_header((height-1) - CountBlocks)
             if BlockReading is None:
                 BlockReading = self.read_header((height-1) - CountBlocks)
-                #BlockReading = chain.get((height-1) - CountBlocks)
 
 
         bnNew = PastDifficultyAverage
