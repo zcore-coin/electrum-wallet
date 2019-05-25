@@ -287,7 +287,7 @@ class Blockchain(util.PrintError):
             raw_header = data[i*HEADER_SIZE : (i+1)*HEADER_SIZE]
             header = deserialize_header(raw_header, index*2016 + i)
             headers[header.get('block_height')] = header
-            if check_header_bool != False or num % 12 == 0:
+            if check_header_bool != False or height % 12 == 0:
                 target = self.get_target(index*2016 + i, headers)
             else:
                 target = 0
