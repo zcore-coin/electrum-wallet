@@ -252,14 +252,15 @@ class Blockchain(util.PrintError):
         self._size = os.path.getsize(p)//HEADER_SIZE if os.path.exists(p) else 0
 
     @classmethod
-    def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None) -> None:
+    def verify_header(cls, header: dict, prev_hash: str, target: int, check_header_bool: bool, expected_header_hash: str=None) -> None:
         height = header.get('block_height')
-        _hash = hash_header(header)
-        #return
-        if expected_header_hash and expected_header_hash != _hash:
-            raise Exception("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
         if prev_hash != header.get('prev_block_hash'):
             raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
+        if check_header_bool == False and height % 12 != 0:
+            return
+        _hash = hash_header(header)
+        if expected_header_hash and expected_header_hash != _hash:
+            raise Exception("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
         if constants.net.TESTNET:
             return
         if height % 2016 != 0 and height // 2016 < len(constants.net.CHECKPOINTS) or height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 25:
@@ -273,6 +274,7 @@ class Blockchain(util.PrintError):
 
     def verify_chunk(self, index: int, data: bytes) -> None:
         num = len(data) // HEADER_SIZE
+        check_header_bool = True if num == 2016 else False
         start_height = index * 2016
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
@@ -285,8 +287,11 @@ class Blockchain(util.PrintError):
             raw_header = data[i*HEADER_SIZE : (i+1)*HEADER_SIZE]
             header = deserialize_header(raw_header, index*2016 + i)
             headers[header.get('block_height')] = header
-            target = self.get_target(index*2016 + i, headers)
-            self.verify_header(header, prev_hash, target, expected_header_hash)
+            if check_header_bool != False or num % 12 == 0:
+                target = self.get_target(index*2016 + i, headers)
+            else:
+                target = 0
+            self.verify_header(header, prev_hash, target, check_header_bool, expected_header_hash)
             prev_hash = hash_header(header)
 
     @with_lock
@@ -591,12 +596,13 @@ class Blockchain(util.PrintError):
             return False
         headers = {}
         headers[header.get('block_height')] = header
+        check_header_bool = True
         try:
             target = self.get_target(height, headers)
         except MissingHeader:
             return False
         try:
-            self.verify_header(header, prev_hash, target)
+            self.verify_header(header, prev_hash, target, check_header_bool)
         except BaseException as e:
             return False
         return True
