@@ -650,6 +650,8 @@ mainnet_block_explorers = {
                         {'tx': 'tx/', 'addr': 'addr/'}),
     'blockbook.electrum-mona.org': ('https://blockbook.electrum-mona.org/',
                         {'tx': 'tx/', 'addr': 'address/'}),
+    'mona.blockbook.ovh': ('https://mona.blockbook.ovh/',
+                        {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 testnet_block_explorers = {
@@ -667,7 +669,7 @@ def block_explorer_info():
 
 def block_explorer(config: 'SimpleConfig') -> str:
     from . import constants
-    default_ = 'insight.electrum-mona.org' if not constants.net.TESTNET else 'insight.monaco-ex.org'
+    default_ = 'blockbook.electrum-mona.org' if not constants.net.TESTNET else 'testnet.blockbook.electrum-mona.org'
     be_key = config.get('block_explorer', default_)
     be = block_explorer_info().get(be_key)
     return be_key if be is not None else default_
