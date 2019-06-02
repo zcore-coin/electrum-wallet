@@ -83,7 +83,7 @@ setup(
             'icons/*',
         ],
     },
-    scripts=['electrum/electrum-zny'],
+    scripts=['electrum/electrum'],
     data_files=data_files,
     description="Lightweight BitZeny Wallet",
     author="y-chan",
