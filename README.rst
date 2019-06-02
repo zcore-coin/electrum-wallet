@@ -84,10 +84,16 @@ Create translations (optional)::
 Creating Binaries
 =================
 
-Linux
------
+Linux (tarball)
+---------------
 
 See :code:`contrib/build-linux/README.md`.
+
+
+Linux (AppImage)
+----------------
+
+See :code:`contrib/build-linux/appimage/README.md`.
 
 
 Mac OS X / macOS
@@ -99,7 +105,7 @@ See :code:`contrib/osx/README.md`.
 Windows
 -------
 
-See :code:`contrib/build-wine/docker/README.md`.
+See :code:`contrib/build-wine/README.md`.
 
 
 Android
