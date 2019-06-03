@@ -299,18 +299,18 @@ class TestWalletKeystoreAddressIntegrityForMainnet(SequentialTestCase):
         seed_words = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
         self.assertEqual(keystore.bip39_is_checksum_valid(seed_words), (True, True))
 
-        ks = keystore.from_bip39_seed(seed_words, '', "m/84'/0'/0'")
+        ks = keystore.from_bip39_seed(seed_words, '', "m/84'/22'/0'")
 
         self.assertTrue(isinstance(ks, keystore.BIP32_KeyStore))
 
-        self.assertEqual(ks.xprv, 'zprvAdG4iTXWBoARxkkzNpNh8r6Qag3irQB8PzEMkAFeTRXxHpbF9z4QgEvBRmfvqWvGp42t42nvgGpNgYSJA9iefm1yYNZKEm7z6qUWCroSQnE')
-        self.assertEqual(ks.xpub, 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs')
+        self.assertEqual(ks.xprv, 'zprvAcZ5F4WJkcPfLQbTgjhcNt4sxGSXFxHWyLZsxd8fENCMFKRhc32Xjdwo4WMje5zhNzy2WeqoHYWFhNittqCHD96Bj1mM7eFVdf5oNhahGtx')
+        self.assertEqual(ks.xpub, 'zpub6qYRea3CaywxYtfvnmEck21cWJH1fR1NLZVUm1YGnhjL87kr9aLnHSGGumibCJWR9SswtGCuK15Z57WC18oJzkAhZXCTcWTcdHJMfbydrok')
 
         w = WalletIntegrityHelper.create_standard_wallet(ks)
         self.assertEqual(w.txin_type, 'p2wpkh')
 
-        self.assertEqual(w.get_receiving_addresses()[0], 'mona1qcr8te4kr609gcawutmrza0j4xv80jy8z4uvtfa')
-        self.assertEqual(w.get_change_addresses()[0], 'mona1q8c6fshw2dlwun7ekn9qwf37cu2rn755u9thc57')
+        self.assertEqual(w.get_receiving_addresses()[0], 'mona1qpgmk2vdx5ve6xm93rplw9d6uszpe4am5my7x72')
+        self.assertEqual(w.get_change_addresses()[0], 'mona1q7t5p3u22skphsflmxnta7tjw8kspf7s35q793e')
 
     @needs_test_with_all_ecc_implementations
     @mock.patch.object(storage.WalletStorage, '_write')
