@@ -350,6 +350,9 @@
     "Bitbank": [
         "JPY"
     ],
+    "Coincheck": [
+        "JPY"
+    ],
     "CoinGecko": [
         "AED",
         "ARS",

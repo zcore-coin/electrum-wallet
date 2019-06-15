@@ -163,6 +163,11 @@ class Bitbank(ExchangeBase):
         json = await self.get_json('public.bitbank.cc', '/mona_jpy/ticker')
         return {'JPY': Decimal(json['data']['last'])}
 
+class Coincheck(ExchangeBase):
+    async def get_rates(self, ccy):
+        json = await self.get_json('coincheck.com', '/api/rate/mona_jpy')
+        return {'JPY': Decimal(json['rate'])}
+
 class CoinGecko(ExchangeBase):
 
     async def get_rates(self, ccy):
