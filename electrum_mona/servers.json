@@ -41,7 +41,7 @@
         "t": "50001",
         "version": "1.4"
     },
-    "electrumx2.movsign.info": {
+    "electrum-mona.nope.work": {
         "pruning": "-",
         "s": "50002",
         "t": "50001",
@@ -51,11 +51,6 @@
         "pruning": "-",
         "s": "50002",
         "t": "50001",
-        "version": "1.4"
-    },
-    "6udpaog3dosrblsf.onion": {
-        "pruning": "-",
-        "s": "50002",
         "version": "1.4"
     },
     "ylx5ejgbmxf2m3ymdbw4tkcx2w4vaxkwyzjbtsghadmnwpq6yaqfi7qd.onion": {
