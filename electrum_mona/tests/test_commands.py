@@ -75,6 +75,43 @@ class TestCommands(unittest.TestCase):
         ciphertext = cmds.encrypt(pubkey, cleartext)
         self.assertEqual(cleartext, cmds.decrypt(pubkey, ciphertext))
 
+    @mock.patch.object(storage.WalletStorage, '_write')
+    def test_export_private_key_imported(self, mock_write):
+        wallet = restore_wallet_from_text('p2wpkh:TAgoypi14k5Y54svysG62xp5QFRWiF1W64zxaFRFPo2jMPSMoa5D p2wpkh:T4jS4CCdekC3hvV6AY7gKoRU3PFpJdoKY9uczbR3dpv8ypZHiP65',
+                                          path='if_this_exists_mocking_failed_648151893')['wallet']
+        cmds = Commands(config=None, wallet=wallet, network=None)
+        # single address tests
+        with self.assertRaises(Exception):
+            cmds.getprivatekeys("asdasd")  # invalid addr, though might raise "not in wallet"
+        with self.assertRaises(Exception):
+            cmds.getprivatekeys("mona1qy7ykhcu6608jqulvw5amkym7rhkk2z9vpugy22")  # not in wallet
+        self.assertEqual("p2wpkh:T4jS4CCdekC3hvV6AY7gKoRU3PFpJdoKY9uczbR3dpv8ypZHiP65",
+                         cmds.getprivatekeys("mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h"))
+        # list of addresses tests
+        with self.assertRaises(Exception):
+            cmds.getprivatekeys(['mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h', 'asd'])
+        self.assertEqual(['p2wpkh:T4jS4CCdekC3hvV6AY7gKoRU3PFpJdoKY9uczbR3dpv8ypZHiP65', 'p2wpkh:TAgoypi14k5Y54svysG62xp5QFRWiF1W64zxaFRFPo2jMPSMoa5D'],
+                         cmds.getprivatekeys(['mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h', 'mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j']))
+
+    @mock.patch.object(storage.WalletStorage, '_write')
+    def test_export_private_key_deterministic(self, mock_write):
+        wallet = restore_wallet_from_text('bitter grass shiver impose acquire brush forget axis eager alone wine silver',
+                                          gap_limit=2,
+                                          path='if_this_exists_mocking_failed_648151893')['wallet']
+        cmds = Commands(config=None, wallet=wallet, network=None)
+        # single address tests
+        with self.assertRaises(Exception):
+            cmds.getprivatekeys("asdasd")  # invalid addr, though might raise "not in wallet"
+        with self.assertRaises(Exception):
+            cmds.getprivatekeys("mona1qy7ykhcu6608jqulvw5amkym7rhkk2z9vpugy22")  # not in wallet
+        self.assertEqual("p2wpkh:T6v5Q8KEmjLmJoTxPfXfyNcCEFYC7Lfmwmp9Y8dce9knevo9ZkPk",
+                         cmds.getprivatekeys("mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg"))
+        # list of addresses tests
+        with self.assertRaises(Exception):
+            cmds.getprivatekeys(['mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', 'asd'])
+        self.assertEqual(['p2wpkh:T6v5Q8KEmjLmJoTxPfXfyNcCEFYC7Lfmwmp9Y8dce9knevo9ZkPk', 'p2wpkh:TAgoypi14k5Y54svysG62xp5QFRWiF1W64zxaFRFPo2jMPSMoa5D'],
+                         cmds.getprivatekeys(['mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', 'mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j']))
+
 
 class TestCommandsTestnet(TestCaseForTestnet):
 
