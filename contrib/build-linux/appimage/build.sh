@@ -144,7 +144,7 @@ cp "/usr/lib/libzbar.so.0" "$APPDIR/usr/lib/libzbar.so.0"
 
 info "desktop integration."
 cp "$PROJECT_ROOT/electrum-mona.desktop" "$APPDIR/electrum-mona.desktop"
-cp "$PROJECT_ROOT/electrum_mona/gui/icons/electrum-mona.png" "$APPDIR/electrum-mona.png"
+cp "$PROJECT_ROOT/electrum_mona/gui/icons/electrum.png" "$APPDIR/electrum.png"
 
 
 # add launcher
