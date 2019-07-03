@@ -6,7 +6,7 @@ Comment=Lightweight Monacoin Client
 Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-mona %u"
 GenericName[en_US]=Monacoin Wallet
 GenericName=Monacoin Wallet
-Icon=electrum-mona
+Icon=electrum
 Name[en_US]=Electrum-mona Monacoin Wallet
 Name=Electrum Monacoin Wallet
 Categories=Finance;Network;
