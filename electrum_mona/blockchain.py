@@ -295,7 +295,9 @@ class Blockchain(Logger):
         if prev_hash != header.get('prev_block_hash'):
             raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
-        if height % 2016 != 0 and height // 2016 < len(constants.net.CHECKPOINTS) or height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 24:
+        if height % 2016 != 0 and height // 2016 < len(constants.net.CHECKPOINTS) or \
+                height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 24 or \
+                height < 2016:
             return
         if constants.net.TESTNET:
             return
@@ -594,6 +596,8 @@ class Blockchain(Logger):
 
     def get_target(self, height, chain=None) -> int:
         if constants.net.TESTNET:
+            return 0
+        elif height < 2016:
             return 0
         elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
             h, t = self.checkpoints[height // 2016]
