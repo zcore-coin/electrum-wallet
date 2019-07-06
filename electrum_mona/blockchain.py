@@ -295,9 +295,8 @@ class Blockchain(Logger):
         if prev_hash != header.get('prev_block_hash'):
             raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
-        if height % 2016 != 0 and height // 2016 < len(constants.net.CHECKPOINTS) or \
-                height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 24 or \
-                height < 2016:
+        if height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 != 2015 or \
+                height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 24:
             return
         if constants.net.TESTNET:
             return
@@ -512,8 +511,8 @@ class Blockchain(Logger):
     @classmethod
     def bits_to_target(cls, bits: int) -> int:
         bitsN = (bits >> 24) & 0xff
-        if not (0x03 <= bitsN <= 0x1d):
-            raise Exception("First part of bits should be in [0x03, 0x1d]")
+        if not (0x03 <= bitsN <= 0x1f):
+            raise Exception("First part of bits should be in [0x03, 0x1f]")
         bitsBase = bits & 0xffffff
         if not (0x8000 <= bitsBase <= 0x7fffff):
             raise Exception("Second part of bits should be in [0x8000, 0x7fffff]")
@@ -535,7 +534,6 @@ class Blockchain(Logger):
     def get_target_dgwv3(self, height, chain=None) -> int:
 
         last = chain.get(height - 1)
-        #last = self.read_header(height - 1)
         if last is None:
             last = self.read_header(height - 1)
 
@@ -575,7 +573,6 @@ class Blockchain(Logger):
             LastBlockTime = BlockReading.get('timestamp')
 
             BlockReading = chain.get((height-1) - CountBlocks)
-            #BlockReading = self.read_header((height-1) - CountBlocks)
             if BlockReading is None:
                 BlockReading = self.read_header((height-1) - CountBlocks)
 
@@ -597,12 +594,10 @@ class Blockchain(Logger):
     def get_target(self, height, chain=None) -> int:
         if constants.net.TESTNET:
             return 0
-        elif height < 2016:
-            return 0
-        elif height // 2016 < len(self.checkpoints) and height % 2016 == 0:
+        elif height // 2016 < len(self.checkpoints) and height % 2016 == 2015:
             h, t = self.checkpoints[height // 2016]
             return t
-        elif height // 2016 < len(self.checkpoints) and height % 2016 != 0:
+        elif height // 2016 < len(self.checkpoints) and height % 2016 != 2015:
             return 0
         else:
             return self.get_target_dgwv3(height, chain)
@@ -685,7 +680,8 @@ class Blockchain(Logger):
         n = self.height() // 2016
         for index in range(n):
             h = self.get_hash((index+1) * 2016 -1)
-            target = self.get_target(index * 2016)
+            header = self.read_header((index+1) * 2016 -1)
+            target = self.bits_to_target(header.get('bits'))
             cp.append((h, target))
         return cp
 
