@@ -551,7 +551,7 @@ class Blockchain(Logger):
         bnNum = 0
 
         # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
-        if height < len(self.checkpoints)*2016 + PastBlocksMax:
+        if height < len(constants.net.CHECKPOINTS)*2016 + PastBlocksMax:
             return 0
         #thanks watanabe!! http://askmona.org/5288#res_61
         if BlockLastSolved is None or height-1 < 450024:
@@ -561,9 +561,9 @@ class Blockchain(Logger):
 
             if CountBlocks <= PastBlocksMin:
                 if CountBlocks == 1:
-                    PastDifficultyAverage = self.bits_to_target(BlockReading.get('bits'))
+                    PastDifficultyAverage = Blockchain.bits_to_target(BlockReading.get('bits'))
                 else:
-                    bnNum = self.bits_to_target(BlockReading.get('bits'))
+                    bnNum = Blockchain.bits_to_target(BlockReading.get('bits'))
                     PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(bnNum)) // (CountBlocks + 1)
                 PastDifficultyAveragePrev = PastDifficultyAverage
 
@@ -594,13 +594,13 @@ class Blockchain(Logger):
     def get_target(self, height, chain=None) -> int:
         if constants.net.TESTNET:
             return 0
-        elif height // 2016 < len(self.checkpoints) and height % 2016 == 2015:
-            h, t = self.checkpoints[height // 2016]
+        elif height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 == 2015:
+            h, t = constants.net.CHECKPOINTS[height // 2016]
             return t
-        elif height // 2016 < len(self.checkpoints) and height % 2016 != 2015:
+        elif height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 != 2015:
             return 0
         else:
-            return self.get_target_dgwv3(height, chain)
+            return Blockchain.get_target_dgwv3(self, height, chain)
 
 
     def chainwork_of_header_at_height(self, height: int) -> int:
