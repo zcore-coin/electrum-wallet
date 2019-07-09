@@ -536,7 +536,9 @@ class Blockchain(Logger):
         last = chain.get(height - 1)
         if last is None:
             last = self.read_header(height - 1)
-
+        # for using testdata(checkpoints)
+        #if height == 1707577:
+        #    print(chain)
         # params
         BlockLastSolved = last
         BlockReading = last
@@ -600,6 +602,9 @@ class Blockchain(Logger):
         elif height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 != 2015:
             return 0
         else:
+            # for using testdata(checkpoints)
+            #if height == 1707577:
+            #    print(Blockchain.get_target_dgwv3(self, height, chain))
             return Blockchain.get_target_dgwv3(self, height, chain)
 
 
