@@ -189,6 +189,13 @@ class TestCreateRestoreWallet(WalletTestCase):
         self.assertEqual(text, wallet.keystore.get_master_public_key())
         self.assertEqual('mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', wallet.get_receiving_addresses()[0])
 
+    def test_restore_wallet_from_text_xkey_that_is_also_a_valid_electrum_seed_by_chance(self):
+        text = 'yprvAJBpuoF4FKpK92ofzQ7ge6VJMtorow3maAGPvPGj38ggr2xd1xCrC9ojUVEf9jhW5L9SPu6fU2U3o64cLrRQ83zaQGNa6YP3ajZS6hHNPXj'
+        d = restore_wallet_from_text(text, path=self.wallet_path, network=None, gap_limit=1)
+        wallet = d['wallet']  # type: Standard_Wallet
+        self.assertEqual(text, wallet.keystore.get_master_private_key(password=None))
+        self.assertEqual('PWUDw6HSqGgeThm13gCWVNzu8rBhwGFx96', wallet.get_receiving_addresses()[0])
+
     def test_restore_wallet_from_text_xprv(self):
         text = 'zprvAZswDvNeJeha8qZ8g7efN3FXYVJLaEUsE9TW6qXDEbVe74AZ75c2sZFZXPNFzxnhChDQ89oC8C5AjWwHmH1HeRKE1c4kKBQAmjUDdKDUZw2'
         d = restore_wallet_from_text(text, path=self.wallet_path, network=None, gap_limit=1)
