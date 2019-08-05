@@ -233,7 +233,7 @@ class ElectrumGui(Logger):
             custom_message_box(icon=QMessageBox.Warning,
                                parent=None,
                                title=_('Error'),
-                               text=_('Cannot load wallet') + ' (1):\n' + str(e))
+                               text=_('Cannot load wallet') + ' (1):\n' + repr(e))
             # if app is starting, still let wizard to appear
             if not app_is_starting:
                 return
@@ -245,7 +245,7 @@ class ElectrumGui(Logger):
                 custom_message_box(icon=QMessageBox.Warning,
                                    parent=None,
                                    title=_('Error'),
-                                   text=_('Cannot load wallet') + ' (2):\n' + str(e))
+                                   text=_('Cannot load wallet') + ' (2):\n' + repr(e))
         if not wallet:
             return
         # create or raise window
@@ -260,7 +260,7 @@ class ElectrumGui(Logger):
             custom_message_box(icon=QMessageBox.Warning,
                                parent=None,
                                title=_('Error'),
-                               text=_('Cannot create window for wallet') + ':\n' + str(e))
+                               text=_('Cannot create window for wallet') + ':\n' + repr(e))
             if app_is_starting:
                 wallet_dir = os.path.dirname(path)
                 path = os.path.join(wallet_dir, get_new_wallet_name(wallet_dir))
