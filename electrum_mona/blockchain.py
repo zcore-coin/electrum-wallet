@@ -315,6 +315,8 @@ class Blockchain(Logger):
         start_height = index * 2016
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
+        #headers_bits = {}
+        #headers_timestamp = {}
         for i in range(num):
             height = start_height + i
             try:
@@ -324,6 +326,8 @@ class Blockchain(Logger):
             raw_header = data[i*HEADER_SIZE : (i+1)*HEADER_SIZE]
             header = deserialize_header(raw_header, index*2016 + i)
             headers[header.get('block_height')] = header
+            #headers_bits[header.get('block_height')] = header.get('bits')
+            #headers_timestamp[header.get('block_height')] = header.get('timestamp')
             target = self.get_target(index*2016 + i, headers)
             self.verify_header(header, prev_hash, target, expected_header_hash)
             prev_hash = hash_header(header)
@@ -531,14 +535,17 @@ class Blockchain(Logger):
         return new_bits
 
 
-    def get_target_dgwv3(self, height, chain=None) -> int:
+    def get_target_dgwv3(self, height, chain={}) -> int:
+
+        PastBlocksMax = 24
+        CountBlocks = 0
+        for i in range(1, PastBlocksMax + 1):
+            CountBlocks += 1
+            if chain.get(height - CountBlocks) is None:
+                chain[height - CountBlocks] = self.read_header(height - CountBlocks)
 
         last = chain.get(height - 1)
-        if last is None:
-            last = self.read_header(height - 1)
-        # for using testdata(checkpoints)
-        #if height == 1707577:
-        #    print(chain)
+
         # params
         BlockLastSolved = last
         BlockReading = last
@@ -575,9 +582,6 @@ class Blockchain(Logger):
             LastBlockTime = BlockReading.get('timestamp')
 
             BlockReading = chain.get((height-1) - CountBlocks)
-            if BlockReading is None:
-                BlockReading = self.read_header((height-1) - CountBlocks)
-
 
         bnNew = PastDifficultyAverage
         nTargetTimespan = CountBlocks * 90 #1.5 miniutes
@@ -593,7 +597,7 @@ class Blockchain(Logger):
         return bnNew
 
 
-    def get_target(self, height, chain=None) -> int:
+    def get_target(self, height, chain={}) -> int:
         if constants.net.TESTNET:
             return 0
         elif height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 == 2015:
@@ -657,7 +661,11 @@ class Blockchain(Logger):
         if prev_hash != header.get('prev_block_hash'):
             return False
         headers = {}
+        #headers_bits = {}
+        #headers_timestamp = {}
         headers[header.get('block_height')] = header
+        #headers_bits[header.get('block_height')] = header.get('bits')
+        #headers_timestamp[header.get('block_height')] = header.get('timestamp')
         try:
             target = self.get_target(height, headers)
         except MissingHeader:
