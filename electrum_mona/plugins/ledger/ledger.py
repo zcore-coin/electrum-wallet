@@ -3,7 +3,7 @@ import hashlib
 import sys
 import traceback
 
-from electrum_mona import ecc
+from electrum_mona import ecc, constants
 from electrum_mona.bitcoin import TYPE_ADDRESS, int_to_hex, var_int, is_segwit_script_type
 from electrum_mona.bip32 import BIP32Node
 from electrum_mona.i18n import _
