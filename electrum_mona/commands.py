@@ -107,21 +107,20 @@ class Commands:
         self.network = network
         self._callback = callback
 
-    def _run(self, method, args, password_getter):
-        # this wrapper is called from the python console
+    def _run(self, method, args, password_getter, **kwargs):
+        """This wrapper is called from the Qt python console."""
         cmd = known_commands[method]
-        if cmd.requires_password and self.wallet.has_password():
+        password = kwargs.get('password', None)
+        if (cmd.requires_password and self.wallet.has_password()
+                and password is None):
             password = password_getter()
             if password is None:
                 return
-        else:
-            password = None
 
         f = getattr(self, method)
         if cmd.requires_password:
-            result = f(*args, **{'password':password})
-        else:
-            result = f(*args)
+            kwargs['password'] = password
+        result = f(*args, **kwargs)
 
         if self._callback:
             self._callback()
@@ -133,7 +132,7 @@ class Commands:
         return ' '.join(sorted(known_commands.keys()))
 
     @command('')
-    def create(self, passphrase=None, password=None, encrypt_file=True, segwit=False):
+    def create(self, passphrase=None, password=None, encrypt_file=True, seed_type=None):
         """Create a new wallet.
         If you want to be prompted for an argument, type '?' or ':' (concealed)
         """
@@ -141,7 +140,7 @@ class Commands:
                               passphrase=passphrase,
                               password=password,
                               encrypt_file=encrypt_file,
-                              segwit=segwit)
+                              seed_type=seed_type)
         return {
             'seed': d['seed'],
             'path': d['wallet'].storage.path,
@@ -204,11 +203,10 @@ class Commands:
         return True
 
     @command('')
-    def make_seed(self, nbits=132, language=None, segwit=False):
+    def make_seed(self, nbits=132, language=None, seed_type=None):
         """Create a seed"""
         from .mnemonic import Mnemonic
-        t = 'segwit' if segwit else 'standard'
-        s = Mnemonic(language).make_seed(t, nbits)
+        s = Mnemonic(language).make_seed(seed_type, num_bits=nbits)
         return s
 
     @command('n')
@@ -273,10 +271,8 @@ class Commands:
         tx = Transaction(tx)
         if privkey:
             txin_type, privkey2, compressed = bitcoin.deserialize_privkey(privkey)
-            pubkey_bytes = ecc.ECPrivkey(privkey2).get_public_key_bytes(compressed=compressed)
-            h160 = bitcoin.hash_160(pubkey_bytes)
-            x_pubkey = 'fd' + bh2u(b'\x00' + h160)
-            tx.sign({x_pubkey:(privkey2, compressed)})
+            pubkey = ecc.ECPrivkey(privkey2).get_public_key_bytes(compressed=compressed).hex()
+            tx.sign({pubkey:(privkey2, compressed)})
         else:
             self.wallet.sign_transaction(tx, password)
         return tx.as_dict()
@@ -605,7 +601,7 @@ class Commands:
             PR_PAID: 'Paid',
             PR_EXPIRED: 'Expired',
         }
-        out['amount (MONA)'] = format_satoshis(out.get('amount'))
+        out['amount_MONA'] = format_satoshis(out.get('amount'))
         out['status'] = pr_str[out.get('status', PR_UNKNOWN)]
         return out
 
@@ -809,7 +805,7 @@ command_options = {
     'from_addr':   ("-F", "Source address (must be a wallet address; use sweep to spend from non-wallet address)."),
     'change_addr': ("-c", "Change address. Default is a spare address, or the source address if it's not in the wallet"),
     'nbits':       (None, "Number of bits of entropy"),
-    'segwit':      (None, "Create segwit seed"),
+    'seed_type':   (None, "The type of seed to create, e.g. 'standard' or 'segwit'"),
     'language':    ("-L", "Default language for wordlist"),
     'passphrase':  (None, "Seed extension"),
     'privkey':     (None, "Private key. Set to '?' to get a prompt."),
