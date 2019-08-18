@@ -185,7 +185,7 @@ class Ledger_Client():
                     raise UserFacingException('Aborted by user - please unplug the dongle and plug it again before retrying')
                 pin = pin.encode()
                 self.dongleObject.verifyPin(pin)
-                self.dongleObject.setAlternateCoinVersions(ADDRTYPE_P2PKH, ADDRTYPE_P2SH)
+                self.dongleObject.setAlternateCoinVersion(constants.net.ADDRTYPE_P2PKH, constants.net.ADDRTYPE_P2SH)
         except BTChipException as e:
             if (e.sw == 0x6faa):
                 raise UserFacingException("Dongle is temporarily locked - please unplug it and replug it again")
