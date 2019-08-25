@@ -18,14 +18,14 @@ before_install:
   - git tag
 install:
   - pip install -r contrib/requirements/requirements-travis.txt
-  - pip install electrumx
+  - pip install git+https://github.com/wakiyamap/electrumx.git
 cache:
   - pip: true
   - directories:
     - /tmp/electrum-mona-build
 before_script:
-    - electrum-mona/tests/regtest/start_bitcoind.sh
-    - electrum-mona/tests/regtest/start_electrumx.sh
+    - electrum_mona/tests/regtest/start_bitcoind.sh
+    - electrum_mona/tests/regtest/start_electrumx.sh
 script:
     - tox
 after_success:
