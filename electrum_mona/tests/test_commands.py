@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 from decimal import Decimal
 
+from electrum_mona.util import create_and_start_event_loop
 from electrum_mona.commands import Commands, eval_bool
 from electrum_mona import storage
 from electrum_mona.wallet import restore_wallet_from_text
@@ -10,6 +11,15 @@ from . import TestCaseForTestnet
 
 
 class TestCommands(unittest.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.asyncio_loop, self._stop_loop, self._loop_thread = create_and_start_event_loop()
+
+    def tearDown(self):
+        super().tearDown()
+        self.asyncio_loop.call_soon_threadsafe(self._stop_loop.set_result, 1)
+        self._loop_thread.join(timeout=1)
 
     def test_setconfig_non_auth_number(self):
         self.assertEqual(7777, Commands._setconfig_normalize_value('rpcport', "7777"))
@@ -54,7 +64,7 @@ class TestCommands(unittest.TestCase):
         }
         for xkey1, xtype1 in xpubs:
             for xkey2, xtype2 in xpubs:
-                self.assertEqual(xkey2, cmds.convert_xkey(xkey1, xtype2))
+                self.assertEqual(xkey2, cmds._run('convert_xkey', (xkey1, xtype2)))
 
         xprvs = {
             ("xprv9yD9r6PJmTgqpGCUf8FUkkAhNTxv4rryiFWkqb5mYQPw8aMDXUzuyJ3tgv5vUqYkdK1E6Q5jKxPss4HkMBYV4q8AfG8t7rxgyS4xQX4ndAm", "standard"),
@@ -63,7 +73,7 @@ class TestCommands(unittest.TestCase):
         }
         for xkey1, xtype1 in xprvs:
             for xkey2, xtype2 in xprvs:
-                self.assertEqual(xkey2, cmds.convert_xkey(xkey1, xtype2))
+                self.assertEqual(xkey2, cmds._run('convert_xkey', (xkey1, xtype2)))
 
     @mock.patch.object(storage.WalletStorage, '_write')
     def test_encrypt_decrypt(self, mock_write):
@@ -72,8 +82,8 @@ class TestCommands(unittest.TestCase):
         cmds = Commands(config=None, wallet=wallet, network=None)
         cleartext = "asdasd this is the message"
         pubkey = "03b9ace321eddd5037f35bc141a9f6cbd54d5064b917da1ef02e1b575f410f5e11"
-        ciphertext = cmds.encrypt(pubkey, cleartext)
-        self.assertEqual(cleartext, cmds.decrypt(pubkey, ciphertext))
+        ciphertext = cmds._run('encrypt', (pubkey, cleartext))
+        self.assertEqual(cleartext, cmds._run('decrypt', (pubkey, ciphertext)))
 
     @mock.patch.object(storage.WalletStorage, '_write')
     def test_export_private_key_imported(self, mock_write):
@@ -82,16 +92,16 @@ class TestCommands(unittest.TestCase):
         cmds = Commands(config=None, wallet=wallet, network=None)
         # single address tests
         with self.assertRaises(Exception):
-            cmds.getprivatekeys("asdasd")  # invalid addr, though might raise "not in wallet"
+            cmds._run('getprivatekeys', ("asdasd",))  # invalid addr, though might raise "not in wallet"
         with self.assertRaises(Exception):
-            cmds.getprivatekeys("mona1qy7ykhcu6608jqulvw5amkym7rhkk2z9vpugy22")  # not in wallet
+            cmds._run('getprivatekeys', ("mona1qy7ykhcu6608jqulvw5amkym7rhkk2z9vpugy22",))  # not in wallet
         self.assertEqual("p2wpkh:T4jS4CCdekC3hvV6AY7gKoRU3PFpJdoKY9uczbR3dpv8ypZHiP65",
-                         cmds.getprivatekeys("mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h"))
+                         cmds._run('getprivatekeys', ("mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h",)))
         # list of addresses tests
         with self.assertRaises(Exception):
-            cmds.getprivatekeys(['mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h', 'asd'])
+            cmds._run('getprivatekeys', (['mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h', 'asd'], ))
         self.assertEqual(['p2wpkh:T4jS4CCdekC3hvV6AY7gKoRU3PFpJdoKY9uczbR3dpv8ypZHiP65', 'p2wpkh:TAgoypi14k5Y54svysG62xp5QFRWiF1W64zxaFRFPo2jMPSMoa5D'],
-                         cmds.getprivatekeys(['mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h', 'mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j']))
+                         cmds._run('getprivatekeys', (['mona1qsahc3f7s9mw407aqttez283zmffx0u86t6xh8h', 'mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j'], )))
 
     @mock.patch.object(storage.WalletStorage, '_write')
     def test_export_private_key_deterministic(self, mock_write):
@@ -101,19 +111,28 @@ class TestCommands(unittest.TestCase):
         cmds = Commands(config=None, wallet=wallet, network=None)
         # single address tests
         with self.assertRaises(Exception):
-            cmds.getprivatekeys("asdasd")  # invalid addr, though might raise "not in wallet"
+            cmds._run('getprivatekeys', ("asdasd",))  # invalid addr, though might raise "not in wallet"
         with self.assertRaises(Exception):
-            cmds.getprivatekeys("mona1qy7ykhcu6608jqulvw5amkym7rhkk2z9vpugy22")  # not in wallet
+            cmds._run('getprivatekeys', ("mona1qy7ykhcu6608jqulvw5amkym7rhkk2z9vpugy22",))  # not in wallet
         self.assertEqual("p2wpkh:T6v5Q8KEmjLmJoTxPfXfyNcCEFYC7Lfmwmp9Y8dce9knevo9ZkPk",
-                         cmds.getprivatekeys("mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg"))
+                         cmds._run('getprivatekeys', ("mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg",)))
         # list of addresses tests
         with self.assertRaises(Exception):
-            cmds.getprivatekeys(['mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', 'asd'])
+            cmds._run('getprivatekeys', (['mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', 'asd'],))
         self.assertEqual(['p2wpkh:T6v5Q8KEmjLmJoTxPfXfyNcCEFYC7Lfmwmp9Y8dce9knevo9ZkPk', 'p2wpkh:TAgoypi14k5Y54svysG62xp5QFRWiF1W64zxaFRFPo2jMPSMoa5D'],
-                         cmds.getprivatekeys(['mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', 'mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j']))
+                         cmds._run('getprivatekeys', (['mona1q3g5tmkmlvxryhh843v4dz026avatc0zz8fpnsg', 'mona1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq7urx8j'], )))
 
 
 class TestCommandsTestnet(TestCaseForTestnet):
+
+    def setUp(self):
+        super().setUp()
+        self.asyncio_loop, self._stop_loop, self._loop_thread = create_and_start_event_loop()
+
+    def tearDown(self):
+        super().tearDown()
+        self.asyncio_loop.call_soon_threadsafe(self._stop_loop.set_result, 1)
+        self._loop_thread.join(timeout=1)
 
     def test_convert_xkey(self):
         cmds = Commands(config=None, wallet=None, network=None)
@@ -124,7 +143,7 @@ class TestCommandsTestnet(TestCaseForTestnet):
         }
         for xkey1, xtype1 in xpubs:
             for xkey2, xtype2 in xpubs:
-                self.assertEqual(xkey2, cmds.convert_xkey(xkey1, xtype2))
+                self.assertEqual(xkey2, cmds._run('convert_xkey', (xkey1, xtype2)))
 
         xprvs = {
             ("tprv8c83gxdVUcznP8fMx2iNUBbaQgQC7MUbBUDG3c6YU9xgt7Dn5pfcgHUeNZTAvuYmNgVHjyTzYzGWwJr7GvKCm2FkPaaJipyipbfJeB3tdPW", "standard"),
@@ -133,4 +152,4 @@ class TestCommandsTestnet(TestCaseForTestnet):
         }
         for xkey1, xtype1 in xprvs:
             for xkey2, xtype2 in xprvs:
-                self.assertEqual(xkey2, cmds.convert_xkey(xkey1, xtype2))
+                self.assertEqual(xkey2, cmds._run('convert_xkey', (xkey1, xtype2)))
