@@ -2169,7 +2169,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
     def update_console(self):
         console = self.console
-        console.history = self.config.get("console-history",[])
+        console.history = self.wallet.storage.get("qt-console-history", [])
         console.history_index = len(console.history)
 
         console.updateNamespace({
@@ -3365,8 +3365,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             g = self.geometry()
             self.wallet.storage.put("winpos-qt", [g.left(),g.top(),
                                                   g.width(),g.height()])
-        self.config.set_key("console-history", self.console.history[-50:],
-                            True)
+        self.wallet.storage.put("qt-console-history", self.console.history[-50:])
         if self.qr_window:
             self.qr_window.close()
         self.close_wallet()
