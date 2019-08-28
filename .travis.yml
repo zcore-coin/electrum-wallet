@@ -33,7 +33,7 @@ jobs:
         - sudo apt-get install -yq monacoind
       install:
         - pip install -r contrib/requirements/requirements.txt
-        - pip install git+https://github.com/wakiyamap/electrumx.git
+        - pip install electrumx
       before_script:
           - electrum_mona/tests/regtest/start_bitcoind.sh
           - electrum_mona/tests/regtest/start_electrumx.sh

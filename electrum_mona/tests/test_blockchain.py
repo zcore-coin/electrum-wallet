@@ -33,4 +33,3 @@ class testBlockchain(SequentialTestCase):
         bits = Blockchain.get_target(self, 1707577, headers5)
         self.assertEqual(bits, 50924303622638816608903496611932117387916353275391498616157721)
 
-
