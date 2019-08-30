@@ -23,7 +23,9 @@ source.exclude_dirs = bin, build, dist, contrib,
     electrum_mona/tests,
     electrum_mona/gui/qt,
     electrum_mona/gui/kivy/tools,
-    electrum_mona/gui/kivy/theming/light
+    electrum_mona/gui/kivy/theming/light,
+    # exclude pycryptodomex built by make_packages; android needs custom version
+    packages/cryptodome
 # (list) List of exclusions using pattern matching
 source.exclude_patterns = Makefile,setup*
 
