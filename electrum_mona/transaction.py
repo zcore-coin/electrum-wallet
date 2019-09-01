@@ -835,10 +835,10 @@ class Transaction:
     def guess_txintype_from_address(cls, addr):
         # It's not possible to tell the script type in general
         # just from an address.
-        # - "1" addresses are of course p2pkh
-        # - "3" addresses are p2sh but we don't know the redeem script..
-        # - "bc1" addresses (if they are 42-long) are p2wpkh
-        # - "bc1" addresses that are 62-long are p2wsh but we don't know the script..
+        # - "M" addresses are of course p2pkh
+        # - "P" addresses are p2sh but we don't know the redeem script..
+        # - "mona1" addresses (if they are 44-long) are p2wpkh
+        # - "mona1" addresses that are 64-long are p2wsh but we don't know the script..
         # If we don't know the script, we _guess_ it is pubkeyhash.
         # As this method is used e.g. for tx size estimation,
         # the estimation will not be precise.
