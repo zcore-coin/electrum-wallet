@@ -69,6 +69,11 @@ Label.register('Roboto',
                'electrum_mona/gui/kivy/data/fonts/Roboto.ttf',
                'electrum_mona/gui/kivy/data/fonts/Roboto-Bold.ttf',
                'electrum_mona/gui/kivy/data/fonts/Roboto-Bold.ttf')
+Label.register('JP',
+               'electrum/gui/kivy/data/fonts/mplus-2p-regular.ttf',
+               'electrum/gui/kivy/data/fonts/mplus-2p-regular.ttf',
+               'electrum/gui/kivy/data/fonts/mplus-2p-bold.ttf',
+               'electrum/gui/kivy/data/fonts/mplus-2p-bold.ttf')
 
 
 from electrum_mona.util import (base_units, NoDynamicFeeEstimates, decimal_point_to_base_unit_name,
