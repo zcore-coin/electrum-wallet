@@ -36,6 +36,7 @@ from base64 import b64decode
 
 import jsonrpcclient
 import jsonrpcserver
+from jsonrpcserver import response
 from jsonrpcclient.clients.aiohttp_client import AiohttpClient
 
 from .network import Network
@@ -224,10 +225,12 @@ class Daemon(Logger):
         try:
             self.authenticate(request.headers)
         except AuthenticationError:
-            return web.Response(text='Forbidden', status='403')
+            return web.Response(text='Forbidden', status=403)
         request = await request.text()
-        self.logger.info(f'request: {request}')
+        #self.logger.info(f'handling request: {request}')
         response = await jsonrpcserver.async_dispatch(request, methods=self.methods)
+        if isinstance(response, jsonrpcserver.response.ExceptionResponse):
+            self.logger.error(f"error handling request: {request}", exc_info=response.exc)
         if response.wanted:
             return web.json_response(response.deserialized(), status=response.http_status)
         else:
@@ -240,7 +243,6 @@ class Daemon(Logger):
         self.methods = jsonrpcserver.methods.Methods()
         self.methods.add(self.ping)
         self.methods.add(self.gui)
-        self.methods.add(self.daemon)
         self.cmd_runner = Commands(self.config, None, self.network, self)
         for cmdname in known_commands:
             self.methods.add(getattr(self.cmd_runner, cmdname))
@@ -257,17 +259,6 @@ class Daemon(Logger):
 
     async def ping(self):
         return True
-
-    async def daemon(self, config_options):
-        config = SimpleConfig(config_options)
-        sub = config.get('subcommand')
-        assert sub in [None, 'start', 'stop']
-        if sub in [None, 'start']:
-            response = "Daemon already running"
-        elif sub == 'stop':
-            self.stop()
-            response = "Daemon stopped"
-        return response
 
     async def gui(self, config_options):
         config = SimpleConfig(config_options)
