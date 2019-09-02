@@ -353,7 +353,7 @@ class SendScreen(CScreen):
         #    d.open()
         #else:
         #    self._do_send_onchain(amount, message, outputs, False)
-        self._do_send_onchain(amount, message, outputs, False)s
+        self._do_send_onchain(amount, message, outputs, False)
 
     def _do_send_lightning(self, invoice, amount):
         attempts = 10
