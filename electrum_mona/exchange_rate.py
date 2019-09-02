@@ -197,6 +197,11 @@ class CryptBridge(ExchangeBase):
             return {ccy: Decimal(json1['last'])*Decimal(json2['last'])}
         return {ccy: Decimal(json1['last'])}
 
+class Fisco(ExchangeBase):
+    async def get_rates(self, ccy):
+        json = await self.get_json('api.fcce.jp', '/api/1/last_price/mona_jpy')
+        return {'JPY': Decimal(json['last_price'])}
+
 class Zaif(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('api.zaif.jp', '/api/1/last_price/mona_jpy')
