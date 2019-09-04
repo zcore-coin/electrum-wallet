@@ -602,7 +602,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         height = self.wallet.get_tx_height(tx_hash).height
         is_relevant, is_mine, v, fee = self.wallet.get_wallet_delta(tx)
         is_unconfirmed = height <= 0
-        pr_key = self.wallet.invoices.paid.get(tx_hash)
+        #pr_key = self.wallet.invoices.paid.get(tx_hash)
         menu = QMenu()
         if height in [TX_HEIGHT_FUTURE, TX_HEIGHT_LOCAL]:
             menu.addAction(_("Remove"), lambda: self.remove_local_tx(tx_hash))
@@ -620,7 +620,6 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             persistent = QPersistentModelIndex(org_idx.sibling(org_idx.row(), c))
             menu.addAction(_("Edit {}").format(label), lambda p=persistent: self.edit(QModelIndex(p)))
         menu.addAction(_("Details"), lambda: self.show_transaction(tx_hash))
-        #monacoin param
         #if is_unconfirmed and tx:
         #    # note: the current implementation of RBF *needs* the old tx fee
         #    rbf = is_mine and not tx.is_final() and fee is not None
@@ -630,8 +629,8 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         #        child_tx = self.wallet.cpfp(tx, 0)
         #        if child_tx:
         #            menu.addAction(_("Child pays for parent"), lambda: self.parent.cpfp(tx, child_tx))
-        if pr_key:
-            menu.addAction(read_QIcon("seal"), _("View invoice"), lambda: self.parent.show_invoice(pr_key))
+        #if pr_key:
+        #    menu.addAction(read_QIcon("seal"), _("View invoice"), lambda: self.parent.show_invoice(pr_key))
         if tx_URL:
             menu.addAction(_("View on block explorer"), lambda: webopen(tx_URL))
         menu.exec_(self.viewport().mapToGlobal(position))

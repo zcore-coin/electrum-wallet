@@ -46,14 +46,13 @@ from .util import (NotEnoughFunds, UserCancelled, profiler,
                    WalletFileException, BitcoinException,
                    InvalidPassword, format_time, timestamp_to_datetime, Satoshis,
                    Fiat, bfh, bh2u, TxMinedInfo, quantize_feerate, create_bip21_uri, OrderedDictWithIndex)
-from .util import age
 from .util import PR_TYPE_ADDRESS, PR_TYPE_BIP70, PR_TYPE_LN
 from .simple_config import get_config
 from .bitcoin import (COIN, TYPE_ADDRESS, is_address, address_to_script,
                       is_minikey, relayfee, dust_threshold)
 from .crypto import sha256d
 from . import keystore
-from .keystore import load_keystore, Hardware_KeyStore
+from .keystore import load_keystore, Hardware_KeyStore, KeyStore
 from .util import multisig_type
 from .storage import STO_EV_PLAINTEXT, STO_EV_USER_PW, STO_EV_XPUB_PW, WalletStorage
 from . import transaction, bitcoin, coinchooser, paymentrequest, ecc, bip32
@@ -218,6 +217,7 @@ class Abstract_Wallet(AddressSynchronizer):
         self.storage = storage
         # load addresses needs to be called before constructor for sanity checks
         self.storage.db.load_addresses(self.wallet_type)
+        self.keystore = None  # type: Optional[KeyStore]  # will be set by load_keystore
         AddressSynchronizer.__init__(self, storage.db)
 
         # saved fields
@@ -236,7 +236,6 @@ class Abstract_Wallet(AddressSynchronizer):
         if self.storage.get('wallet_type') is None:
             self.storage.put('wallet_type', self.wallet_type)
 
-        # contacts
         self.contacts = Contacts(self.storage)
         self._coin_price_cache = {}
         self.lnworker = LNWallet(self) if get_config().get('lightning') else None
@@ -262,6 +261,9 @@ class Abstract_Wallet(AddressSynchronizer):
         self.load_keystore()
         self.test_addresses_sanity()
         super().load_and_cleanup()
+
+    def load_keystore(self) -> None:
+        raise NotImplementedError()  # implemented by subclasses
 
     def diagnostic_name(self):
         return self.basename()
@@ -353,10 +355,10 @@ class Abstract_Wallet(AddressSynchronizer):
         except:
             return
 
-    def is_mine(self, address):
+    def is_mine(self, address) -> bool:
         return bool(self.get_address_index(address))
 
-    def is_change(self, address):
+    def is_change(self, address) -> bool:
         if not self.is_mine(address):
             return False
         return self.get_address_index(address)[0]
@@ -1150,7 +1152,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 return True
         return False
 
-    def get_input_tx(self, tx_hash, *, ignore_network_issues=False):
+    def get_input_tx(self, tx_hash, *, ignore_network_issues=False) -> Optional[Transaction]:
         # First look up an input transaction in the wallet where it
         # will likely be.  If co-signing a transaction it may not have
         # all the input txs, in which case we ask the network.
@@ -1168,7 +1170,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 tx = Transaction(raw_tx)
         return tx
 
-    def add_hw_info(self, tx):
+    def add_hw_info(self, tx: Transaction) -> None:
         # add previous tx for hw wallets
         for txin in tx.inputs():
             tx_hash = txin['prevout_hash']
@@ -1178,15 +1180,19 @@ class Abstract_Wallet(AddressSynchronizer):
         # add output info for hw wallets
         info = {}
         xpubs = self.get_master_public_keys()
-        for txout in tx.outputs():
-            _type, addr, amount = txout
-            if self.is_mine(addr):
-                index = self.get_address_index(addr)
-                pubkeys = self.get_public_keys(addr)
+        for o in tx.outputs():
+            if self.is_mine(o.address):
+                index = self.get_address_index(o.address)
+                pubkeys = self.get_public_keys(o.address)
                 # sort xpubs using the order of pubkeys
                 sorted_pubkeys, sorted_xpubs = zip(*sorted(zip(pubkeys, xpubs)))
                 num_sig = self.m if isinstance(self, Multisig_Wallet) else None
-                info[addr] = TxOutputHwInfo(index, sorted_xpubs, num_sig, self.txin_type)
+                is_change = self.is_change(o.address)
+                info[o.address] = TxOutputHwInfo(address_index=index,
+                                                 sorted_xpubs=sorted_xpubs,
+                                                 num_sig=num_sig,
+                                                 script_type=self.txin_type,
+                                                 is_change=is_change)
         tx.output_info = info
 
     def sign_transaction(self, tx, password):
@@ -1271,7 +1277,7 @@ class Abstract_Wallet(AddressSynchronizer):
             return
         out = copy.copy(r)
         out['type'] = PR_TYPE_ADDRESS
-        out['URI'] = 'monacoin:' + addr + '?amount=' + format_satoshis(out.get('amount'))
+        out['URI'] = self.get_request_URI(addr)
         status, conf = self.get_request_status(addr)
         out['status'] = status
         if conf is not None:
@@ -1586,21 +1592,21 @@ class Abstract_Wallet(AddressSynchronizer):
                 return p * txin_value/Decimal(COIN)
 
     def is_billing_address(self, addr):
-        # overloaded for TrustedCoin wallets
+        # overridden for TrustedCoin wallets
         return False
 
     def is_watching_only(self) -> bool:
         raise NotImplementedError()
 
+    def get_keystore(self) -> Optional[KeyStore]:
+        return self.keystore
+
+    def get_keystores(self) -> Sequence[KeyStore]:
+        return [self.keystore] if self.keystore else []
+
 
 class Simple_Wallet(Abstract_Wallet):
     # wallet with a single keystore
-
-    def get_keystore(self):
-        return self.keystore
-
-    def get_keystores(self):
-        return [self.keystore]
 
     def is_watching_only(self):
         return self.keystore.is_watching_only()
@@ -1625,9 +1631,6 @@ class Imported_Wallet(Simple_Wallet):
 
     def is_watching_only(self):
         return self.keystore is None
-
-    def get_keystores(self):
-        return [self.keystore] if self.keystore else []
 
     def can_import_privkey(self):
         return bool(self.keystore)
@@ -1742,7 +1745,7 @@ class Imported_Wallet(Simple_Wallet):
                 self.save_keystore()
         self.storage.write()
 
-    def is_mine(self, address):
+    def is_mine(self, address) -> bool:
         return self.db.has_imported_address(address)
 
     def get_address_index(self, address):
