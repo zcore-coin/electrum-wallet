@@ -202,6 +202,12 @@ class Fisco(ExchangeBase):
         json = await self.get_json('api.fcce.jp', '/api/1/last_price/mona_jpy')
         return {'JPY': Decimal(json['last_price'])}
 
+class NebliDex(ExchangeBase):
+    async def get_rates(self, ccy):
+        json = await self.get_json('www.neblidex.xyz', '/seed/?v=1&api=get_market_price&market=MONA/BTC')
+        print(json)
+        return {'BTC': Decimal(json)}
+
 class Zaif(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('api.zaif.jp', '/api/1/last_price/mona_jpy')
@@ -306,7 +312,7 @@ class FxThread(ThreadJob):
         return text.replace(',', '') # FIXME use THOUSAND_SEPARATOR in util
 
     def ccy_amount_str(self, amount, commas):
-        prec = CCY_PRECISIONS.get(self.ccy, 2)
+        prec = CCY_PRECISIONS.get(self.ccy, 8)
         fmt_str = "{:%s.%df}" % ("," if commas else "", max(0, prec)) # FIXME use util.THOUSAND_SEPARATOR and util.DECIMAL_POINT
         try:
             rounded_amount = round(amount, prec)
