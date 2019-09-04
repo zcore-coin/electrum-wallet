@@ -1,4 +1,9 @@
 {
+    "ATAIX": [
+        "BTC",
+        "ETH",
+        "EUR"
+    ],
     "BitcoinAverage": [
         "DZD",
         "NAD",
@@ -587,7 +592,9 @@
         "JPY"
     ],
     "NebliDex": [
-        "BTC"
+        "BTC",
+        "DAI",
+        "LTC"
     ],
     "Zaif": [
         "JPY"

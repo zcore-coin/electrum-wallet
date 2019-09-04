@@ -189,6 +189,11 @@ class CoinGecko(ExchangeBase):
         return dict([(datetime.utcfromtimestamp(h[0]/1000).strftime('%Y-%m-%d'), h[1])
                      for h in history['prices']])
 
+class ATAIX(ExchangeBase):
+    async def get_rates(self, ccy):
+        json = await self.get_json('api.ataix.com', '/api/prices/MONA-%s' % ccy)
+        return {ccy: Decimal(json['result'][0]['last'])}
+
 class CryptBridge(ExchangeBase):
     async def get_rates(self, ccy):
         json1 = await self.get_json('api.crypto-bridge.org', '/api/v1/ticker/MONA_BTC')
@@ -204,9 +209,8 @@ class Fisco(ExchangeBase):
 
 class NebliDex(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('www.neblidex.xyz', '/seed/?v=1&api=get_market_price&market=MONA/BTC')
-        print(json)
-        return {'BTC': Decimal(json)}
+        json = await self.get_json('www.neblidex.xyz', '/seed/?v=1&api=get_market_price&market=MONA/%s' % ccy)
+        return {ccy: Decimal(json)}
 
 class Zaif(ExchangeBase):
     async def get_rates(self, ccy):
