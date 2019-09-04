@@ -145,6 +145,11 @@ class ExchangeBase(Logger):
         return sorted([str(a) for (a, b) in rates.items() if b is not None and len(a)==3])
 
 
+class ATAIX(ExchangeBase):
+    async def get_rates(self, ccy):
+        json = await self.get_json('api.ataix.com', '/api/prices/MONA-%s' % ccy)
+        return {ccy: Decimal(json['result'][0]['last'])}
+
 class BitcoinAverage(ExchangeBase):
     async def get_rates(self, ccy):
         json1 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/crypto/ticker/MONABTC')
@@ -163,13 +168,13 @@ class Bittrex(ExchangeBase):
 
 class Bitbank(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('public.bitbank.cc', '/mona_jpy/ticker')
-        return {'JPY': Decimal(json['data']['last'])}
+        json = await self.get_json('public.bitbank.cc', '/mona_%s/ticker' % ccy.lower())
+        return {ccy: Decimal(json['data']['last'])}
 
 class Coincheck(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('coincheck.com', '/api/rate/mona_jpy')
-        return {'JPY': Decimal(json['rate'])}
+        json = await self.get_json('coincheck.com', '/api/rate/mona_%s' % ccy.lower())
+        return {ccy: Decimal(json['rate'])}
 
 class CoinGecko(ExchangeBase):
 
@@ -189,11 +194,6 @@ class CoinGecko(ExchangeBase):
         return dict([(datetime.utcfromtimestamp(h[0]/1000).strftime('%Y-%m-%d'), h[1])
                      for h in history['prices']])
 
-class ATAIX(ExchangeBase):
-    async def get_rates(self, ccy):
-        json = await self.get_json('api.ataix.com', '/api/prices/MONA-%s' % ccy)
-        return {ccy: Decimal(json['result'][0]['last'])}
-
 class CryptBridge(ExchangeBase):
     async def get_rates(self, ccy):
         json1 = await self.get_json('api.crypto-bridge.org', '/api/v1/ticker/MONA_BTC')
@@ -204,18 +204,23 @@ class CryptBridge(ExchangeBase):
 
 class Fisco(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('api.fcce.jp', '/api/1/last_price/mona_jpy')
-        return {'JPY': Decimal(json['last_price'])}
+        json = await self.get_json('api.fcce.jp', '/api/1/last_price/mona_%s' % ccy.lower())
+        return {ccy: Decimal(json['last_price'])}
 
 class NebliDex(ExchangeBase):
     async def get_rates(self, ccy):
         json = await self.get_json('www.neblidex.xyz', '/seed/?v=1&api=get_market_price&market=MONA/%s' % ccy)
         return {ccy: Decimal(json)}
 
+class TradeSatoshi(ExchangeBase):
+    async def get_rates(self, ccy):
+        json = await self.get_json('tradesatoshi.com', '/api/public/getmarketsummary?market=MONA_BTC')
+        return {'BTC': Decimal(json['result']['last'])}
+
 class Zaif(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('api.zaif.jp', '/api/1/last_price/mona_jpy')
-        return {'JPY': Decimal(json['last_price'])}
+        json = await self.get_json('api.zaif.jp', '/api/1/last_price/mona_%s' % ccy.lower())
+        return {ccy: Decimal(json['last_price'])}
 
 
 def dictinvert(d):

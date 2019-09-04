@@ -353,9 +353,11 @@
         "XAU"
     ],
     "Bitbank": [
+        "BTC",
         "JPY"
     ],
     "Coincheck": [
+        "BTC",
         "JPY"
     ],
     "CoinGecko": [
@@ -589,6 +591,7 @@
         "XAU"
     ],
     "Fisco": [
+        "BTC",
         "JPY"
     ],
     "NebliDex": [
@@ -596,7 +599,11 @@
         "DAI",
         "LTC"
     ],
+    "TradeSatoshi": [
+        "BTC"
+    ],
     "Zaif": [
+        "BTC",
         "JPY"
     ]
 }
