@@ -58,12 +58,18 @@ Development version
 
 Check out the code from GitHub::
 
+<<<<<<< HEAD
     git clone https://github.com/wakiyamap/electrum-mona.git
     cd electrum-mona
 
 Need lyra2rev2_hash::
 
     pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip
+=======
+    git clone git://github.com/spesmilo/electrum.git
+    cd electrum
+    git submodule update --init
+>>>>>>> upstream/master
 
 Run install (this should install dependencies)::
 

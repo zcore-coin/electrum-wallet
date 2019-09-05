@@ -58,6 +58,7 @@ from .simple_config import SimpleConfig
 
 if TYPE_CHECKING:
     from .network import Network
+    from .daemon import Daemon
 
 
 known_commands = {}
@@ -111,7 +112,8 @@ class Commands:
 
     def __init__(self, config: 'SimpleConfig',
                  wallet: Abstract_Wallet,
-                 network: Optional['Network'], daemon=None, callback=None):
+                 network: Optional['Network'],
+                 daemon: 'Daemon' = None, callback=None):
         self.config = config
         self.wallet = wallet
         self.daemon = daemon
@@ -190,13 +192,7 @@ class Commands:
     async def close_wallet(self):
         """Close wallet"""
         path = self.config.get_wallet_path()
-        path = standardize_path(path)
-        if path in self.wallets:
-            self.stop_wallet(path)
-            response = True
-        else:
-            response = False
-        return response
+        return self.daemon.stop_wallet(path)
 
     @command('')
     async def create(self, passphrase=None, password=None, encrypt_file=True, seed_type=None):
@@ -221,12 +217,12 @@ class Commands:
         or bitcoin private keys.
         If you want to be prompted for an argument, type '?' or ':' (concealed)
         """
+        # TODO create a separate command that blocks until wallet is synced
         d = restore_wallet_from_text(text,
                                      path=self.config.get_wallet_path(),
                                      passphrase=passphrase,
                                      password=password,
-                                     encrypt_file=encrypt_file,
-                                     network=self.network)
+                                     encrypt_file=encrypt_file)
         return {
             'path': d['wallet'].storage.path,
             'msg': d['msg'],
@@ -1037,7 +1033,6 @@ arg_types = {
 config_variables = {
 
     'addrequest': {
-        'requests_dir': 'directory where a bip70 file will be written.',
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
         'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of monacoin: URIs. Example: \"(\'file:///var/www/\',\'https://electrum-mona.org/\')\"',
