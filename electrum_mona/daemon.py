@@ -34,6 +34,7 @@ import aiohttp
 from aiohttp import web
 from base64 import b64decode
 from collections import defaultdict
+import ssl
 
 import jsonrpcclient
 import jsonrpcserver
@@ -43,6 +44,7 @@ from jsonrpcclient.clients.aiohttp_client import AiohttpClient
 from .network import Network
 from .util import (json_decode, to_bytes, to_string, profiler, standardize_path, constant_time_compare)
 from .util import PR_PAID, PR_EXPIRED, get_request_status
+from .util import log_exceptions, ignore_exceptions
 from .wallet import Wallet, Abstract_Wallet
 from .storage import WalletStorage
 from .commands import known_commands, Commands
@@ -179,23 +181,32 @@ class HttpServer(Logger):
         self.pending = defaultdict(asyncio.Event)
         self.daemon.network.register_callback(self.on_payment, ['payment_received'])
 
-    async def on_payment(self, evt, *args):
-        print(evt, args)
-        #await self.pending[key].set()
+    async def on_payment(self, evt, wallet, key, status):
+        if status == PR_PAID:
+            await self.pending[key].set()
 
+    @ignore_exceptions
+    @log_exceptions
     async def run(self):
-        from aiohttp import helpers
+        host = self.config.get('payserver_host', 'localhost')
+        port = self.config.get('payserver_port')
+        root = self.config.get('payserver_root', '/r')
+        ssl_keyfile = self.config.get('ssl_keyfile')
+        ssl_certfile = self.config.get('ssl_certfile')
+        if ssl_keyfile and ssl_certfile:
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(ssl_certfile, ssl_keyfile)
+        else:
+            ssl_context = None
         app = web.Application()
-        #app.on_response_prepare.append(http_server.on_response_prepare)
         app.add_routes([web.post('/api/create_invoice', self.create_request)])
         app.add_routes([web.get('/api/get_invoice', self.get_request)])
         app.add_routes([web.get('/api/get_status', self.get_status)])
-        app.add_routes([web.static('/electrum', 'electrum_mona/www')])
+        app.add_routes([web.get('/bip70/{key}.bip70', self.get_bip70_request)])
+        app.add_routes([web.static(root, 'electrum_mona/www')])
         runner = web.AppRunner(app)
         await runner.setup()
-        host = self.config.get('http_host', 'localhost')
-        port = int(self.config.get('http_port'))
-        site = web.TCPSite(runner, port=port, host=host)
+        site = web.TCPSite(runner, port=port, host=host, ssl_context=ssl_context)
         await site.start()
 
     async def create_request(self, request):
@@ -207,12 +218,21 @@ class HttpServer(Logger):
         message = params['message'] or "donation"
         payment_hash = await wallet.lnworker._add_invoice_coro(amount, message, 3600)
         key = payment_hash.hex()
-        raise web.HTTPFound('/electrum_mona/index.html?id=' + key)
+        raise web.HTTPFound(self.root + '/pay?id=' + key)
 
     async def get_request(self, r):
         key = r.query_string
         request = self.daemon.wallet.get_request(key)
         return web.json_response(request)
+
+    async def get_bip70_request(self, r):
+        from .paymentrequest import make_request
+        key = r.match_info['key']
+        request = self.daemon.wallet.get_request(key)
+        if not request:
+            return web.HTTPNotFound()
+        pr = make_request(self.config, request)
+        return web.Response(body=pr.SerializeToString(), content_type='application/bitcoin-paymentrequest')
 
     async def get_status(self, request):
         ws = web.WebSocketResponse()
@@ -224,11 +244,11 @@ class HttpServer(Logger):
             await ws.close()
             return ws
         if info.get('status') == PR_PAID:
-            await ws.send_str(f'already paid')
+            await ws.send_str(f'paid')
             await ws.close()
             return ws
         if info.get('status') == PR_EXPIRED:
-            await ws.send_str(f'invoice expired')
+            await ws.send_str(f'expired')
             await ws.close()
             return ws
         while True:
@@ -272,7 +292,7 @@ class Daemon(Logger):
         if listen_jsonrpc:
             jobs.append(self.start_jsonrpc(config, fd))
         # request server
-        if self.config.get('http_port'):
+        if self.config.get('payserver_port'):
             self.http_server = HttpServer(self)
             jobs.append(self.http_server.run())
         # server-side watchtower
@@ -306,10 +326,11 @@ class Daemon(Logger):
         except AuthenticationError:
             return web.Response(text='Forbidden', status=403)
         request = await request.text()
-        #self.logger.info(f'handling request: {request}')
         response = await jsonrpcserver.async_dispatch(request, methods=self.methods)
         if isinstance(response, jsonrpcserver.response.ExceptionResponse):
             self.logger.error(f"error handling request: {request}", exc_info=response.exc)
+            # this exposes the error message to the client
+            response.message = str(response.exc)
         if response.wanted:
             return web.json_response(response.deserialized(), status=response.http_status)
         else:
@@ -322,7 +343,7 @@ class Daemon(Logger):
         self.methods = jsonrpcserver.methods.Methods()
         self.methods.add(self.ping)
         self.methods.add(self.gui)
-        self.cmd_runner = Commands(self.config, None, self.network, self)
+        self.cmd_runner = Commands(config=self.config, network=self.network, daemon=self)
         for cmdname in known_commands:
             self.methods.add(getattr(self.cmd_runner, cmdname))
         self.methods.add(self.run_cmdline)
@@ -412,14 +433,6 @@ class Daemon(Logger):
         config.mempool_fees  = self.network.config.mempool_fees.copy()
         cmdname = config.get('cmd')
         cmd = known_commands[cmdname]
-        if cmd.requires_wallet:
-            path = config.get_wallet_path()
-            path = standardize_path(path)
-            wallet = self.wallets.get(path)
-            if wallet is None:
-                return {'error': 'Wallet "%s" is not loaded. Use "electrum load_wallet"'%os.path.basename(path) }
-        else:
-            wallet = None
         # arguments passed to function
         args = map(lambda x: config.get(x), cmd.params)
         # decode json arguments
@@ -428,12 +441,12 @@ class Daemon(Logger):
         kwargs = {}
         for x in cmd.options:
             kwargs[x] = (config_options.get(x) if x in ['password', 'new_password'] else config.get(x))
-        cmd_runner = Commands(config, wallet, self.network, self)
-        func = getattr(cmd_runner, cmd.name)
+        func = getattr(self.cmd_runner, cmd.name)
+        # fixme: not sure how to retrieve message in jsonrpcclient
         try:
             result = await func(*args, **kwargs)
-        except TypeError as e:
-            raise Exception("Wrapping TypeError to prevent JSONRPC-Pelix from hiding traceback") from e
+        except Exception as e:
+            result = {'error':str(e)}
         return result
 
     def run_daemon(self):

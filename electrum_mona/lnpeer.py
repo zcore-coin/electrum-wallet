@@ -41,7 +41,7 @@ from .lnutil import (Outpoint, LocalConfig, RECEIVED, UpdateAddHtlc,
                      LightningPeerConnectionClosed, HandshakeFailed, NotFoundChanAnnouncementForUpdate,
                      MINIMUM_MAX_HTLC_VALUE_IN_FLIGHT_ACCEPTED, MAXIMUM_HTLC_MINIMUM_MSAT_ACCEPTED,
                      MAXIMUM_REMOTE_TO_SELF_DELAY_ACCEPTED, RemoteMisbehaving, DEFAULT_TO_SELF_DELAY,
-                     NBLOCK_OUR_CLTV_EXPIRY_DELTA, format_short_channel_id)
+                     NBLOCK_OUR_CLTV_EXPIRY_DELTA, format_short_channel_id, ShortChannelID)
 from .lnutil import FeeUpdate
 from .lntransport import LNTransport, LNTransportBase
 from .lnmsg import encode_msg, decode_msg
@@ -51,6 +51,9 @@ from .lnrouter import fee_for_edge_msat
 if TYPE_CHECKING:
     from .lnworker import LNWorker
     from .lnrouter import RouteEdge
+
+
+LN_P2P_NETWORK_TIMEOUT = 20
 
 
 def channel_id_from_funding_tx(funding_txid: str, funding_index: int) -> Tuple[bytes, bytes]:
@@ -238,6 +241,7 @@ class Peer(Logger):
             await group.spawn(self.process_gossip())
 
     async def process_gossip(self):
+        await self.channel_db.data_loaded.wait()
         # verify in peer's TaskGroup so that we fail the connection
         while True:
             await asyncio.sleep(5)
@@ -279,7 +283,7 @@ class Peer(Logger):
                     # as it might be for our own direct channel with this peer
                     # (and we might not yet know the short channel id for that)
                     for chan_upd_payload in orphaned:
-                        short_channel_id = chan_upd_payload['short_channel_id']
+                        short_channel_id = ShortChannelID(chan_upd_payload['short_channel_id'])
                         self.orphan_channel_updates[short_channel_id] = chan_upd_payload
                         while len(self.orphan_channel_updates) > 25:
                             self.orphan_channel_updates.popitem(last=False)
@@ -308,12 +312,12 @@ class Peer(Logger):
 
     async def query_gossip(self):
         try:
-            await asyncio.wait_for(self.initialized.wait(), 10)
+            await asyncio.wait_for(self.initialized.wait(), LN_P2P_NETWORK_TIMEOUT)
         except asyncio.TimeoutError as e:
             raise GracefulDisconnect("initialize timed out") from e
         if self.lnworker == self.lnworker.network.lngossip:
             try:
-                ids, complete = await asyncio.wait_for(self.get_channel_range(), 10)
+                ids, complete = await asyncio.wait_for(self.get_channel_range(), LN_P2P_NETWORK_TIMEOUT)
             except asyncio.TimeoutError as e:
                 raise GracefulDisconnect("query_channel_range timed out") from e
             self.logger.info('Received {} channel ids. (complete: {})'.format(len(ids), complete))
@@ -426,7 +430,7 @@ class Peer(Logger):
 
     async def _message_loop(self):
         try:
-            await asyncio.wait_for(self.initialize(), 10)
+            await asyncio.wait_for(self.initialize(), LN_P2P_NETWORK_TIMEOUT)
         except (OSError, asyncio.TimeoutError, HandshakeFailed) as e:
             raise GracefulDisconnect(f'initialize failed: {repr(e)}') from e
         async for msg in self.transport.read_messages():
@@ -480,7 +484,7 @@ class Peer(Logger):
         # dry run creating funding tx to see if we even have enough funds
         funding_tx_test = wallet.mktx([TxOutput(bitcoin.TYPE_ADDRESS, wallet.dummy_address(), funding_sat)],
                                       password, self.lnworker.config, nonlocal_only=True)
-        await asyncio.wait_for(self.initialized.wait(), 1)
+        await asyncio.wait_for(self.initialized.wait(), LN_P2P_NETWORK_TIMEOUT)
         feerate = self.lnworker.current_feerate_per_kw()
         local_config = self.make_local_config(funding_sat, push_msat, LOCAL)
         # for the first commitment transaction
@@ -508,7 +512,7 @@ class Peer(Logger):
             channel_reserve_satoshis=local_config.reserve_sat,
             htlc_minimum_msat=1,
         )
-        payload = await asyncio.wait_for(self.channel_accepted[temp_channel_id].get(), 5)
+        payload = await asyncio.wait_for(self.channel_accepted[temp_channel_id].get(), LN_P2P_NETWORK_TIMEOUT)
         if payload.get('error'):
             raise Exception('Remote Lightning peer reported error: ' + repr(payload.get('error')))
         remote_per_commitment_point = payload['first_per_commitment_point']
@@ -583,13 +587,13 @@ class Peer(Logger):
             funding_txid=funding_txid_bytes,
             funding_output_index=funding_index,
             signature=sig_64)
-        payload = await asyncio.wait_for(self.funding_signed[channel_id].get(), 5)
+        payload = await asyncio.wait_for(self.funding_signed[channel_id].get(), LN_P2P_NETWORK_TIMEOUT)
         self.logger.info('received funding_signed')
         remote_sig = payload['signature']
         chan.receive_new_commitment(remote_sig, [])
         # broadcast funding tx
         # TODO make more robust (timeout low? server returns error?)
-        await asyncio.wait_for(self.network.broadcast_transaction(funding_tx), 5)
+        await asyncio.wait_for(self.network.broadcast_transaction(funding_tx), LN_P2P_NETWORK_TIMEOUT)
         chan.open_with_first_pcp(remote_per_commitment_point, remote_sig)
         return chan
 
@@ -955,7 +959,7 @@ class Peer(Logger):
 
     def mark_open(self, chan: Channel):
         assert chan.short_channel_id is not None
-        scid = format_short_channel_id(chan.short_channel_id)
+        scid = chan.short_channel_id
         # only allow state transition to "OPEN" from "OPENING"
         if chan.get_state() != "OPENING":
             return
@@ -1092,7 +1096,7 @@ class Peer(Logger):
         chan = self.channels[channel_id]
         key = (channel_id, htlc_id)
         try:
-            route = self.attempted_route[key]
+            route = self.attempted_route[key]  # type: List[RouteEdge]
         except KeyError:
             # the remote might try to fail an htlc after we restarted...
             # attempted_route is not persisted, so we will get here then
@@ -1306,7 +1310,7 @@ class Peer(Logger):
             return
         dph = processed_onion.hop_data.per_hop
         next_chan = self.lnworker.get_channel_by_short_id(dph.short_channel_id)
-        next_chan_scid = format_short_channel_id(dph.short_channel_id)
+        next_chan_scid = dph.short_channel_id
         next_peer = self.lnworker.peers[next_chan.node_id]
         local_height = self.network.get_local_height()
         if next_chan is None:
@@ -1520,7 +1524,7 @@ class Peer(Logger):
         while True:
             our_sig, closing_tx = chan.make_closing_tx(scriptpubkey, payload['scriptpubkey'], fee_sat=our_fee)
             self.send_message('closing_signed', channel_id=chan.channel_id, fee_satoshis=our_fee, signature=our_sig)
-            cs_payload = await asyncio.wait_for(self.closing_signed[chan.channel_id].get(), 10)
+            cs_payload = await asyncio.wait_for(self.closing_signed[chan.channel_id].get(), LN_P2P_NETWORK_TIMEOUT)
             their_fee = int.from_bytes(cs_payload['fee_satoshis'], 'big')
             their_sig = cs_payload['signature']
             if our_fee == their_fee:
