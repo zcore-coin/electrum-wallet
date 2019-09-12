@@ -4,9 +4,13 @@ import asyncio
 from electrum_mona.network import filter_protocol, Network
 from electrum_mona.util import create_and_start_event_loop, log_exceptions
 from electrum_mona.blockchain import hash_raw_header
+from electrum_mona.simple_config import SimpleConfig
+
+
+config = SimpleConfig()
 
 loop, stopping_fut, loop_thread = create_and_start_event_loop()
-network = Network()
+network = Network(config)
 network.start()
 
 @log_exceptions

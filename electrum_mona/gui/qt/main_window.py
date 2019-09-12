@@ -36,7 +36,7 @@ import base64
 from functools import partial
 import queue
 import asyncio
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon, QCursor
 from PyQt5.QtCore import Qt, QRect, QStringListModel, QSize, pyqtSignal
@@ -93,6 +93,10 @@ from .history_list import HistoryList, HistoryModel
 from .update_checker import UpdateCheck, UpdateCheckThread
 from .channels_list import ChannelsList
 
+if TYPE_CHECKING:
+    from . import ElectrumGui
+
+
 LN_NUM_PAYMENT_ATTEMPTS = 10
 
 class StatusBarButton(QPushButton):
@@ -125,7 +129,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
     computing_privkeys_signal = pyqtSignal()
     show_privkeys_signal = pyqtSignal()
 
-    def __init__(self, gui_object, wallet: Abstract_Wallet):
+    def __init__(self, gui_object: 'ElectrumGui', wallet: Abstract_Wallet):
         QMainWindow.__init__(self)
 
         self.gui_object = gui_object
@@ -552,7 +556,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.recently_visited_menu.setEnabled(len(recent))
 
     def get_wallet_folder(self):
-        return os.path.dirname(os.path.abspath(self.config.get_wallet_path()))
+        return os.path.dirname(os.path.abspath(self.wallet.storage.path))
 
     def new_wallet(self):
         try:
@@ -1090,7 +1094,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             addr = self.wallet.create_new_address(False)
         req = self.wallet.make_payment_request(addr, amount, message, expiration)
         try:
-            self.wallet.add_payment_request(req, self.config)
+            self.wallet.add_payment_request(req)
         except Exception as e:
             self.logger.exception('Error adding payment request')
             self.show_error(_('Error adding payment request') + ':\n' + repr(e))
@@ -1452,7 +1456,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         is_sweep = bool(self.tx_external_keypairs)
         make_tx = lambda fee_est: \
             self.wallet.make_unsigned_transaction(
-                coins, outputs, self.config,
+                coins, outputs,
                 fixed_fee=fee_est, is_sweep=is_sweep)
         try:
             tx = make_tx(fee_estimator)
@@ -1693,7 +1697,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         try:
             is_sweep = bool(self.tx_external_keypairs)
             tx = self.wallet.make_unsigned_transaction(
-                coins, outputs, self.config, fixed_fee=fee_estimator,
+                coins, outputs, fixed_fee=fee_estimator,
                 is_sweep=is_sweep)
         except (NotEnoughFunds, NoDynamicFeeEstimates) as e:
             self.show_message(str(e))
@@ -2041,7 +2045,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         if self.pay_from:
             return self.pay_from
         else:
-            return self.wallet.get_spendable_coins(None, self.config)
+            return self.wallet.get_spendable_coins(None)
 
     def spend_coins(self, coins):
         self.set_pay_from(coins)
@@ -3114,7 +3118,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         is_final = cb.isChecked()
         new_fee_rate = feerate_e.get_amount()
         try:
-            new_tx = self.wallet.bump_fee(tx=tx, new_fee_rate=new_fee_rate, config=self.config)
+            new_tx = self.wallet.bump_fee(tx=tx, new_fee_rate=new_fee_rate)
         except CannotBumpFee as e:
             self.show_error(str(e))
             return
