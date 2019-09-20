@@ -52,6 +52,7 @@ from .util import (read_QIcon, MONOSPACE_FONT, Buttons, CancelButton, OkButton,
 
 if TYPE_CHECKING:
     from electrum_mona.wallet import Abstract_Wallet
+    from .main_window import ElectrumWindow
 
 
 _logger = get_logger(__name__)
@@ -107,7 +108,7 @@ def get_item_key(tx_item):
 
 class HistoryModel(QAbstractItemModel, Logger):
 
-    def __init__(self, parent):
+    def __init__(self, parent: 'ElectrumWindow'):
         QAbstractItemModel.__init__(self, parent)
         Logger.__init__(self)
         self.parent = parent
@@ -655,9 +656,12 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         try:
             with open(fn) as f:
                 tx = self.parent.tx_from_text(f.read())
-                self.parent.save_transaction_into_wallet(tx)
         except IOError as e:
             self.parent.show_error(e)
+            return
+        if not tx:
+            return
+        self.parent.save_transaction_into_wallet(tx)
 
     def export_history_dialog(self):
         d = WindowModalDialog(self, _('Export History'))

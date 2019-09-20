@@ -3,6 +3,7 @@ import threading
 import time
 import os
 import stat
+import ssl
 from decimal import Decimal
 from typing import Union, Optional
 from numbers import Real
@@ -26,6 +27,7 @@ FEERATE_MAX_DYNAMIC = 1000000
 FEERATE_WARNING_HIGH_FEE = 600000
 FEERATE_FALLBACK_STATIC_FEE = 100000
 FEERATE_DEFAULT_RELAY = 1000
+FEERATE_MAX_RELAY = 50000
 FEERATE_STATIC_VALUES = [10000, 20000, 30000, 50000, 70000, 100000,
                          150000, 200000, 300000, 500000]
 FEERATE_REGTEST_HARDCODED = 180000  # for eclair compat
@@ -583,6 +585,14 @@ class SimpleConfig(Logger):
         if device == 'default':
             device = ''
         return device
+
+    def get_ssl_context(self):
+        ssl_keyfile = self.get('ssl_keyfile')
+        ssl_certfile = self.get('ssl_certfile')
+        if ssl_keyfile and ssl_certfile:
+            ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(ssl_certfile, ssl_keyfile)
+            return ssl_context
 
 
 def read_user_config(path):

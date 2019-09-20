@@ -41,12 +41,13 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union, NamedTuple, Sequence
 
 from .i18n import _
+from .crypto import sha256
 from .util import (NotEnoughFunds, UserCancelled, profiler,
                    format_satoshis, format_fee_satoshis, NoDynamicFeeEstimates,
                    WalletFileException, BitcoinException,
                    InvalidPassword, format_time, timestamp_to_datetime, Satoshis,
                    Fiat, bfh, bh2u, TxMinedInfo, quantize_feerate, create_bip21_uri, OrderedDictWithIndex)
-from .util import PR_TYPE_ADDRESS, PR_TYPE_BIP70, PR_TYPE_LN
+from .util import PR_TYPE_ONCHAIN, PR_TYPE_LN
 from .simple_config import SimpleConfig
 from .bitcoin import (COIN, TYPE_ADDRESS, is_address, address_to_script,
                       is_minikey, relayfee, dust_threshold)
@@ -229,6 +230,12 @@ class Abstract_Wallet(AddressSynchronizer):
         self.receive_requests      = storage.get('payment_requests', {})
         self.invoices              = storage.get('invoices', {})
 
+        # convert invoices
+        for invoice_key, invoice in self.invoices.items():
+            if invoice['type'] == PR_TYPE_ONCHAIN:
+                outputs = [TxOutput(*output) for output in invoice.get('outputs')]
+                invoice['outputs'] = outputs
+
         self.calc_unused_change_addresses()
 
         # save wallet type the first time
@@ -239,6 +246,7 @@ class Abstract_Wallet(AddressSynchronizer):
         self._coin_price_cache = {}
         # TODO config should be passed as a param instead? SimpleConfig should not be a singleton.
         self.config = SimpleConfig.get_instance()
+        print(self.config)
         assert self.config is not None, "config must not be None"
         self.lnworker = LNWallet(self) if self.config.get('lightning') else None
 
@@ -411,7 +419,7 @@ class Abstract_Wallet(AddressSynchronizer):
                 elif tx_mined_status.height in (TX_HEIGHT_UNCONF_PARENT, TX_HEIGHT_UNCONFIRMED):
                     status = _('Unconfirmed')
                     if fee is None:
-                        fee = self.db.get_tx_fee(tx_hash)
+                        fee = self.get_tx_fee(tx_hash)
                     if fee and self.network and self.config.has_fee_mempool():
                         size = tx.estimated_size()
                         fee_per_byte = fee / size
@@ -507,22 +515,50 @@ class Abstract_Wallet(AddressSynchronizer):
                 'txpos_in_block': hist_item.tx_mined_status.txpos,
             }
 
+    def create_invoice(self, outputs: List[TxOutput], message, pr, URI):
+        if '!' in (x.value for x in outputs):
+            amount = '!'
+        else:
+            amount = sum(x.value for x in outputs)
+        invoice = {
+            'type': PR_TYPE_ONCHAIN,
+            'message': message,
+            'outputs': outputs,
+            'amount': amount,
+        }
+        if pr:
+            invoice['bip70'] = pr.raw.hex()
+            invoice['time'] = pr.get_time()
+            invoice['exp'] = pr.get_expiration_date() - pr.get_time()
+            invoice['requestor'] = pr.get_requestor()
+            invoice['message'] = pr.get_memo()
+        elif URI:
+            timestamp = URI.get('time')
+            if timestamp: invoice['time'] = timestamp
+            exp = URI.get('exp')
+            if exp: invoice['exp'] = exp
+        if 'time' not in invoice:
+            invoice['time'] = int(time.time())
+        return invoice
+
     def save_invoice(self, invoice):
         invoice_type = invoice['type']
         if invoice_type == PR_TYPE_LN:
             self.lnworker.save_new_invoice(invoice['invoice'])
-        else:
-            if invoice_type == PR_TYPE_ADDRESS:
-                key = invoice['address']
-                invoice['time'] = int(time.time())
-            elif invoice_type == PR_TYPE_BIP70:
-                key = invoice['id']
-                invoice['txid'] = None
-            else:
-                raise Exception('Unsupported invoice type')
+        elif invoice_type == PR_TYPE_ONCHAIN:
+            key = bh2u(sha256(repr(invoice))[0:16])
+            invoice['id'] = key
+            invoice['txid'] = None
             self.invoices[key] = invoice
             self.storage.put('invoices', self.invoices)
             self.storage.write()
+        else:
+            raise Exception('Unsupported invoice type')
+
+    def clear_invoices(self):
+        self.invoices = {}
+        self.storage.put('invoices', self.invoices)
+        self.storage.write()
 
     def get_invoices(self):
         out = [self.get_invoice(key) for key in self.invoices.keys()]
@@ -724,9 +760,7 @@ class Abstract_Wallet(AddressSynchronizer):
             is_final = tx and tx.is_final()
             if not is_final:
                 extra.append('rbf')
-            fee = self.get_wallet_delta(tx)[3]
-            if fee is None:
-                fee = self.db.get_tx_fee(tx_hash)
+            fee = self.get_tx_fee(tx_hash)
             if fee is not None:
                 size = tx.estimated_size()
                 fee_per_byte = fee / size
@@ -999,7 +1033,7 @@ class Abstract_Wallet(AddressSynchronizer):
             max_conf = max(max_conf, tx_age)
         return max_conf >= req_conf
 
-    def bump_fee(self, *, tx, new_fee_rate) -> Transaction:
+    def bump_fee(self, *, tx: Transaction, new_fee_rate) -> Transaction:
         """Increase the miner fee of 'tx'.
         'new_fee_rate' is the target min rate in sat/vbyte
         """
@@ -1007,7 +1041,9 @@ class Abstract_Wallet(AddressSynchronizer):
             raise CannotBumpFee(_('Cannot bump fee') + ': ' + _('transaction is final'))
         new_fee_rate = quantize_feerate(new_fee_rate)  # strip excess precision
         old_tx_size = tx.estimated_size()
-        old_fee = self.get_tx_fee(tx)
+        old_txid = tx.txid()
+        assert old_txid
+        old_fee = self.get_tx_fee(old_txid)
         if old_fee is None:
             raise CannotBumpFee(_('Cannot bump fee') + ': ' + _('current fee unknown'))
         old_fee_rate = old_fee / old_tx_size  # sat/vbyte
@@ -1039,7 +1075,7 @@ class Abstract_Wallet(AddressSynchronizer):
         tx_new.locktime = get_locktime_for_new_transaction(self.network)
         return tx_new
 
-    def _bump_fee_through_coinchooser(self, *, tx, new_fee_rate):
+    def _bump_fee_through_coinchooser(self, *, tx: Transaction, new_fee_rate) -> Transaction:
         tx = Transaction(tx.serialize())
         tx.deserialize(force_full_parse=True)  # need to parse inputs
         tx.remove_signatures()
@@ -1076,7 +1112,7 @@ class Abstract_Wallet(AddressSynchronizer):
         except NotEnoughFunds as e:
             raise CannotBumpFee(e)
 
-    def _bump_fee_through_decreasing_outputs(self, *, tx, new_fee_rate):
+    def _bump_fee_through_decreasing_outputs(self, *, tx: Transaction, new_fee_rate) -> Transaction:
         tx = Transaction(tx.serialize())
         tx.deserialize(force_full_parse=True)  # need to parse inputs
         tx.remove_signatures()
@@ -1118,7 +1154,7 @@ class Abstract_Wallet(AddressSynchronizer):
 
         return Transaction.from_io(inputs, outputs)
 
-    def cpfp(self, tx, fee):
+    def cpfp(self, tx: Transaction, fee: int) -> Optional[Transaction]:
         txid = tx.txid()
         for i, o in enumerate(tx.outputs()):
             address, value = o.address, o.value
@@ -1287,7 +1323,7 @@ class Abstract_Wallet(AddressSynchronizer):
         if not r:
             return
         out = copy.copy(r)
-        out['type'] = PR_TYPE_ADDRESS
+        out['type'] = PR_TYPE_ONCHAIN
         out['URI'] = self.get_request_URI(addr)
         status, conf = self.get_request_status(addr)
         out['status'] = status
@@ -1365,9 +1401,10 @@ class Abstract_Wallet(AddressSynchronizer):
                 self.network.trigger_callback('payment_received', self, addr, status)
 
     def make_payment_request(self, addr, amount, message, expiration):
+        from .bitcoin import TYPE_ADDRESS
         timestamp = int(time.time())
         _id = bh2u(sha256d(addr + "%d"%timestamp))[0:10]
-        r = {'time':timestamp, 'amount':amount, 'exp':expiration, 'address':addr, 'memo':message, 'id':_id}
+        r = {'time':timestamp, 'amount':amount, 'exp':expiration, 'address':addr, 'memo':message, 'id':_id, 'outputs': [(TYPE_ADDRESS, addr, amount)]}
         return r
 
     def sign_payment_request(self, key, alias, alias_addr, password):
