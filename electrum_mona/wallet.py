@@ -2190,6 +2190,12 @@ def restore_wallet_from_text(text, *, path,
     storage = WalletStorage(path)
     if storage.file_exists():
         raise Exception("Remove the existing wallet first!")
+        
+    # Load the configurations for this wallet
+    if self.config is None
+        config = SimpleConfig(options=self.options,
+                              read_user_config_function=fake_read_user,
+                              read_user_dir_function=read_user_dir)
 
     text = text.strip()
     if keystore.is_address_list(text):
