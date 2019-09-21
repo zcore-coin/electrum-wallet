@@ -2190,10 +2190,6 @@ def restore_wallet_from_text(text, *, path,
     storage = WalletStorage(path)
     if storage.file_exists():
         raise Exception("Remove the existing wallet first!")
-        
-    # Load the configurations for this wallet if we don't already have one
-    if SimpleConfig.get_instance() is None:
-        config = SimpleConfig()
 
     text = text.strip()
     if keystore.is_address_list(text):
