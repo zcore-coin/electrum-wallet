@@ -1,11 +1,15 @@
 import unittest
 from unittest import mock
 from decimal import Decimal
+import os
+import tempfile
+import shutil
 
-from electrum_mona.util import create_and_start_event_loop
+from electrum_mona.util import create_and_start_event_loop, make_dir
 from electrum_mona.commands import Commands, eval_bool
 from electrum_mona import storage
 from electrum_mona.wallet import restore_wallet_from_text
+from electrum_mona.simple_config import SimpleConfig
 
 from . import TestCaseForTestnet
 
@@ -15,11 +19,16 @@ class TestCommands(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.asyncio_loop, self._stop_loop, self._loop_thread = create_and_start_event_loop()
+        # Setup SimpleConfig singleton for later tests.
+        self.data_dir = tempfile.mkdtemp()
+        make_dir(os.path.join(self.data_dir, 'forks'))
+        self.config = SimpleConfig({'electrum_path': self.data_dir})
 
     def tearDown(self):
         super().tearDown()
         self.asyncio_loop.call_soon_threadsafe(self._stop_loop.set_result, 1)
         self._loop_thread.join(timeout=1)
+        shutil.rmtree(self.data_dir)        
 
     def test_setconfig_non_auth_number(self):
         self.assertEqual(7777, Commands._setconfig_normalize_value('rpcport', "7777"))
