@@ -246,7 +246,6 @@ class Abstract_Wallet(AddressSynchronizer):
         self._coin_price_cache = {}
         # TODO config should be passed as a param instead? SimpleConfig should not be a singleton.
         self.config = SimpleConfig.get_instance()
-        print(self.config)
         assert self.config is not None, "config must not be None"
         self.lnworker = LNWallet(self) if self.config.get('lightning') else None
 
