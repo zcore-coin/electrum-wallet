@@ -15,7 +15,7 @@ from electrum_mona.wallet import Wallet, InternalAddressCorruption
 from electrum_mona.util import profiler, InvalidPassword, send_exception_to_crash_reporter
 from electrum_mona.plugin import run_hook
 from electrum_mona.util import format_satoshis, format_satoshis_plain, format_fee_satoshis
-from electrum_mona.util import PR_UNPAID, PR_PAID, PR_UNKNOWN, PR_EXPIRED
+from electrum_mona.util import PR_UNPAID, PR_PAID, PR_EXPIRED, PR_FAILED, PR_INFLIGHT
 from electrum_mona import blockchain
 from electrum_mona.network import Network, TxBroadcastError, BestEffortRequestFailed
 from .i18n import _
@@ -42,6 +42,7 @@ from .uix.dialogs.installwizard import InstallWizard
 from .uix.dialogs import InfoBubble, crash_reporter
 from .uix.dialogs import OutputList, OutputItem
 from .uix.dialogs import TopLabel, RefLabel
+from .uix.dialogs.question import Question
 
 #from kivy.core.window import Window
 #Window.softinput_mode = 'below_target'
@@ -210,24 +211,26 @@ class ElectrumWindow(App):
     def on_fee_histogram(self, *args):
         self._trigger_update_history()
 
-    def on_payment_received(self, event, wallet, key, status):
+    def on_request_status(self, event, key, status):
+        if key not in self.wallet.requests:
+            return
+        self.update_tab('receive')
         if self.request_popup and self.request_popup.key == key:
             self.request_popup.set_status(status)
         if status == PR_PAID:
             self.show_info(_('Payment Received') + '\n' + key)
+            self._trigger_update_history()
 
-    def on_payment_status(self, event, key, status, *args):
+    def on_invoice_status(self, event, key, status, log):
+        # todo: update single item
         self.update_tab('send')
-        if status == 'success':
+        if status == PR_PAID:
             self.show_info(_('Payment was sent'))
             self._trigger_update_history()
-        elif status == 'progress':
+        elif status == PR_INFLIGHT:
             pass
-        elif status == 'failure':
+        elif status == PR_FAILED:
             self.show_info(_('Payment failed'))
-        elif status == 'error':
-            e = args[0]
-            self.show_error(_('Error') + '\n' + str(e))
 
     def _get_bu(self):
         decimal_point = self.electrum_config.get('decimal_point', DECIMAL_POINT_DEFAULT)
@@ -344,9 +347,6 @@ class ElectrumWindow(App):
         self.gui_object = kwargs.get('gui_object', None)  # type: ElectrumGui
         self.daemon = self.gui_object.daemon
         self.fx = self.daemon.fx
-
-        self.is_lightning_enabled = bool(config.get('lightning'))
-
         self.use_rbf = config.get('use_rbf', False)
         self.use_unconfirmed = not config.get('confirmed_only', False)
 
@@ -561,10 +561,10 @@ class ElectrumWindow(App):
             self.network.register_callback(self.on_fee_histogram, ['fee_histogram'])
             self.network.register_callback(self.on_quotes, ['on_quotes'])
             self.network.register_callback(self.on_history, ['on_history'])
-            self.network.register_callback(self.on_payment_received, ['payment_received'])
-            self.network.register_callback(self.on_channels, ['channels'])
+            self.network.register_callback(self.on_channels, ['channels_updated'])
             self.network.register_callback(self.on_channel, ['channel'])
-            self.network.register_callback(self.on_payment_status, ['payment_status'])
+            self.network.register_callback(self.on_invoice_status, ['invoice_status'])
+            self.network.register_callback(self.on_request_status, ['request_status'])
         # load wallet
         self.load_wallet_by_name(self.electrum_config.get_wallet_path(use_gui_last_wallet=True))
         # URI passed in config
@@ -619,7 +619,6 @@ class ElectrumWindow(App):
             if not ask_if_wizard:
                 launch_wizard()
             else:
-                from .uix.dialogs.question import Question
                 def handle_answer(b: bool):
                     if b:
                         launch_wizard()
@@ -682,6 +681,9 @@ class ElectrumWindow(App):
         d.open()
 
     def lightning_channels_dialog(self):
+        if not self.wallet.has_lightning():
+            self.show_error('Lightning not enabled on this wallet')
+            return
         if self._channels_dialog is None:
             self._channels_dialog = LightningChannelsDialog(self)
         self._channels_dialog.open()
@@ -690,7 +692,7 @@ class ElectrumWindow(App):
         if self._channels_dialog:
             Clock.schedule_once(lambda dt: self._channels_dialog.update())
 
-    def on_channels(self, evt):
+    def on_channels(self, evt, wallet):
         if self._channels_dialog:
             Clock.schedule_once(lambda dt: self._channels_dialog.update())
 
@@ -1079,8 +1081,39 @@ class ElectrumWindow(App):
         else:
             f(*(args + (None,)))
 
+    def toggle_lightning(self):
+        if self.wallet.has_lightning():
+            if not bool(self.wallet.lnworker.channels):
+                warning = _('This will delete your lightning private keys')
+                d = Question(_('Disable Lightning?') + '\n\n' + warning, self._disable_lightning)
+                d.open()
+            else:
+                self.show_info('This wallet has channels')
+        else:
+            warning1 = _("Lightning support in Electrum is experimental. Do not put large amounts in lightning channels.")
+            warning2 = _("Funds stored in lightning channels are not recoverable from your seed. You must backup your wallet file everytime you create a new channel.")
+            d = Question(_('Enable Lightning?') + '\n\n' + warning1 + '\n\n' + warning2, self._enable_lightning)
+            d.open()
+
+    def _enable_lightning(self, b):
+        if not b:
+            return
+        wallet_path = self.get_wallet_path()
+        self.wallet.init_lightning()
+        self.show_info(_('Lightning keys have been initialized.'))
+        self.stop_wallet()
+        self.load_wallet_by_name(wallet_path)
+
+    def _disable_lightning(self, b):
+        if not b:
+            return
+        wallet_path = self.get_wallet_path()
+        self.wallet.remove_lightning()
+        self.show_info(_('Lightning keys have been removed.'))
+        self.stop_wallet()
+        self.load_wallet_by_name(wallet_path)
+
     def delete_wallet(self):
-        from .uix.dialogs.question import Question
         basename = os.path.basename(self.wallet.storage.path)
         d = Question(_('Delete wallet?') + '\n' + basename, self._delete_wallet)
         d.open()
