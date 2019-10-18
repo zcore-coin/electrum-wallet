@@ -74,6 +74,10 @@ FALLBACK_NODE_LIST_TESTNET = (
 )
 
 FALLBACK_NODE_LIST_MAINNET = [
+    LNPeerAddr('160.16.125.215', 9735, bfh('03aad108db2ad9e3e447f09831c1f56a45fc986b27a404021a8163d31613959c27')),
+    LNPeerAddr('153.126.199.20', 9735, bfh('02da4ea946a047779e0f8cde531d1c381f794bcf35a14ce841e62e78d674601ce1')),
+    LNPeerAddr('153.126.197.243', 9735, bfh('03421d2e363756a40698f287a30068eae220fd24c779368d03b85d70a70988b43c')),
+    LNPeerAddr('51.15.43.0', 9735, bfh('033858fb82f08d57aeb640bbe2dd0c1e51aa804a68170885a7e10f93f3835731b3')),
     #LNPeerAddr(host='52.168.166.221', port=9735, pubkey=b'\x02\x148+\xdc\xe7u\r\xfc\xb8\x12m\xf8\xe2\xb1-\xe3\x856\x90-\xc3j\xbc\xeb\xda\xee\xfd\xec\xa1\xdf\x82\x84'),
     #LNPeerAddr(host='35.230.100.60', port=9735, pubkey=b'\x02?^5\x82qk\xed\x96\xf6\xf2l\xfc\xd8\x03~\x07GM{GC\xaf\xdc\x8b\x07\xe6\x92\xdfcFM~'),
     #LNPeerAddr(host='40.69.71.114', port=9735, pubkey=b'\x02\x83\x03\x18,\x98\x85\xda\x93\xb3\xb2\\\x96!\xd2,\xf3Du\xe6<\x129B\xe4\x02\xabS\x0c\x05V\xe6u'),
