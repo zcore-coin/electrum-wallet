@@ -17,7 +17,8 @@ LIBSECP_VERSION="b408c6a8b287003d1ade5709e6f7bc3c7f1d5be7"
 SQUASHFSKIT_COMMIT="ae0d656efa2d0df2fcac795b6823b44462f19386"
 
 
-VERSION=`git describe --tags --dirty --always`
+# VERSION=`git describe --tags --dirty --always`
+VERSION="v1.0.0"
 APPIMAGE="$DISTDIR/electrum-mona-$VERSION-x86_64.AppImage"
 
 . "$CONTRIB"/build_tools_util.sh
