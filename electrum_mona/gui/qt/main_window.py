@@ -669,7 +669,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         d = self.network.get_donation_address()
         if d:
             host = self.network.get_parameters().host
-            self.pay_to_URI('monacoin:%s?message=donation for %s'%(d, host))
+            self.pay_to_URI('zcore:%s?message=donation for %s'%(d, host))
         else:
             self.show_error(_('No donation address for this server'))
 
@@ -981,7 +981,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.clear_invoice_button = QPushButton(_('Clear'))
         self.clear_invoice_button.clicked.connect(self.clear_receive_tab)
         self.create_invoice_button = QPushButton(_('Request'))
-        self.create_invoice_button.setIcon(read_QIcon("monacoin.png"))
+        self.create_invoice_button.setIcon(read_QIcon("zcore.png"))
         self.create_invoice_button.clicked.connect(lambda: self.create_invoice(False))
         self.receive_buttons = buttons = QHBoxLayout()
         buttons.addStretch(1)
@@ -2740,7 +2740,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         if not data:
             return
         # if the user scanned a bitcoin URI
-        if str(data).startswith("monacoin:"):
+        if str(data).startswith("zcore:"):
             self.pay_to_URI(data)
             return
         # else if the user scanned an offline signed tx

@@ -180,8 +180,8 @@ class CoinGecko(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('api.coingecko.com',
-                                   '/api/v3/simple/price?ids=monacoin&vs_currencies=%s' % ccy)
-        return {ccy: Decimal(json['monacoin'][ccy.lower()])}
+                                   '/api/v3/simple/price?ids=zcore&vs_currencies=%s' % ccy)
+        return {ccy: Decimal(json['zcore'][ccy.lower()])}
 
     def history_ccys(self):
         # CoinGecko seems to have historical data for all ccys it supports
@@ -189,7 +189,7 @@ class CoinGecko(ExchangeBase):
 
     async def request_history(self, ccy):
         history = await self.get_json('api.coingecko.com',
-                                      '/api/v3/coins/monacoin/market_chart?vs_currency=%s&days=max' % ccy)
+                                      '/api/v3/coins/zcore/market_chart?vs_currency=%s&days=max' % ccy)
 
         return dict([(datetime.utcfromtimestamp(h[0]/1000).strftime('%Y-%m-%d'), h[1])
                      for h in history['prices']])

@@ -132,11 +132,11 @@ Section
   ;CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Testnet.lnk" "$INSTDIR\electrum-mona-${PRODUCT_VERSION}.exe" "--testnet" "$INSTDIR\electrum-mona-${PRODUCT_VERSION}.exe" 0
 
 
-  ;Links monacoin: URI's to Electrum
-  WriteRegStr HKCU "Software\Classes\monacoin" "" "URL:monacoin Protocol"
-  WriteRegStr HKCU "Software\Classes\monacoin" "URL Protocol" ""
-  WriteRegStr HKCU "Software\Classes\monacoin" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\monacoin\shell\open\command" "" "$\"$INSTDIR\electrum-mona-${PRODUCT_VERSION}.exe$\" $\"%1$\""
+  ;Links zcore: URI's to Electrum
+  WriteRegStr HKCU "Software\Classes\zcore" "" "URL:zcore Protocol"
+  WriteRegStr HKCU "Software\Classes\zcore" "URL Protocol" ""
+  WriteRegStr HKCU "Software\Classes\zcore" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
+  WriteRegStr HKCU "Software\Classes\zcore\shell\open\command" "" "$\"$INSTDIR\electrum-mona-${PRODUCT_VERSION}.exe$\" $\"%1$\""
 
   ;Adds an uninstaller possibility to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
@@ -167,7 +167,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
   RMDir  "$SMPROGRAMS\${PRODUCT_NAME}"
   
-  DeleteRegKey HKCU "Software\Classes\monacoin"
+  DeleteRegKey HKCU "Software\Classes\zcore"
   DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
 SectionEnd

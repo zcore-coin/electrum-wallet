@@ -453,7 +453,7 @@ class Network(Logger):
                 fee_tasks.append((i, await group.spawn(session.send_request('blockchain.estimatefee', [i]))))
         self.config.mempool_fees = histogram = histogram_task.result()
         if histogram == []:
-            # [] is bad for monacoin :\ It's dummy data.
+            # [] is bad for zcore :\ It's dummy data.
             self.config.mempool_fees = histogram = [[10, 100000000]]
         self.logger.info(f'fee_histogram {histogram}')
         self.notify('fee_histogram')

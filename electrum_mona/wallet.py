@@ -152,7 +152,7 @@ def sweep(privkeys, network: 'Network', config: 'SimpleConfig', recipient, fee=N
         locktime = get_locktime_for_new_transaction(network)
 
     tx = Transaction.from_io(inputs, outputs, locktime=locktime, version=tx_version)
-    # monacoin's rbf is disabled 
+    # zcore's rbf is disabled 
     # tx.set_rbt(True)
     tx.set_rbf(False)
     tx.sign(keypairs)
@@ -883,7 +883,7 @@ class Abstract_Wallet(AddressSynchronizer):
         for i, o in enumerate(outputs):
             if o.type == TYPE_ADDRESS:
                 if not is_address(o.address):
-                    raise Exception("Invalid monacoin address: {}".format(o.address))
+                    raise Exception("Invalid zcore address: {}".format(o.address))
             if o.value == '!':
                 if i_max is not None:
                     raise Exception("More than one output set to spend max")

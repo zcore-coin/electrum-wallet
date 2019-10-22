@@ -391,7 +391,7 @@ class ElectrumWindow(App):
         if is_address(data):
             self.set_URI(data)
             return
-        if data.startswith('monacoin:'):
+        if data.startswith('zcore:'):
             self.set_URI(data)
             return
         if data.startswith('ln'):
@@ -544,7 +544,7 @@ class ElectrumWindow(App):
         self.fiat_unit = self.fx.ccy if self.fx.is_enabled() else ''
         # default tab
         self.switch_to('history')
-        # bind intent for monacoin: URI scheme
+        # bind intent for zcore: URI scheme
         if platform == 'android':
             from android import activity
             from jnius import autoclass

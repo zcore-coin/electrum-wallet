@@ -14,7 +14,7 @@ StartupNotify=true
 StartupWMClass=electrum-mona
 Terminal=false
 Type=Application
-MimeType=x-scheme-handler/monacoin;
+MimeType=x-scheme-handler/zcore;
 Actions=Testnet;
 
 [Desktop Action Testnet]

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 export HOME=~
 set -eux pipefail
-mkdir -p ~/.monacoin
-cat > ~/.monacoin/monacoin.conf <<EOF
+mkdir -p ~/.zcore
+cat > ~/.zcore/zcore.conf <<EOF
 regtest=1
 txindex=1
 printtoconsole=1
@@ -15,9 +15,9 @@ zmqpubrawtx=tcp://127.0.0.1:28333
 rpcbind=0.0.0.0
 rpcport=19443
 EOF
-rm -rf ~/.monacoin/regtest
-screen -S monacoind -X quit || true
-screen -S monacoind -m -d monacoind -regtest
+rm -rf ~/.zcore/regtest
+screen -S zcored -X quit || true
+screen -S zcored -m -d zcored -regtest
 sleep 6
-addr=$(monacoin-cli getnewaddress)
-monacoin-cli generatetoaddress 150 $addr > /dev/null
+addr=$(zcore-cli getnewaddress)
+zcore-cli generatetoaddress 150 $addr > /dev/null
