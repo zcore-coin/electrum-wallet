@@ -67,9 +67,9 @@ def inv_dict(d):
 ca_path = certifi.where()
 
 
-base_units = {'MONA':8, 'mMona':5, 'bits':2, 'sat':0}
+base_units = {'ZCR':8, 'mMona':5, 'bits':2, 'sat':0}
 base_units_inverse = inv_dict(base_units)
-base_units_list = ['MONA', 'mMona', 'bits', 'sat']  # list(dict) does not guarantee order
+base_units_list = ['ZCR', 'mMona', 'bits', 'sat']  # list(dict) does not guarantee order
 
 DECIMAL_POINT_DEFAULT = 8  # BTC
 
@@ -117,7 +117,7 @@ class UnknownBaseUnit(Exception): pass
 
 
 def decimal_point_to_base_unit_name(dp: int) -> str:
-    # e.g. 8 -> "MONA"
+    # e.g. 8 -> "ZCR"
     try:
         return base_units_inverse[dp]
     except KeyError:
@@ -125,7 +125,7 @@ def decimal_point_to_base_unit_name(dp: int) -> str:
 
 
 def base_unit_name_to_decimal_point(unit_name: str) -> int:
-    # e.g. "MONA" -> 8
+    # e.g. "ZCR" -> 8
     try:
         return base_units[unit_name]
     except KeyError:
@@ -524,9 +524,9 @@ def user_dir():
     elif os.name == 'posix':
         return os.path.join(os.environ["HOME"], ".electrum-mona")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-MONA")
+        return os.path.join(os.environ["APPDATA"], "Electrum-ZCore")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-MONA")
+        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-ZCore")
     else:
         #raise Exception("No home directory found in environment variables.")
         return
@@ -689,31 +689,17 @@ def time_difference(distance_in_time, include_seconds):
         return "over %d years" % (round(distance_in_minutes / 525600))
 
 mainnet_block_explorers = {
-    'bchain.info': ('https://bchain.info/MONA/',
+    'explorer.zcore.network': ('https://explorer.zcore.network/',
+                        {'tx': 'transaction/', 'addr': 'address/'}),
+    'zcore.info': ('https://zcore.info/',
                         {'tx': 'tx/', 'addr': 'addr/'}),
-    'insight.monaco-ex.org': ('https://mona.insight.monaco-ex.org/insight/',
+    'blockbook.zcore.cash': ('https://blockbook.zcore.cash/',
                         {'tx': 'tx/', 'addr': 'address/'}),
-    'insight.electrum-mona.org': ('https://insight.electrum-mona.org/insight/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'mona.chainseeker.info': ('https://mona.chainseeker.info/',
-                        {'tx': 'tx/', 'addr': 'addr/'}),
-    'blockbook.electrum-mona.org': ('https://blockbook.electrum-mona.org/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'mona.blockbook.ovh': ('https://mona.blockbook.ovh/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'chaintools.mona-coin.de': ('https://chaintools.mona-coin.de/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'Tokenview': ('https://tokenview.com/cn/',
-                        {'tx': 'search/', 'addr': 'search/'}),
 }
 
 testnet_block_explorers = {
-    'testnet.blockbook.electrum-mona.org': ('https://testnet-blockbook.electrum-mona.org/',
+    'testnet.zcore.cash': ('https://testnet.zcore.cash/',
                         {'tx': 'tx/', 'addr': 'address/'}),
-    'insight.monaco-ex.org': ('https://testnet-mona.insight.monaco-ex.org/insight/',
-                        {'tx': 'tx/', 'addr': 'address/'}),
-    'system default': ('blockchain:',
-                       {'tx': 'tx/', 'addr': 'address/'}),
 }
 
 def block_explorer_info():
@@ -722,7 +708,7 @@ def block_explorer_info():
 
 def block_explorer(config: 'SimpleConfig') -> str:
     from . import constants
-    default_ = 'blockbook.electrum-mona.org' if not constants.net.TESTNET else 'testnet.blockbook.electrum-mona.org'
+    default_ = 'blockbook.zcore.cash' if not constants.net.TESTNET else 'testnet.blockbook.zcore.cash'
     be_key = config.get('block_explorer', default_)
     be = block_explorer_info().get(be_key)
     return be_key if be is not None else default_

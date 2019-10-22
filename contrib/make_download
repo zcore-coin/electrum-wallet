@@ -30,9 +30,9 @@ string = string.replace("##VERSION_ANDROID##", version_android)
 string = string.replace("##VERSION_APK##", APK_VERSION)
 
 files = {
-    'tgz': "Electrum-MONA-%s.tar.gz" % version,
-    'appimage': "Electrum-MONA-%s-x86_64.AppImage" % version,
-    'zip': "Electrum-MONA-%s.zip" % version,
+    'tgz': "Electrum-ZCore-%s.tar.gz" % version,
+    'appimage': "Electrum-ZCore-%s-x86_64.AppImage" % version,
+    'zip': "Electrum-ZCore-%s.zip" % version,
     'mac': "electrum-mona-%s.dmg" % version_mac,
     'win': "electrum-mona-%s.exe" % version_win,
     'win_setup': "electrum-mona-%s-setup.exe" % version_win,
@@ -41,7 +41,7 @@ files = {
 
 for k, n in files.items():
     path = "dist/%s"%n
-    link = "https://download.electrum-mona.org/%s/%s"%(version,n)
+    link = "https://download.zcore.cash/%s/%s"%(version,n)
     if not os.path.exists(path):
         os.system("wget -q %s -O %s" % (link, path))
     if not os.path.getsize(path):

@@ -58,7 +58,7 @@ extras_require['full'] = [pkg for sublist in list(extras_require.values()) for p
 
 
 setup(
-    name="Electrum-MONA",
+    name="Electrum-ZCore",
     version=version.ELECTRUM_VERSION,
     python_requires='>={}'.format(MIN_PYTHON_VERSION),
     install_requires=requirements,
@@ -84,10 +84,10 @@ setup(
     },
     scripts=['electrum_mona/electrum-mona'],
     data_files=data_files,
-    description="Lightweight Monacoin Wallet",
+    description="Lightweight ZCore Wallet",
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="https://electrum-mona.org",
-    long_description="""Lightweight Monacoin Wallet""",
+    url="https://zcore.cash",
+    long_description="""Lightweight ZCore Wallet""",
 )

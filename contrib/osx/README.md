@@ -51,7 +51,7 @@ Move `prebuilt_qr` to El Capitan: `contrib/osx/CalinsQRReader/prebuilt_qr`.
     cd electrum-mona
     ./contrib/osx/make_osx
     
-This creates both a folder named Electrum-MONA.app and the .dmg file.
+This creates both a folder named Electrum-ZCore.app and the .dmg file.
 
 ## 2. Building the image deterministically (WIP)
 The usual way to distribute macOS applications is to use image files containing the 
@@ -68,4 +68,4 @@ Copy the Electrum.app directory over and install the dependencies, e.g.:
 Then you can just invoke `package.sh` with the path to the app:
 
     cd electrum-mona
-    ./contrib/osx/package.sh ~/Electrum-MONA.app/
+    ./contrib/osx/package.sh ~/Electrum-ZCore.app/

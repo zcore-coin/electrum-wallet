@@ -2,13 +2,13 @@
 # sudo desktop-file-install electrum-mona.desktop
 
 [Desktop Entry]
-Comment=Lightweight Monacoin Client
+Comment=Lightweight ZCore Client
 Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\" electrum-mona %u"
-GenericName[en_US]=Monacoin Wallet
-GenericName=Monacoin Wallet
+GenericName[en_US]=ZCore Wallet
+GenericName=ZCore Wallet
 Icon=electrum
-Name[en_US]=Electrum-mona Monacoin Wallet
-Name=Electrum Monacoin Wallet
+Name[en_US]=Electrum-ZCore ZCore Wallet
+Name=Electrum ZCore Wallet
 Categories=Finance;Network;
 StartupNotify=true
 StartupWMClass=electrum-mona

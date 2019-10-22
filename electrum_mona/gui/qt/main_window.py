@@ -464,7 +464,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             self.setGeometry(100, 100, 840, 400)
 
     def watching_only_changed(self):
-        name = "Electrum-mona Testnet" if constants.net.TESTNET else "Electrum-mona"
+        name = "Electrum-ZCore Testnet" if constants.net.TESTNET else "Electrum-ZCore"
         title = '%s %s  -  %s' % (name, ELECTRUM_VERSION,
                                         self.wallet.basename())
         extra = [self.wallet.storage.get('wallet_type', '?')]
@@ -655,9 +655,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
         help_menu.addAction(_("&Check for updates"), self.show_update_check)
-        help_menu.addAction(_("&Official website"), lambda: webopen("https://electrum-mona.org"))
+        help_menu.addAction(_("&Official website"), lambda: webopen("https://zcore.cash"))
         help_menu.addSeparator()
-        help_menu.addAction(_("&Documentation"), lambda: webopen("http://docs.electrum-mona.org")).setShortcut(QKeySequence.HelpContents)
+        help_menu.addAction(_("&Documentation"), lambda: webopen("http://docs.zcore.cash")).setShortcut(QKeySequence.HelpContents)
         help_menu.addAction(_("&Discord"), lambda: webopen("https://discord.gg/vWyjJ7r"))
         help_menu.addAction(_("&Report Bug"), self.show_report_bug)
         help_menu.addSeparator()
@@ -674,14 +674,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             self.show_error(_('No donation address for this server'))
 
     def show_about(self):
-        QMessageBox.about(self, "Electrum-mona",
+        QMessageBox.about(self, "Electrum-ZCore",
                           (_("Version")+" %s" % ELECTRUM_VERSION + "\n\n" +
                            _("Electrum's focus is speed, with low resource usage and simplifying Bitcoin.") + " " +
                            _("You do not need to perform regular backups, because your wallet can be "
                               "recovered from a secret phrase that you can memorize or write on paper.") + " " +
                            _("Startup times are instant because it operates in conjunction with high-performance "
                               "servers that handle the most complicated parts of the Bitcoin system.") + "\n\n" +
-                           _("Electrum-mona's icon from oimo at askmona.")  + "\n" + 
+                           _("Electrum-ZCore's icon from oimo at askmona.")  + "\n" + 
                            _("Uses icons from the Icons8 icon pack (icons8.com).")))
 
     def show_update_check(self, version=None):
@@ -694,7 +694,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             _("Before reporting a bug, upgrade to the most recent version of Electrum (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
-        self.show_message(msg, title="Electrum-mona - " + _("Reporting Bugs"), rich_text=True)
+        self.show_message(msg, title="Electrum-ZCore - " + _("Reporting Bugs"), rich_text=True)
 
     def notify_transactions(self):
         if self.tx_notification_queue.qsize() == 0:
@@ -734,9 +734,9 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         if self.tray:
             try:
                 # this requires Qt 5.9
-                self.tray.showMessage("Electrum-mona", message, read_QIcon("electrum_dark_icon"), 20000)
+                self.tray.showMessage("Electrum-ZCore", message, read_QIcon("electrum_dark_icon"), 20000)
             except TypeError:
-                self.tray.showMessage("Electrum-mona", message, QSystemTrayIcon.Information, 20000)
+                self.tray.showMessage("Electrum-ZCore", message, QSystemTrayIcon.Information, 20000)
 
 
     # custom wrappers for getOpenFileName and getSaveFileName, that remember the path selected by the user
@@ -980,7 +980,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
         self.clear_invoice_button = QPushButton(_('Clear'))
         self.clear_invoice_button.clicked.connect(self.clear_receive_tab)
-        self.create_invoice_button = QPushButton(_('On-chain'))
+        self.create_invoice_button = QPushButton(_('Request'))
         self.create_invoice_button.setIcon(read_QIcon("monacoin.png"))
         self.create_invoice_button.clicked.connect(lambda: self.create_invoice(False))
         self.receive_buttons = buttons = QHBoxLayout()

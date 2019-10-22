@@ -122,7 +122,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
     def __init__(self, config: 'SimpleConfig', app: QApplication, plugins: 'Plugins'):
         QDialog.__init__(self, None)
         BaseWizard.__init__(self, config, plugins)
-        self.setWindowTitle('Electrum-mona  -  ' + _('Install Wizard'))
+        self.setWindowTitle('Electrum-ZCore  -  ' + _('Install Wizard'))
         self.app = app
         self.config = config
         self.setMinimumSize(600, 400)
@@ -191,7 +191,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox2.addWidget(self.pw_e)
         hbox2.addStretch()
         vbox.addLayout(hbox2)
-        self.set_layout(vbox, title=_('Electrum-mona wallet'))
+        self.set_layout(vbox, title=_('Electrum-ZCore wallet'))
 
         temp_storage = None  # type: Optional[WalletStorage]
         wallet_folder = os.path.dirname(path)

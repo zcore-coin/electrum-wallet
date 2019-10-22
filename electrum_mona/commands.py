@@ -968,8 +968,8 @@ def eval_bool(x: str) -> bool:
 
 param_descriptions = {
     'privkey': 'Private key. Type \'?\' to get a prompt.',
-    'destination': 'Monacoin address, contact or alias',
-    'address': 'Monacoin address',
+    'destination': 'ZCore address, contact or alias',
+    'address': 'ZCore address',
     'seed': 'Seed phrase',
     'txid': 'Transaction ID',
     'pos': 'Position',
@@ -979,8 +979,8 @@ param_descriptions = {
     'pubkey': 'Public key',
     'message': 'Clear text message. Use quotes if it contains spaces.',
     'encrypted': 'Encrypted message',
-    'amount': 'Amount to be sent (in MONA). Type \'!\' to send the maximum available.',
-    'requested_amount': 'Requested amount (in MONA).',
+    'amount': 'Amount to be sent (in ZCR). Type \'!\' to send the maximum available.',
+    'requested_amount': 'Requested amount (in ZCR).',
     'outputs': 'list of ["address", amount]',
     'redeem_script': 'redeem script (hexadecimal)',
 }
@@ -998,7 +998,7 @@ command_options = {
     'labels':      ("-l", "Show the labels of listed addresses"),
     'nocheck':     (None, "Do not verify aliases"),
     'imax':        (None, "Maximum number of inputs"),
-    'fee':         ("-f", "Transaction fee (absolute, in MONA)"),
+    'fee':         ("-f", "Transaction fee (absolute, in ZCR)"),
     'feerate':     (None, "Transaction fee rate (in sat/byte)"),
     'from_addr':   ("-F", "Source address (must be a wallet address; use sweep to spend from non-wallet address)."),
     'from_coins':  (None, "Source coins (must be in wallet; use sweep to spend from non-wallet address)."),
@@ -1018,7 +1018,7 @@ command_options = {
     'timeout':     (None, "Timeout in seconds"),
     'force':       (None, "Create new address beyond gap limit, if no more addresses are available."),
     'pending':     (None, "Show only pending requests."),
-    'channel_push':(None, 'Push initial amount (in MONA)'),
+    'channel_push':(None, 'Push initial amount (in ZCR)'),
     'expired':     (None, "Show only expired requests."),
     'paid':        (None, "Show only paid requests."),
     'show_addresses': (None, "Show input and output addresses"),
@@ -1061,10 +1061,10 @@ config_variables = {
     'addrequest': {
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of monacoin: URIs. Example: \"(\'file:///var/www/\',\'https://electrum-mona.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of monacoin: URIs. Example: \"(\'file:///var/www/\',\'https://zcore.cash/\')\"',
     },
     'listrequests':{
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of monacoin: URIs. Example: \"(\'file:///var/www/\',\'https://electrum-mona.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of monacoin: URIs. Example: \"(\'file:///var/www/\',\'https://zcore.cash/\')\"',
     }
 }
 

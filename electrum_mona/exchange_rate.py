@@ -147,12 +147,12 @@ class ExchangeBase(Logger):
 
 class ATAIX(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('api.ataix.com', '/api/prices/MONA-%s' % ccy)
+        json = await self.get_json('api.ataix.com', '/api/prices/ZCR-%s' % ccy)
         return {ccy: Decimal(json['result'][0]['last'])}
 
 class BitcoinAverage(ExchangeBase):
     async def get_rates(self, ccy):
-        json1 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/crypto/ticker/MONABTC')
+        json1 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/crypto/ticker/ZCRBTC')
         if ccy != "BTC":
             json2 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
             return {ccy: Decimal(json1['last'])*Decimal(json2['last'])}
@@ -196,7 +196,7 @@ class CoinGecko(ExchangeBase):
 
 class CryptBridge(ExchangeBase):
     async def get_rates(self, ccy):
-        json1 = await self.get_json('api.crypto-bridge.org', '/api/v1/ticker/MONA_BTC')
+        json1 = await self.get_json('api.crypto-bridge.org', '/api/v1/ticker/ZCR_BTC')
         if ccy != "BTC":
             json2 = await self.get_json('apiv2.bitcoinaverage.com', '/indices/global/ticker/BTC%s' % ccy)
             return {ccy: Decimal(json1['last'])*Decimal(json2['last'])}
@@ -209,12 +209,12 @@ class Fisco(ExchangeBase):
 
 class NebliDex(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('www.neblidex.xyz', '/seed/?v=1&api=get_market_price&market=MONA/%s' % ccy)
+        json = await self.get_json('www.neblidex.xyz', '/seed/?v=1&api=get_market_price&market=ZCR/%s' % ccy)
         return {ccy: Decimal(json)}
 
 class TradeSatoshi(ExchangeBase):
     async def get_rates(self, ccy):
-        json = await self.get_json('tradesatoshi.com', '/api/public/getmarketsummary?market=MONA_BTC')
+        json = await self.get_json('tradesatoshi.com', '/api/public/getmarketsummary?market=ZCR_BTC')
         return {'BTC': Decimal(json['result']['last'])}
 
 class Zaif(ExchangeBase):

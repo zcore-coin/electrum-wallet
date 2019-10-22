@@ -19,8 +19,8 @@ from electrum_mona.logging import Logger
 
 
 class UpdateCheck(QWidget, Logger):
-    url = "https://electrum-mona.org/version"
-    download_url = "https://electrum-mona.org"
+    url = "https://zcore.cash/version"
+    download_url = "https://zcore.cash"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
         "MUJ1nBxpAzdGdNhTN1x3MCtyeBa4DbdqpK",
