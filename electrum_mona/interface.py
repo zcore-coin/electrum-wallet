@@ -604,6 +604,8 @@ class Interface(Logger):
         return good, bad, bad_header
 
     async def _resolve_potential_chain_fork_given_forkpoint(self, good, bad, bad_header):
+        return 'no_fork', height
+
         assert good + 1 == bad
         assert bad == bad_header['block_height']
         _assert_header_does_not_check_against_any_chain(bad_header)
