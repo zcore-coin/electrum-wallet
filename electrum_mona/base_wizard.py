@@ -621,7 +621,6 @@ class BaseWizard(Logger):
             ])
         if choices is None:
             choices = [
-                ('create_segwit_seed', _('Segwit')),
                 ('create_standard_seed', _('Legacy')),
             ]
         self.choice_dialog(title=title, message=message, choices=choices, run_next=self.run)

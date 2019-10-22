@@ -244,13 +244,14 @@ class Abstract_Wallet(AddressSynchronizer):
         self.contacts = Contacts(self.storage)
         self._coin_price_cache = {}
         # lightning
-        ln_xprv = self.storage.get('lightning_privkey2')
-        self.lnworker = LNWallet(self, ln_xprv) if ln_xprv else None
+        #ln_xprv = self.storage.get('lightning_privkey2')
+        self.lnworker = None
 
     def has_lightning(self):
-        return bool(self.lnworker)
+        return False
 
     def init_lightning(self):
+        return
         if self.storage.get('lightning_privkey2'):
             return
         if not is_using_fast_ecc():
@@ -265,6 +266,7 @@ class Abstract_Wallet(AddressSynchronizer):
         self.storage.write()
 
     def remove_lightning(self):
+        return
         if not self.storage.get('lightning_privkey2'):
             return
         if bool(self.lnworker.channels):
@@ -286,9 +288,9 @@ class Abstract_Wallet(AddressSynchronizer):
 
     def start_network(self, network):
         AddressSynchronizer.start_network(self, network)
-        if self.lnworker:
-            network.maybe_init_lightning()
-            self.lnworker.start_network(network)
+       # if self.lnworker:
+       #     network.maybe_init_lightning()
+       #     self.lnworker.start_network(network)
 
     def load_and_cleanup(self):
         self.load_keystore()
@@ -1811,7 +1813,7 @@ class Imported_Wallet(Simple_Wallet):
             except Exception as e:
                 bad_keys.append((key, _('invalid private key') + f': {e}'))
                 continue
-            if txin_type not in ('p2pkh', 'p2wpkh', 'p2wpkh-p2sh'):
+            if txin_type not in ('p2pkh'):
                 bad_keys.append((key, _('not implemented type') + f': {txin_type}'))
                 continue
             addr = bitcoin.pubkey_to_address(txin_type, pubkey)
@@ -1844,7 +1846,7 @@ class Imported_Wallet(Simple_Wallet):
             txin['x_pubkeys'] = [x_pubkey]
             txin['signatures'] = [None]
             return
-        if txin['type'] in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh']:
+        if txin['type'] in ['p2pkh']:
             pubkey = self.db.get_imported_address(address)['pubkey']
             txin['num_sig'] = 1
             txin['x_pubkeys'] = [pubkey]
@@ -2198,7 +2200,7 @@ def create_new_wallet(*, path, config: SimpleConfig, passphrase=None, password=N
     storage = WalletStorage(path)
     if storage.file_exists():
         raise Exception("Remove the existing wallet first!")
-
+        
     seed = Mnemonic('en').make_seed(seed_type)
     k = keystore.from_seed(seed, passphrase)
     storage.put('keystore', k.dump())

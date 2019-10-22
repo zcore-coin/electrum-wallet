@@ -184,7 +184,7 @@ class SimpleConfig(Logger):
             host, port, protocol = str(server_str).rsplit(':', 2)
             assert protocol in ('s', 't')
             int(port)  # Throw if cannot be converted to int
-            server_str = '{}:{}:s'.format(host, port)
+            server_str = '{}:{}:{}'.format(host, port,protocol)
             self._set_key_in_user_config('server', server_str)
         except BaseException:
             self._set_key_in_user_config('server', None)

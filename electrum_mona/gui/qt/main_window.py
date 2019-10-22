@@ -182,7 +182,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.utxo_tab = self.create_utxo_tab()
         self.console_tab = self.create_console_tab()
         self.contacts_tab = self.create_contacts_tab()
-        self.channels_tab = self.create_channels_tab(wallet)
+        #self.channels_tab = self.create_channels_tab(wallet)
         tabs.addTab(self.create_history_tab(), read_QIcon("tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, read_QIcon("tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, read_QIcon("tab_receive.png"), _('Receive'))
@@ -196,8 +196,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
                 tabs.addTab(tab, icon, description.replace("&", ""))
 
         add_optional_tab(tabs, self.addresses_tab, read_QIcon("tab_addresses.png"), _("&Addresses"), "addresses")
-        if self.wallet.has_lightning():
-            add_optional_tab(tabs, self.channels_tab, read_QIcon("lightning.png"), _("Channels"), "channels")
+        #if self.wallet.has_lightning():
+        #    add_optional_tab(tabs, self.channels_tab, read_QIcon("lightning.png"), _("Channels"), "channels")
         add_optional_tab(tabs, self.utxo_tab, read_QIcon("tab_coins.png"), _("Co&ins"), "utxo")
         add_optional_tab(tabs, self.contacts_tab, read_QIcon("tab_contacts.png"), _("Con&tacts"), "contacts")
         add_optional_tab(tabs, self.console_tab, read_QIcon("tab_console.png"), _("Con&sole"), "console")
@@ -377,11 +377,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             self.on_fx_quotes()
         elif event == 'on_history':
             self.on_fx_history()
-        elif event == 'channels_updated':
-            self.channels_list.update_rows.emit(*args)
-        elif event == 'channel':
-            self.channels_list.update_single_row.emit(*args)
-            self.update_status()
+        #elif event == 'channels_updated':
+        #    self.channels_list.update_rows.emit(*args)
+        #elif event == 'channel':
+        #    self.channels_list.update_single_row.emit(*args)
+        #    self.update_status()
         elif event == 'request_status':
             self.on_request_status(*args)
         elif event == 'invoice_status':
@@ -438,7 +438,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.update_console()
         self.clear_receive_tab()
         self.request_list.update()
-        self.channels_list.update()
+        #self.channels_list.update()
         self.tabs.show()
         self.init_geometry()
         if self.config.get('hide_gui') and self.gui_object.tray.isVisible():
@@ -902,9 +902,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.update_completions()
 
     def create_channels_tab(self, wallet):
-        self.channels_list = ChannelsList(self)
-        t = self.channels_list.get_toolbar()
-        return self.create_list_tab(self.channels_list, t)
+        #self.channels_list = ChannelsList(self)
+        #t = self.channels_list.get_toolbar()
+        #return self.create_list_tab(self.channels_list, t)
+        return
 
     def create_history_tab(self):
         self.history_model = HistoryModel(self)
@@ -2439,14 +2440,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             lightning_b.clicked.connect(self.disable_lightning)
             lightning_label = QLabel(_('Enabled'))
             lightning_b.setDisabled(bool(self.wallet.lnworker.channels))
-        else:
-            lightning_b = QPushButton(_('Enable'))
-            lightning_b.clicked.connect(dialog.close)
-            lightning_b.clicked.connect(self.enable_lightning)
-            lightning_label = QLabel(_('Disabled'))
-        grid.addWidget(QLabel(_('Lightning')), 5, 0)
-        grid.addWidget(lightning_label, 5, 1)
-        grid.addWidget(lightning_b, 5, 2)
+        #else:
+            #lightning_b = QPushButton(_('Enable'))
+            #lightning_b.clicked.connect(dialog.close)
+            #lightning_b.clicked.connect(self.enable_lightning)
+            #lightning_label = QLabel(_('Disabled'))
+        #grid.addWidget(QLabel(_('Lightning')), 5, 0)
+        #grid.addWidget(lightning_label, 5, 1)
+        #grid.addWidget(lightning_b, 5, 2)
         vbox.addLayout(grid)
 
         if self.wallet.is_deterministic():
@@ -2573,7 +2574,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
             self.show_message(_('Address not in wallet.'))
             return
         txin_type = self.wallet.get_txin_type(address)
-        if txin_type not in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh']:
+        if txin_type not in ['p2pkh']:
             self.show_message(_('Cannot sign messages with this type of address:') + \
                               ' ' + txin_type + '\n\n' + self.msg_sign)
             return

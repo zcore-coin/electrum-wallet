@@ -36,12 +36,7 @@ from .logging import get_logger, Logger
 
 _logger = get_logger(__name__)
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-HEADER_SIZE = 80  # bytes
-
-try:
-    import lyra2re2_hash
-except ImportError as e:
-    sys.exit("Please run 'sudo pip3 install https://github.com/metalicjames/lyra2re-hash-python/archive/master.zip'")
+HEADER_SIZE = 112  # bytes
 
 from .scrypt import scrypt_1024_1_1_80 as scryptGetHash
 
@@ -59,6 +54,8 @@ def serialize_header(header_dict: dict) -> str:
         + int_to_hex(int(header_dict['timestamp']), 4) \
         + int_to_hex(int(header_dict['bits']), 4) \
         + int_to_hex(int(header_dict['nonce']), 4)
+    if header_dict['version'] >= 4:
+        s += rev_hex(header_dict['acc_checkpoint'])
     return s
 
 def deserialize_header(s: bytes, height: int) -> dict:
@@ -75,6 +72,8 @@ def deserialize_header(s: bytes, height: int) -> dict:
     h['bits'] = hex_to_int(s[72:76])
     h['nonce'] = hex_to_int(s[76:80])
     h['block_height'] = height
+    if h['version'] >= 4:
+        h['acc_checkpoint'] = hash_encode(s[80:112])
     return h
 
 def hash_header(header: dict) -> str:
@@ -302,6 +301,7 @@ class Blockchain(Logger):
         if constants.net.TESTNET:
             return
         bits = cls.target_to_bits(target)
+        return
         if bits != header.get('bits'):
             raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         if height < 450000 :
@@ -597,16 +597,18 @@ class Blockchain(Logger):
     def get_target(self, height, chain=None) -> int:
         if constants.net.TESTNET:
             return 0
-        elif height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 == 2015:
-            h, t = constants.net.CHECKPOINTS[height // 2016]
-            return t
-        elif height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 != 2015:
+        if height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 != 2015:
             return 0
         else:
-            # for using testdata(checkpoints)
-            #if height == 1707577:
-            #    print(Blockchain.get_target_dgwv3(self, height, chain))
-            return Blockchain.get_target_dgwv3(self, height, chain)
+          last = chain.get(height)
+          if last is None:
+             last = self.read_header(height)
+          bits = last.get('bits')
+          return bits
+          # for using testdata(checkpoints)
+          #if height == 1707577:
+          #    print(Blockchain.get_target_dgwv3(self, height, chain))
+          #return Blockchain.get_target_dgwv3(self, height, chain)
 
 
     #def chainwork_of_header_at_height(self, height: int) -> int:

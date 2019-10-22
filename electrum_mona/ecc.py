@@ -311,7 +311,7 @@ class ECPubkey(object):
 def msg_magic(message: bytes) -> bytes:
     from .bitcoin import var_int
     length = bfh(var_int(len(message)))
-    return b"\x19Monacoin Signed Message:\n" + length + message
+    return b"\x19DarkCoin Signed Message:\n" + length + message
 
 
 def verify_signature(pubkey: bytes, sig: bytes, h: bytes) -> bool:
@@ -330,7 +330,7 @@ def verify_message_with_address(address: str, sig65: bytes, message: bytes, *, n
         public_key, compressed = ECPubkey.from_signature65(sig65, h)
         # check public key using the address
         pubkey_hex = public_key.get_public_key_hex(compressed)
-        for txin_type in ['p2pkh','p2wpkh','p2wpkh-p2sh']:
+        for txin_type in ['p2pkh']:
             addr = pubkey_to_address(txin_type, pubkey_hex, net=net)
             if address == addr:
                 break

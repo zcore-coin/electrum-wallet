@@ -507,6 +507,7 @@ class Interface(Logger):
     async def _process_header_at_tip(self):
         height, header = self.tip, self.tip_header
         async with self.network.bhi_lock:
+            print('Processing --->',height,header)
             if self.blockchain.height() >= height and self.blockchain.check_header(header):
                 # another interface amended the blockchain
                 self.logger.info(f"skipping header {height}")
@@ -591,7 +592,8 @@ class Interface(Logger):
                 bad_header = header
             if good + 1 == bad:
                 break
-
+		
+        return good, None, None
         mock = 'mock' in bad_header and bad_header['mock']['connect'](height)
         real = not mock and self.blockchain.can_connect(bad_header, check_height=False)
         if not real and not mock:
