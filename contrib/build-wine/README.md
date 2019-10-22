@@ -20,7 +20,7 @@ folder.
 2. Build image
 
     ```
-    $ sudo docker build -t electrum-zcore-wine-builder-img contrib/build-wine
+    $ sudo docker build -t electrum-mona-wine-builder-img contrib/build-wine
     ```
 
     Note: see [this](https://stackoverflow.com/a/40516974/7499128) if having dns problems
@@ -35,19 +35,19 @@ folder.
         sudo rm -rf $FRESH_CLONE && \
         mkdir -p $FRESH_CLONE && \
         cd $FRESH_CLONE  && \
-        git clone https://github.com/zcore-coin/electrum-wallet.git && \
-        cd electrum-wallet
+        git clone https://github.com/wakiyamap/electrum-mona.git && \
+        cd electrum-mona
     ```
 
     And then build from this directory:
     ```
     $ git checkout $REV
     $ sudo docker run -it \
-        --name electrum-zcore-wine-builder-cont \
-        -v $PWD:/opt/wine64/drive_c/electrum-zcore \
+        --name electrum-mona-wine-builder-cont \
+        -v $PWD:/opt/wine64/drive_c/electrum-mona \
         --rm \
-        --workdir /opt/wine64/drive_c/electrum-zcore/contrib/build-wine \
-        electrum-zcore-wine-builder-img \
+        --workdir /opt/wine64/drive_c/electrum-mona/contrib/build-wine \
+        electrum-mona-wine-builder-img \
         ./build.sh
     ```
 4. The generated binaries are in `./contrib/build-wine/dist`.
