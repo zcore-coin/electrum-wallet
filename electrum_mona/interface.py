@@ -592,8 +592,7 @@ class Interface(Logger):
                 bad_header = header
             if good + 1 == bad:
                 break
-		
-        return good, None, None
+
         mock = 'mock' in bad_header and bad_header['mock']['connect'](height)
         real = not mock and self.blockchain.can_connect(bad_header, check_height=False)
         if not real and not mock:
@@ -604,8 +603,6 @@ class Interface(Logger):
         return good, bad, bad_header
 
     async def _resolve_potential_chain_fork_given_forkpoint(self, good, bad, bad_header):
-        return 'no_fork', height
-
         assert good + 1 == bad
         assert bad == bad_header['block_height']
         _assert_header_does_not_check_against_any_chain(bad_header)
