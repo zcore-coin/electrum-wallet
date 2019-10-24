@@ -507,6 +507,7 @@ class Interface(Logger):
     async def _process_header_at_tip(self):
         height, header = self.tip, self.tip_header
         async with self.network.bhi_lock:
+            print('Processing --->',height,header)
             if self.blockchain.height() >= height and self.blockchain.check_header(header):
                 # another interface amended the blockchain
                 self.logger.info(f"skipping header {height}")
