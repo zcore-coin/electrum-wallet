@@ -1006,7 +1006,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.receive_qr.enterEvent = lambda x: self.app.setOverrideCursor(QCursor(Qt.PointingHandCursor))
         self.receive_qr.leaveEvent = lambda x: self.app.setOverrideCursor(QCursor(Qt.ArrowCursor))
 
-        self.receive_requests_label = QLabel(_('Incoming payments'))
+        self.receive_requests_label = QLabel(_('Incoming payments (right click on the line to menu)'))
 
         from .request_list import RequestList
         self.request_list = RequestList(self)

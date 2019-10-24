@@ -20,7 +20,7 @@ from electrum_mona.logging import Logger
 
 class UpdateCheck(QWidget, Logger):
     url = "https://zcore.cash/version"
-    download_url = "https://zcore.cash"
+    download_url = "https://zcore.cash/#wallets"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
         "MUJ1nBxpAzdGdNhTN1x3MCtyeBa4DbdqpK",
