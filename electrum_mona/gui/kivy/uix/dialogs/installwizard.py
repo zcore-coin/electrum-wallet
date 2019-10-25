@@ -40,7 +40,7 @@ Builder.load_string('''
     font_size: '15sp'
     padding: '15dp', '15dp'
     background_color: (1, 1, 1, 1) if self.focus else (0.454, 0.698, 0.909, 1)
-    foreground_color: (0.31, 0.31, 0.31, 1) if self.focus else (0.835, 0.909, 0.972, 1)
+    foreground_color: (0.31, 0.31, 0.31, 1) if self.focus else (0.082, 0.305, 0.274, 1)
     hint_text_color: self.foreground_color
     background_active: 'atlas://electrum_mona/gui/kivy/theming/light/create_act_text_active'
     background_normal: 'atlas://electrum_mona/gui/kivy/theming/light/create_act_text_active'
@@ -88,7 +88,7 @@ Builder.load_string('''
             height: self.minimum_height
             Label:
                 color: root.text_color
-                text: 'ELECTRUM'
+                text: 'ZCORE'
                 size_hint: 1, None
                 height: self.texture_size[1] if self.opacity else 0
                 font_size: '33sp'
