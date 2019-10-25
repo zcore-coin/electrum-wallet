@@ -39,7 +39,7 @@ Builder.load_string('''
     border: 4, 4, 4, 4
     font_size: '15sp'
     padding: '15dp', '15dp'
-    background_color: (1, 1, 1, 1) if self.focus else (0.454, 0.698, 0.909, 1)
+    background_color: (1, 1, 1, 1) if self.focus else (0.082, 0.305, 0.274, 1)
     foreground_color: (0.31, 0.31, 0.31, 1) if self.focus else (0.082, 0.305, 0.274, 1)
     hint_text_color: self.foreground_color
     background_active: 'atlas://electrum_mona/gui/kivy/theming/light/create_act_text_active'
@@ -55,20 +55,20 @@ Builder.load_string('''
     on_release: if self.root: self.root.dispatch('on_release', self)
 
 <BigLabel@Label>
-    color: .854, .925, .984, 1
+    color: 0.082, 0.305, 0.274, 1
     size_hint: 1, None
     text_size: self.width, None
     height: self.texture_size[1]
     bold: True
 
 <-WizardDialog>
-    text_color: .854, .925, .984, 1
+    text_color: 0.082, 0.305, 0.274, 1
     value: ''
     #auto_dismiss: False
     size_hint: None, None
     canvas.before:
         Color:
-            rgba: .239, .588, .882, 1
+            rgba: 0.082, 0.305, 0.274, 1
         Rectangle:
             size: Window.size
 
