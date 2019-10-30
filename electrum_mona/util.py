@@ -113,6 +113,12 @@ def get_request_status(req):
     return status_str
 
 
+# Raised when importing a key that's already in the wallet.
+class AlreadyHaveAddress(Exception):
+    def __init__(self, msg, addr):
+        super(AlreadyHaveAddress, self).__init__(msg)
+        self.addr = addr
+        
 class UnknownBaseUnit(Exception): pass
 
 
@@ -262,7 +268,75 @@ class MyEncoder(json.JSONEncoder):
             return obj.to_json()
         return super(MyEncoder, self).default(obj)
 
+class timeout(Exception):
+    pass
+import socket
+import json
+import ssl
+import time
 
+
+class SocketPipe:
+    def __init__(self, socket):
+        self.socket = socket
+        self.message = b''
+        self.set_timeout(0.1)
+        self.recv_time = time.time()
+
+    def set_timeout(self, t):
+        self.socket.settimeout(t)
+
+    def idle_time(self):
+        return time.time() - self.recv_time
+
+    def get(self):
+        while True:
+            response, self.message = parse_json(self.message)
+            if response is not None:
+                return response
+            try:
+                data = self.socket.recv(1024)
+            except socket.timeout:
+                raise timeout
+            except ssl.SSLError:
+                raise timeout
+            except socket.error as err:
+                if err.errno == 60:
+                    raise timeout
+                elif err.errno in [11, 35, 10035]:
+                    print_error("socket errno %d (resource temporarily unavailable)"% err.errno)
+                    time.sleep(0.2)
+                    raise timeout
+                else:
+                    print_error("pipe: socket error", err)
+                    data = b''
+            except:
+                traceback.print_exc(file=sys.stderr)
+                data = b''
+
+            if not data:  # Connection closed remotely
+                return None
+            self.message += data
+            self.recv_time = time.time()
+
+    def send(self, request):
+        out = json.dumps(request) + '\n'
+        out = out.encode('utf8')
+        self._send(out)
+
+    def send_all(self, requests):
+        out = b''.join(map(lambda x: (json.dumps(x) + '\n').encode('utf8'), requests))
+        self._send(out)
+
+    def _send(self, out):
+        while out:
+            try:
+                sent = self.socket.send(out)
+                out = out[sent:]
+            except ssl.SSLError as e:
+                print_error("SSLError:", e)
+                time.sleep(0.1)
+                continue
 class ThreadJob(Logger):
     """A job that is run periodically from a thread's main loop.  run() is
     called from that thread's context.
@@ -361,12 +435,30 @@ def print_stderr(*args):
     sys.stderr.write(" ".join(args) + "\n")
     sys.stderr.flush()
 
+def print_error(*args):
+    print_stderr(*args)
+
 def print_msg(*args):
     # Stringify args
     args = [str(item) for item in args]
     sys.stdout.write(" ".join(args) + "\n")
     sys.stdout.flush()
 
+class PrintError(object):
+    '''A handy base class'''
+    def diagnostic_name(self):
+        return self.__class__.__name__
+
+    def print_error(self, *msg):
+        # only prints with --verbose flag
+        print_error("[%s]" % self.diagnostic_name(), *msg)
+
+    def print_stderr(self, *msg):
+        print_stderr("[%s]" % self.diagnostic_name(), *msg)
+
+    def print_msg(self, *msg):
+        print_msg("[%s]" % self.diagnostic_name(), *msg)
+        
 def json_encode(obj):
     try:
         s = json.dumps(obj, sort_keys = True, indent = 4, cls=MyEncoder)

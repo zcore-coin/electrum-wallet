@@ -278,7 +278,7 @@ class WindowModalDialog(QDialog, MessageBoxMixin):
 class WaitingDialog(WindowModalDialog):
     '''Shows a please wait dialog whilst running a task.  It is not
     necessary to maintain a reference to this dialog.'''
-    def __init__(self, parent, message, task, on_success=None, on_error=None):
+    def __init__(self, parent, message, task, on_success=None, on_error=None, loop=None):
         assert parent
         if isinstance(parent, MessageBoxMixin):
             parent = parent.top_level_window()
@@ -290,7 +290,7 @@ class WaitingDialog(WindowModalDialog):
         self.show()
         self.thread = TaskThread(self)
         self.thread.finished.connect(self.deleteLater)  # see #3956
-        self.thread.add(task, on_success, self.accept, on_error)
+        self.thread.add(task, on_success, self.accept, on_error, loop)
 
     def wait(self):
         self.thread.wait()
@@ -704,25 +704,37 @@ class TaskThread(QThread):
 
     doneSig = pyqtSignal(object, object, object)
 
-    def __init__(self, parent, on_error=None):
+    def __init__(self, parent, on_error=None, loop=None):
+        self.loop = loop or asyncio.new_event_loop()
+        
         super(TaskThread, self).__init__(parent)
         self.on_error = on_error
         self.tasks = queue.Queue()
         self.doneSig.connect(self.on_done)
         self.start()
 
-    def add(self, task, on_success=None, on_done=None, on_error=None):
+    def add(self, task, on_success=None, on_done=None, on_error=None, loop=None):
+        self.loop = loop or self.loop
         on_error = on_error or self.on_error
         self.tasks.put(TaskThread.Task(task, on_success, on_done, on_error))
 
     def run(self):
+        async def async_result(task):
+            result = await task.task()
+            self.doneSig.emit(result, task.cb_done, task.cb_success)
+
         while True:
             task = self.tasks.get()  # type: TaskThread.Task
             if not task:
                 break
             try:
-                result = task.task()
-                self.doneSig.emit(result, task.cb_done, task.cb_success)
+                try:
+                    fut = asyncio.run_coroutine_threadsafe(async_result(task), self.loop)
+                    result = fut.result(timeout=20)
+                    print('0--------000000-----',result)
+                except BaseException as e:
+                    result = task.task()
+                    self.doneSig.emit(result, task.cb_done, task.cb_success)
             except BaseException:
                 self.doneSig.emit(sys.exc_info(), task.cb_done, task.cb_error)
 

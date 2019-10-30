@@ -81,8 +81,11 @@ class AddressSynchronizer(Logger):
         self.lock = threading.RLock()
         self.transaction_lock = threading.RLock()
         self.future_tx = {} # txid -> blocks remaining
-        # Transactions pending verification.  txid -> tx_height. Access with self.lock.
+        
+        # Transactions pending verification.  A map from tx hash to transaction
+        # height.  Access is not contended so no lock is needed.
         self.unverified_tx = defaultdict(int)
+
         # true when synchronized
         self.up_to_date = False
         # thread local storage for caching stuff
@@ -608,7 +611,10 @@ class AddressSynchronizer(Logger):
             return self.synchronizer.num_requests_sent_and_answered()
         else:
             return 0, 0
-
+          
+    def set_sync_masternode_manager(self, manager):
+      self.synchronizer.set_masternode_manager(manager)
+      
     @with_transaction_lock
     def get_tx_delta(self, tx_hash, address):
         """effect of tx on address"""
@@ -797,8 +803,7 @@ class AddressSynchronizer(Logger):
             self._get_addr_balance_cache[address] = result
         return result
 
-    @with_local_height_cached
-    def get_utxos(self, domain=None, *, excluded_addresses=None,
+    def get_utxos(self, domain=None, excluded_addresses=None,
                   mature_only: bool = False, confirmed_only: bool = False, nonlocal_only: bool = False):
         coins = []
         if domain is None:
@@ -811,8 +816,6 @@ class AddressSynchronizer(Logger):
             utxos = self.get_addr_utxo(addr)
             for x in utxos.values():
                 if confirmed_only and x['height'] <= 0:
-                    continue
-                if nonlocal_only and x['height'] == TX_HEIGHT_LOCAL:
                     continue
                 if mature_only and x['coinbase'] and x['height'] + COINBASE_MATURITY > mempool_height:
                     continue

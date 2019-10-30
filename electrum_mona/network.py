@@ -26,6 +26,7 @@ import queue
 import os
 import random
 import re
+import select
 from collections import defaultdict
 import threading
 import socket
@@ -241,6 +242,7 @@ class Network(Logger):
 
         Logger.__init__(self)
 
+        self.print_error = util.print_error
         self.asyncio_loop = asyncio.get_event_loop()
         assert self.asyncio_loop.is_running(), "event loop not running"
         self._loop_thread = None  # type: threading.Thread  # set by caller; only used for sanity checks
@@ -296,6 +298,12 @@ class Network(Logger):
         self.server_queue = None
         self.proxy = None
 
+        self.blockchains = blockchain.read_blockchains(self.config)
+        self.print_error("blockchains", self.blockchains)
+        self.blockchain_index = config.get('blockchain_index', 0)
+        if self.blockchains and self.blockchain_index not in self.blockchains.keys():
+            self.blockchain_index = 0
+        
         # Dump network messages (all interfaces).  Set at runtime from the console.
         self.debug = False
 
@@ -305,6 +313,51 @@ class Network(Logger):
         self.channel_db = None  # type: Optional[ChannelDB]
         self.lngossip = None  # type: Optional[LNGossip]
         self.local_watchtower = None  # type: Optional[WatchTower]
+        
+        # callbacks passed with subscriptions
+        self.subscriptions = defaultdict(list)
+        self.sub_cache = {}
+        # callbacks set by the GUI
+        self.callbacks = defaultdict(list)
+
+        self.message_id = 0
+        
+        # subscriptions and requests
+        self.lock = threading.Lock()
+        self.pending_sends = []
+        self.subscribed_addresses = set()
+        self.h2addr = {}
+        # Requests from client we've not seen a response to
+        self.unanswered_requests = {}
+        # retry times
+        self.server_retry_time = time.time()
+        self.nodes_retry_time = time.time()
+        # kick off the network.  interface is the main server we are currently
+        # communicating with.  interfaces is the set of servers we are connecting
+        # to or have an ongoing connection with
+        self.interface = None
+        self.interfaces = {}
+        self.auto_connect = self.config.get('auto_connect', True)
+        self.connecting = set()
+        self.requested_chunks = set()
+        self.socket_queue = queue.Queue()
+        
+        
+    def register_callback(self, callback, events):
+        with self.lock:
+            for event in events:
+                self.callbacks[event].append(callback)
+
+    def unregister_callback(self, callback):
+        with self.lock:
+            for callbacks in self.callbacks.values():
+                if callback in callbacks:
+                    callbacks.remove(callback)
+
+    def trigger_callback(self, event, *args):
+        with self.lock:
+            callbacks = self.callbacks[event][:]
+        [callback(event, *args) for callback in callbacks]
 
     def maybe_init_lightning(self):
         if self.channel_db is None:
@@ -326,6 +379,40 @@ class Network(Logger):
         fut = asyncio.run_coroutine_threadsafe(coro, self.asyncio_loop)
         return fut.result(timeout)
 
+
+    def get_interfaces(self):
+        '''The interfaces that are in connected state'''
+        return list(self.interfaces.keys())
+
+    def on_get_chunk(self, interface, response):
+        '''Handle receiving a chunk of block headers'''
+        error = response.get('error')
+        result = response.get('result')
+        params = response.get('params')
+        blockchain = interface.blockchain
+        if result is None or params is None or error is not None:
+            interface.print_error(error or 'bad response')
+            return
+        index = params[0]
+        # Ignore unsolicited chunks
+        if index not in self.requested_chunks:
+            interface.print_error("received chunk %d (unsolicited)" % index)
+            return
+        else:
+            interface.print_error("received chunk %d" % index)
+        self.requested_chunks.remove(index)
+        connect = blockchain.connect_chunk(index, result)
+        if not connect:
+            self.connection_down(interface.server)
+            return
+        # If not finished, get the next chunk
+        if index >= len(blockchain.checkpoints) and blockchain.height() < interface.tip:
+            self.request_chunk(interface, index+1)
+        else:
+            interface.mode = 'default'
+            interface.print_error('catch up done', blockchain.height())
+            blockchain.catch_up = None
+        self.notify('updated')
     @staticmethod
     def get_instance() -> Optional["Network"]:
         return _INSTANCE
@@ -673,6 +760,291 @@ class Network(Logger):
                 chosen_iface = random.choice(filtered)
                 await self.switch_to_interface(chosen_iface.server)
 
+    def get_index(self, method, params):
+        """ hashable index for subscriptions and cache"""
+        return str(method) + (':' + str(params[0]) if params else '')
+
+    def on_get_header(self, interface, response):
+        '''Handle receiving a single block header'''
+        header = response.get('result')
+        if not header:
+            interface.print_error(response)
+            self.connection_down(interface.server)
+            return
+        height = header.get('block_height')
+        if interface.request != height:
+            interface.print_error("unsolicited header",interface.request, height)
+            self.connection_down(interface.server)
+            return
+        chain = blockchain.check_header(header)
+        if interface.mode == 'backward':
+            can_connect = blockchain.can_connect(header)
+            if can_connect and can_connect.catch_up is None:
+                interface.mode = 'catch_up'
+                interface.blockchain = can_connect
+                interface.blockchain.save_header(header)
+                next_height = height + 1
+                interface.blockchain.catch_up = interface.server
+            elif chain:
+                interface.print_error("binary search")
+                interface.mode = 'binary'
+                interface.blockchain = chain
+                interface.good = height
+                next_height = (interface.bad + interface.good) // 2
+                assert next_height >= self.max_checkpoint(), (interface.bad, interface.good)
+            else:
+                if height == 0:
+                    self.connection_down(interface.server)
+                    next_height = None
+                else:
+                    interface.bad = height
+                    interface.bad_header = header
+                    delta = interface.tip - height
+                    next_height = max(self.max_checkpoint(), interface.tip - 2 * delta)
+
+        elif interface.mode == 'binary':
+            if chain:
+                interface.good = height
+                interface.blockchain = chain
+            else:
+                interface.bad = height
+                interface.bad_header = header
+            if interface.bad != interface.good + 1:
+                next_height = (interface.bad + interface.good) // 2
+                assert next_height >= self.max_checkpoint()
+            elif not interface.blockchain.can_connect(interface.bad_header, check_height=False):
+                self.connection_down(interface.server)
+                next_height = None
+            else:
+                branch = self.blockchains.get(interface.bad)
+                if branch is not None:
+                    if branch.check_header(interface.bad_header):
+                        interface.print_error('joining chain', interface.bad)
+                        next_height = None
+                    elif branch.parent().check_header(header):
+                        interface.print_error('reorg', interface.bad, interface.tip)
+                        interface.blockchain = branch.parent()
+                        next_height = None
+                    else:
+                        interface.print_error('checkpoint conflicts with existing fork', branch.path())
+                        branch.write('', 0)
+                        branch.save_header(interface.bad_header)
+                        interface.mode = 'catch_up'
+                        interface.blockchain = branch
+                        next_height = interface.bad + 1
+                        interface.blockchain.catch_up = interface.server
+                else:
+                    bh = interface.blockchain.height()
+                    next_height = None
+                    if bh > interface.good:
+                        if not interface.blockchain.check_header(interface.bad_header):
+                            b = interface.blockchain.fork(interface.bad_header)
+                            self.blockchains[interface.bad] = b
+                            interface.blockchain = b
+                            interface.print_error("new chain", b.checkpoint)
+                            interface.mode = 'catch_up'
+                            next_height = interface.bad + 1
+                            interface.blockchain.catch_up = interface.server
+                    else:
+                        assert bh == interface.good
+                        if interface.blockchain.catch_up is None and bh < interface.tip:
+                            interface.print_error("catching up from %d"% (bh + 1))
+                            interface.mode = 'catch_up'
+                            next_height = bh + 1
+                            interface.blockchain.catch_up = interface.server
+
+                self.notify('updated')
+
+        elif interface.mode == 'catch_up':
+            can_connect = interface.blockchain.can_connect(header)
+            if can_connect:
+                interface.blockchain.save_header(header)
+                next_height = height + 1 if height < interface.tip else None
+            else:
+                # go back
+                interface.print_error("cannot connect", height)
+                interface.mode = 'backward'
+                interface.bad = height
+                interface.bad_header = header
+                next_height = height - 1
+
+            if next_height is None:
+                # exit catch_up state
+                interface.print_error('catch up done', interface.blockchain.height())
+                interface.blockchain.catch_up = None
+                self.switch_lagging_interface()
+                self.notify('updated')
+
+        else:
+            raise Exception(interface.mode)
+        # If not finished, get the next header
+        if next_height:
+            if interface.mode == 'catch_up' and interface.tip > next_height + 50:
+                self.request_chunk(interface, next_height // 2016)
+            else:
+                self.request_header(interface, next_height)
+        else:
+            interface.mode = 'default'
+            interface.request = None
+            self.notify('updated')
+        # refresh network dialog
+        self.notify('interfaces')
+
+    def request_header(self, interface, height):
+        #interface.print_error("requesting header %d" % height)
+        self.queue_request('blockchain.block.get_header', [height], interface)
+        interface.request = height
+        interface.req_time = time.time()
+
+    def subscribe_to_addresses(self, addresses, callback):
+        hashes = [self.addr_to_scripthash(addr) for addr in addresses]
+        msgs = [('blockchain.scripthash.subscribe', [x]) for x in hashes]
+        self.send(msgs, self.overload_cb(callback))
+
+    def request_address_history(self, address, callback):
+        h = self.addr_to_scripthash(address)
+        self.send([('blockchain.scripthash.get_history', [h])], self.overload_cb(callback))
+
+
+    def on_notify_header(self, interface, header):
+        height = header.get('block_height')
+        if not height:
+            return
+        if height < self.max_checkpoint():
+            self.connection_down(interface.server)
+            return
+        interface.tip_header = header
+        interface.tip = height
+        if interface.mode != 'default':
+            return
+        b = blockchain.check_header(header)
+        if b:
+            interface.blockchain = b
+            self.switch_lagging_interface()
+            self.notify('updated')
+            self.notify('interfaces')
+            return
+        b = blockchain.can_connect(header)
+        if b:
+            interface.blockchain = b
+            b.save_header(header)
+            self.switch_lagging_interface()
+            self.notify('updated')
+            self.notify('interfaces')
+            return
+        tip = max([x.height() for x in self.blockchains.values()])
+        if tip >=0:
+            interface.mode = 'backward'
+            interface.bad = height
+            interface.bad_header = header
+            self.request_header(interface, min(tip +1, height - 1))
+        else:
+            chain = self.blockchains[0]
+            if chain.catch_up is None:
+                chain.catch_up = interface
+                interface.mode = 'catch_up'
+                interface.blockchain = chain
+                self.print_error("switching to catchup mode", tip,  self.blockchains)
+                self.request_header(interface, 0)
+            else:
+                self.print_error("chain already catching up with", chain.catch_up.server)
+
+    def get_blockchains(self):
+        out = {}
+        for k, b in self.blockchains.items():
+            r = list(filter(lambda i: i.blockchain==b, list(self.interfaces.values())))
+            if r:
+                out[k] = r
+        return out
+
+    def follow_chain(self, index):
+        blockchain = self.blockchains.get(index)
+        if blockchain:
+            self.blockchain_index = index
+            self.config.set_key('blockchain_index', index)
+            for i in self.interfaces.values():
+                if i.blockchain == blockchain:
+                    self.switch_to_interface(i.server)
+                    break
+        else:
+            raise Exception('blockchain not found', index)
+
+        if self.interface:
+            server = self.interface.server
+            host, port, protocol, proxy, auto_connect = self.get_parameters()
+            host, port, protocol = server.split(':')
+            self.set_parameters(host, port, protocol, proxy, auto_connect)
+
+    def get_local_height(self):
+        return self.blockchain().height()
+            
+    def process_response(self, interface, response, callback):
+        if not response:
+          return
+        if isinstance(response,str):
+          callback(response)
+          return
+        error = response.get('error')
+        result = response.get('result')
+        method = response.get('method')
+        params = response.get('params')
+
+        # We handle some responses; return the rest to the client.
+        if method == 'server.version':
+            interface.server_version = result
+        elif method == 'blockchain.headers.subscribe':
+            if error is None:
+                self.on_notify_header(interface, result)
+        elif method == 'server.peers.subscribe':
+            if error is None:
+                self.irc_servers = parse_servers(result)
+                self.notify('servers')
+        elif method == 'server.banner':
+            if error is None:
+                self.banner = result
+                self.notify('banner')
+        elif method == 'server.donation_address':
+            if error is None:
+                self.donation_address = result
+        elif method == 'mempool.get_fee_histogram':
+            if error is None:
+                self.print_error('fee_histogram', result)
+                self.config.mempool_fees = result
+                self.notify('fee_histogram')
+        elif method == 'blockchain.estimatefee':
+            if error is None and result > 0:
+                i = params[0]
+                fee = int(result*COIN)
+                self.config.update_fee_estimates(i, fee)
+                self.print_error("fee_estimates[%d]" % i, fee)
+                self.notify('fee')
+        elif method == 'blockchain.relayfee':
+            if error is None:
+                self.relay_fee = int(result * COIN) if result is not None else None
+                self.print_error("relayfee", self.relay_fee)
+        elif method == 'blockchain.block.get_chunk':
+            self.on_get_chunk(interface, response)
+        elif method == 'blockchain.block.get_header':
+            self.on_get_header(interface, response)
+            
+        callback(response)
+
+    async def send(self, messages, callback, interface=None):
+        '''Messages is a list of (method, params) tuples'''
+        def process(response):
+            self.process_response(interface, response, callback)
+        # If you want to queue a request on any interface it must go
+        # through this function so message ids are properly tracked
+        if interface is None:
+            interface = self.interface
+        messages = list(messages)
+        for method,params in messages:
+            try:
+              response = await interface.session.send_request(method, params)
+              self.process_response(interface, response, process)
+            except aiorpcx.jsonrpc.RPCError as e:
+              self.process_response(interface, {'error':e,'result':None}, process)
+
     async def switch_unwanted_fork_interface(self):
         """If auto_connect and main interface is not on preferred fork,
         try to switch to preferred fork.
@@ -782,6 +1154,7 @@ class Network(Logger):
     @log_exceptions
     async def _run_new_interface(self, server):
         interface = Interface(self, server, self.proxy)
+        interface.request = None
         # note: using longer timeouts here as DNS can sometimes be slow!
         timeout = self.get_network_timeout_seconds(NetworkTimeout.Generic)
         try:

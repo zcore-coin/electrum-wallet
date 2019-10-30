@@ -76,6 +76,8 @@ from electrum_mona.logging import Logger
 from electrum_mona.util import PR_PAID, PR_UNPAID, PR_INFLIGHT, PR_FAILED
 from electrum_mona.util import pr_expiration_values
 
+from electrum_mona.masternode_manager import MasternodeManager
+
 from .exception_window import Exception_Hook
 from .amountedit import AmountEdit, BTCAmountEdit, MyLineEdit, FeerateEdit
 from .qrcodewidget import QRCodeWidget, QRDialog
@@ -140,6 +142,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
 
         self.setup_exception_hook()
 
+        self.masternode_manager = None
+        
         self.network = gui_object.daemon.network  # type: Network
         assert wallet, "no wallet"
         self.wallet = wallet
@@ -179,6 +183,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.send_tab = self.create_send_tab()
         self.receive_tab = self.create_receive_tab()
         self.addresses_tab = self.create_addresses_tab()
+        self.masternode_tab = self.create_masternode_tab()
         self.utxo_tab = self.create_utxo_tab()
         self.console_tab = self.create_console_tab()
         self.contacts_tab = self.create_contacts_tab()
@@ -186,6 +191,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         tabs.addTab(self.create_history_tab(), read_QIcon("tab_history.png"), _('History'))
         tabs.addTab(self.send_tab, read_QIcon("tab_send.png"), _('Send'))
         tabs.addTab(self.receive_tab, read_QIcon("tab_receive.png"), _('Receive'))
+        tabs.addTab(self.masternode_tab, read_QIcon("tab_history.png"), _('Masternodes'))
 
         def add_optional_tab(tabs, tab, icon, description, name):
             tab.tab_icon = icon
@@ -273,7 +279,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
     def on_fx_history(self):
         self.history_model.refresh('fx_history')
         self.address_list.update()
-
+            
     def on_fx_quotes(self):
         self.update_status()
         # Refresh edits with the new rate
@@ -429,6 +435,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.update_recently_visited(wallet.storage.path)
         if wallet.lnworker:
             wallet.lnworker.on_channels_updated()
+            
+        self.masternode_manager = MasternodeManager(self.wallet, self.config)
+        self.masternode_tab.update_nodelist(self.wallet, self.config, self.masternode_manager)
+        
+        self.wallet.set_sync_masternode_manager(self.masternode_manager)
+        
         self.need_update.set()
         # Once GUI has been initialized check if we want to announce something since the callback has been called before the GUI was initialized
         # update menus
@@ -1184,6 +1196,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         self.feerounding_text = (_('Additional {} satoshis are going to be added.')
                                  .format(num_satoshis_added))
 
+    def create_masternode_tab(self):
+        from .masternode_tab import MasternodeTab
+        self.masternode_tab = masternode_tab = MasternodeTab(self)
+        return masternode_tab
+      
     def create_send_tab(self):
         # A 4-column grid layout.  All the stretch is in the last column.
         # The exchange rate plugin adds a fiat widget in column 2

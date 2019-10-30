@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: Electrum-ZCore
+Version: 1.0.0
+Summary: Lightweight ZCore Wallet
+Home-page: https://zcore.cash
+Author: Thomas Voegtlin
+Author-email: thomasv@electrum.org
+License: MIT Licence
+Description: Lightweight ZCore Wallet
+Platform: UNKNOWN

@@ -123,6 +123,11 @@ class Software_KeyStore(KeyStore):
     def may_have_password(self):
         return not self.is_watching_only()
 
+    def sign_message_masternode(self, sequence, message, password) -> bytes:
+        privkey, compressed = self.get_private_key(sequence, password)
+        key = bitcoin.regenerate_key(privkey)
+        return key.sign_message(message, compressed)
+      
     def sign_message(self, sequence, message, password) -> bytes:
         privkey, compressed = self.get_private_key(sequence, password)
         key = ecc.ECPrivkey(privkey)

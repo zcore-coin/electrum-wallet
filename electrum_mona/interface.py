@@ -29,6 +29,7 @@ import sys
 import traceback
 import asyncio
 import socket
+import time
 from typing import Tuple, Union, List, TYPE_CHECKING, Optional
 from collections import defaultdict
 from ipaddress import IPv4Network, IPv6Network, ip_address
@@ -224,13 +225,7 @@ class Interface(Logger):
         self._set_proxy(proxy)
         self.session = None  # type: NotificationSession
         self._ipaddr_bucket = None
-
-        self.tip_header = None
-        self.tip = 0
-
-        # Dump network messages (only for this interface).  Set at runtime from the console.
         self.debug = False
-
         asyncio.run_coroutine_threadsafe(
             self.network.main_taskgroup.spawn(self.run()), self.network.asyncio_loop)
         self.group = SilentTaskGroup()
@@ -439,17 +434,19 @@ class Interface(Logger):
 
     def is_main_server(self) -> bool:
         return self.network.default_server == self.server
-
+      
     async def open_session(self, sslc, exit_early=False):
         async with _RSClient(session_factory=NotificationSession,
                              host=self.host, port=self.port,
                              ssl=sslc, proxy=self.proxy) as session:
+          
             self.session = session  # type: NotificationSession
             self.session.interface = self
             self.session.set_default_timeout(self.network.get_network_timeout_seconds(NetworkTimeout.Generic))
             try:
                 ver = await session.send_request('server.version', [self.client_name(), version.PROTOCOL_VERSION])
             except aiorpcx.jsonrpc.RPCError as e:
+                print(e)
                 raise GracefulDisconnect(e)  # probably 'unsupported protocol version'
             if exit_early:
                 return
@@ -507,7 +504,6 @@ class Interface(Logger):
     async def _process_header_at_tip(self):
         height, header = self.tip, self.tip_header
         async with self.network.bhi_lock:
-            print('Processing --->',height,header)
             if self.blockchain.height() >= height and self.blockchain.check_header(header):
                 # another interface amended the blockchain
                 self.logger.info(f"skipping header {height}")

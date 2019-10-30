@@ -39,11 +39,12 @@ from functools import partial
 from numbers import Number
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union, NamedTuple, Sequence
+from collections import defaultdict
 
 from .i18n import _
 from .bip32 import BIP32Node
 from .crypto import sha256
-from .util import (NotEnoughFunds, UserCancelled, profiler,
+from .util import (AlreadyHaveAddress,NotEnoughFunds, UserCancelled, profiler,
                    format_satoshis, format_fee_satoshis, NoDynamicFeeEstimates,
                    WalletFileException, BitcoinException,
                    InvalidPassword, format_time, timestamp_to_datetime, Satoshis,
@@ -220,9 +221,14 @@ class Abstract_Wallet(AddressSynchronizer):
         self.storage = storage
         # load addresses needs to be called before constructor for sanity checks
         self.storage.db.load_addresses(self.wallet_type)
+        
         self.keystore = None  # type: Optional[KeyStore]  # will be set by load_keystore
         AddressSynchronizer.__init__(self, storage.db)
 
+        # Delegate keys for signing Masternode Pings.
+        self.masternode_delegates = storage.get('masternode_delegates', {})
+        
+        
         # saved fields
         self.use_change            = storage.get('use_change', True)
         self.multiple_change       = storage.get('multiple_change', False)
@@ -1324,6 +1330,25 @@ class Abstract_Wallet(AddressSynchronizer):
     def create_new_address(self, for_change=False):
         raise Exception("this wallet cannot generate new addresses")
 
+    def get_local_height(self):
+        """ return last known height if we are offline """
+        return self.network.get_local_height() if self.network else self.storage.get('stored_height', 0)
+
+    def get_txpos(self, tx_hash):
+        "return position, even if the tx is unverified"
+        with self.lock:
+            info = self.db.get_verified_tx(tx_hash)
+            if info:
+                height=info.height
+                timestamp=info.timestamp
+                pos= info.conf
+                return height, pos
+            elif tx_hash in self.unverified_tx:
+                height = self.unverified_tx[tx_hash]
+                return (height, 0) if height > 0 else ((1e9 - height), 0)
+            else:
+                return (1e9+1, 0)
+              
     def get_payment_status(self, address, amount):
         local_height = self.get_local_height()
         received, sent = self.get_addr_io(address)
@@ -1489,6 +1514,11 @@ class Abstract_Wallet(AddressSynchronizer):
         self.storage.put('payment_requests', self.receive_requests)
         return True
 
+    # SmartCash Abstract_Wallet additions
+    def get_delegate_private_key(self, pubkey):
+        """Get the private delegate key for pubkey."""
+        return self.masternode_delegates.get(pubkey, '')
+
     def get_sorted_requests(self):
         """ sorted by timestamp """
         out = [self.get_request(x) for x in self.receive_requests.keys()]
@@ -1496,6 +1526,44 @@ class Abstract_Wallet(AddressSynchronizer):
         out.sort(key=operator.itemgetter('time'))
         return out
 
+    def import_masternode_delegate(self, sec):
+        """Import the private key for a masternode."""
+        try:
+            txin_type, privkey, compressed = bitcoin.deserialize_privkey(sec)
+            pubkey = bitcoin.public_key_from_private_key(privkey, compressed)
+            address = bitcoin.public_key_to_p2pkh(pubkey)
+        except BaseException as e:
+            raise Exception('Invalid private key')
+            
+        if self.masternode_delegates.get(pubkey):
+            raise AlreadyHaveAddress('Smartnode key already in wallet',
+                                     address)
+
+        self.masternode_delegates[pubkey] = sec
+        self.storage.put('masternode_delegates', self.masternode_delegates)
+        return pubkey
+
+    def delete_masternode_delegate(self, pubkey):
+        if self.masternode_delegates.get(pubkey):
+            del self.masternode_delegates[pubkey]
+            self.storage.put('masternode_delegates', self.masternode_delegates)
+
+    def sign_masternode_ping(self, ping, pubkey):
+        """Sign a Masternode Ping for address."""
+        sec = self.masternode_delegates.get(pubkey)
+        if not sec:
+            raise Exception('Private key not known for public key %s' % pubkey)
+        ping.sign(sec)
+        return True
+
+    def sign_masternode(self, mn, pubkey):
+        """Sign a Masternode broadcast."""
+        sec = self.masternode_delegates.get(pubkey)
+        if not sec:
+            raise Exception('Private key not known for public key %s' % pubkey)
+        mn.sign(sec)
+        return True
+      
     def get_fingerprint(self):
         raise NotImplementedError()
 
@@ -1567,6 +1635,10 @@ class Abstract_Wallet(AddressSynchronizer):
         encrypt_keystore = self.can_have_keystore_encryption()
         self.storage.set_keystore_encryption(bool(new_pw) and encrypt_keystore)
         self.storage.write()
+
+    def sign_message_masternode(self, address, message, password):
+        index = self.get_address_index(address)
+        return self.keystore.sign_message_masternode(index, message, password)
 
     def sign_message(self, address, message, password):
         index = self.get_address_index(address)

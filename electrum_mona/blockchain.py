@@ -287,46 +287,21 @@ class Blockchain(Logger):
         self._size = os.path.getsize(p)//HEADER_SIZE if os.path.exists(p) else 0
 
     @classmethod
-    def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None) -> None:
-        height = header.get('block_height')
+    def verify_header(self, header, prev_hash, target):
         _hash = hash_header(header)
-        if expected_header_hash and expected_header_hash != _hash:
-            raise Exception("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
         if prev_hash != header.get('prev_block_hash'):
             raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
-        # DGWv3 PastBlocksMax = 24 Because checkpoint don't have preblock data.
-        if height // 2016 < len(constants.net.CHECKPOINTS) and height % 2016 != 2015 or \
-                height >= len(constants.net.CHECKPOINTS)*2016 and height <= len(constants.net.CHECKPOINTS)*2016 + 24:
-            return
         if constants.net.TESTNET:
             return
-        bits = cls.target_to_bits(target)
-        return
-        if bits != header.get('bits'):
-            raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
-        if height < 450000 :
-            _powhash = rev_hex(bh2u(scryptGetHash(bfh(serialize_header(header)))))
-        else:
-            _powhash = rev_hex(bh2u(lyra2re2_hash.getPoWHash(bfh(serialize_header(header)))))
-        if int('0x' + _powhash, 16) > target:
-            raise Exception("insufficient proof of work: %s vs target %s" % (int('0x' + _powhash, 16), target))
 
     def verify_chunk(self, index: int, data: bytes) -> None:
         num = len(data) // HEADER_SIZE
-        start_height = index * 2016
-        prev_hash = self.get_hash(start_height - 1)
-        headers = {}
+        prev_hash = self.get_hash(index * 2016 - 1)
+        target = self.get_target(index-1)
         for i in range(num):
-            height = start_height + i
-            try:
-                expected_header_hash = self.get_hash(height)
-            except MissingHeader:
-                expected_header_hash = None
-            raw_header = data[i*HEADER_SIZE : (i+1)*HEADER_SIZE]
+            raw_header = data[i*HEADER_SIZE:(i+1) * HEADER_SIZE]
             header = deserialize_header(raw_header, index*2016 + i)
-            headers[header.get('block_height')] = header
-            target = self.get_target(index*2016 + i, headers)
-            self.verify_header(header, prev_hash, target, expected_header_hash)
+            self.verify_header(header, prev_hash, target)
             prev_hash = hash_header(header)
 
     @with_lock
@@ -645,11 +620,12 @@ class Blockchain(Logger):
     #    work_in_last_partial_chunk = (height % 2016 + 1) * work_in_single_header
     #    return running_total + work_in_last_partial_chunk
 
-    def can_connect(self, header: dict, check_height: bool=True) -> bool:
+    def can_connect(self, header, check_height=True):
         if header is None:
             return False
         height = header['block_height']
         if check_height and self.height() != height - 1:
+            #self.print_error("cannot connect at height", height)
             return False
         if height == 0:
             return hash_header(header) == constants.net.GENESIS
@@ -659,12 +635,7 @@ class Blockchain(Logger):
             return False
         if prev_hash != header.get('prev_block_hash'):
             return False
-        headers = {}
-        headers[header.get('block_height')] = header
-        try:
-            target = self.get_target(height, headers)
-        except MissingHeader:
-            return False
+        target = self.get_target(height // 2016 - 1)
         try:
             self.verify_header(header, prev_hash, target)
         except BaseException as e:

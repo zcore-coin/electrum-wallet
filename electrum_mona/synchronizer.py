@@ -66,22 +66,32 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
     def _reset(self):
         super()._reset()
         self.requested_addrs = set()
+        self.requested_mn = set()
         self.scripthash_to_address = {}
         self._processed_some_notifications = False  # so that we don't miss them
         self._reset_request_counters()
         # Queues
         self.add_queue = asyncio.Queue()
         self.status_queue = asyncio.Queue()
-
+        self.add_mn_queue = asyncio.Queue()
+        self.status_mn_queue = asyncio.Queue()
+        # Masternode
+        self.masternodes_tasks = {}
+        self.masternode_manager = None
+        self.masternode_manager_subscribed = False
+    
     async def _start_tasks(self):
         try:
             async with self.group as group:
                 await group.spawn(self.send_subscriptions())
+                await group.spawn(self.send_masternode_subscriptions())
+                await group.spawn(self.handle_masternode_status())
                 await group.spawn(self.handle_status())
                 await group.spawn(self.main())
         finally:
             # we are being cancelled now
             self.session.unsubscribe(self.status_queue)
+            self.session.unsubscribe(self.status_mn_queue)
 
     def _reset_request_counters(self):
         self._requests_sent = 0
@@ -90,12 +100,24 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
     def add(self, addr):
         asyncio.run_coroutine_threadsafe(self._add_address(addr), self.asyncio_loop)
 
+    def add_masternode(self, col):
+        asyncio.run_coroutine_threadsafe(self._add_masternode(col), self.asyncio_loop)
+
     async def _add_address(self, addr: str):
         if not is_address(addr): raise ValueError(f"invalid bitcoin address {addr}")
         if addr in self.requested_addrs: return
         self.requested_addrs.add(addr)
         await self.add_queue.put(addr)
 
+    async def _add_masternode(self, col: str):
+        if col in self.requested_mn: return
+        self.requested_mn.add(col)
+        await self.add_mn_queue.put(col)
+
+    async def _on_masternode_status(self, addr, status):
+        """Handle the change of the status of an masternode."""
+        raise NotImplementedError()  # implemented by subclasses
+        
     async def _on_address_status(self, addr, status):
         """Handle the change of the status of an address."""
         raise NotImplementedError()  # implemented by subclasses
@@ -117,7 +139,49 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
         while True:
             addr = await self.add_queue.get()
             await self.group.spawn(subscribe_to_address, addr)
+    
+    def reload_masternode_task(self):
+      self.session.unsubscribe(self.status_mn_queue)
+      self.requested_mn = set()
+      self.masternode_manager_subscribed = False
+      
+    def remove_masternode_task(self,col):
+      if not col in self.masternodes_tasks:
+        return
+      task = self.masternodes_tasks[col]
+      if task:
+        task.cancel()
+      self.masternodes_tasks[col] = None
+      self.reload_masternode_task()
 
+    async def send_masternode_subscriptions(self):
+        async def subscribe_to_masternode(collateral):
+            task = self.masternodes_tasks[collateral]
+            # masternode removed
+            if not self.masternode_manager or not self.masternode_manager.has_masternode(collateral) or not task:
+              self.remove_masternode_task(collateral)
+              return
+            self._requests_sent += 1
+            try:
+                await self.session.subscribe('masternode.subscribe', [collateral], self.status_mn_queue)
+            except RPCError as e:
+                if e.message == 'history too large':  # no unique error code
+                    raise GracefulDisconnect(e, log_level=logging.ERROR) from e
+                raise
+            self._requests_answered += 1
+            self.requested_mn.remove(collateral)
+            
+        while True:
+            col = await self.add_mn_queue.get()
+            task = await self.group.spawn(subscribe_to_masternode, col)
+            self.masternodes_tasks[col] = task
+
+    async def handle_masternode_status(self):
+        while True:
+            masternode = await self.status_mn_queue.get()
+            await self.group.spawn(self._on_masternode_status, masternode)
+            self._processed_some_notifications = True
+        
     async def handle_status(self):
         while True:
             h, status = await self.status_queue.get()
@@ -149,6 +213,10 @@ class Synchronizer(SynchronizerBase):
         self.requested_tx = {}
         self.requested_histories = set()
 
+    def set_masternode_manager(self,manager):
+      self.masternode_manager = manager
+      self.masternode_manager.set_synchornizer_manager(self)
+
     def diagnostic_name(self):
         return self.wallet.diagnostic_name()
 
@@ -156,6 +224,10 @@ class Synchronizer(SynchronizerBase):
         return (not self.requested_addrs
                 and not self.requested_histories
                 and not self.requested_tx)
+      
+    async def _on_masternode_status(self, masternode):
+        self.masternode_manager.masternode_subscription_response(masternode)
+        pass
 
     async def _on_address_status(self, addr, status):
         history = self.wallet.db.get_addr_history(addr)
@@ -237,6 +309,15 @@ class Synchronizer(SynchronizerBase):
         # callbacks
         self.wallet.network.trigger_callback('new_transaction', self.wallet, tx)
 
+    async def sub_masternodes(self):
+        if self.masternode_manager and not self.masternode_manager_subscribed:
+          # add masternodes to bootstrap
+          for mn in self.masternode_manager.masternodes:
+              collateral = mn.get_collateral_hash_str()
+              self.logger.info(f"subscribing to masternode: {collateral}")
+              await self._add_masternode(collateral)
+          self.masternode_manager_subscribed = True
+
     async def main(self):
         self.wallet.set_up_to_date(False)
         # request missing txns, if any
@@ -246,13 +327,17 @@ class Synchronizer(SynchronizerBase):
             # was pruned. This no longer happens but may remain in old wallets.
             if history == ['*']: continue
             await self._request_missing_txs(history, allow_server_not_finding_tx=True)
+
         # add addresses to bootstrap
         for addr in self.wallet.get_addresses():
             await self._add_address(addr)
+
         # main loop
         while True:
             await asyncio.sleep(0.1)
             await run_in_thread(self.wallet.synchronize)
+            await self.sub_masternodes()
+            
             up_to_date = self.is_up_to_date()
             if (up_to_date != self.wallet.is_up_to_date()
                     or up_to_date and self._processed_some_notifications):
