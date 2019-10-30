@@ -55,14 +55,14 @@ Builder.load_string('''
     on_release: if self.root: self.root.dispatch('on_release', self)
 
 <BigLabel@Label>
-    color: 0.082, 0.305, 0.274, 1
+    text_color: .854, .925, .984, 1
     size_hint: 1, None
     text_size: self.width, None
     height: self.texture_size[1]
     bold: True
 
 <-WizardDialog>
-    text_color: 0.082, 0.305, 0.274, 1
+    text_color: .854, .925, .984, 1
     value: ''
     #auto_dismiss: False
     size_hint: None, None
