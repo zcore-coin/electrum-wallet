@@ -3,7 +3,7 @@ import sys
 from typing import NamedTuple, Any
 
 from electrum_mona.util import bfh, bh2u, versiontuple, UserCancelled, UserFacingException
-from electrum_mona.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT
+from electrum_mona.bitcoin import TYPE_ADDRESS, TYPE_SCRIPT, msg_magic
 from electrum_mona.bip32 import BIP32Node, convert_bip32_path_to_list_of_uint32 as parse_path
 from electrum_mona import constants
 from electrum_mona.i18n import _
@@ -61,6 +61,13 @@ class TrezorKeyStore(Hardware_KeyStore):
 
     def decrypt_message(self, sequence, message, password):
         raise UserFacingException(_('Encryption and decryption are not implemented by {}').format(self.device))
+
+    def sign_message_masternode(self, sequence, message, password):
+        msg = msg_magic(message)
+        client = self.get_client()
+        address_path = self.get_derivation() + "/%d/%d"%sequence
+        msg_sig = client.sign_message(address_path, msg)
+        return msg_sig.signature
 
     def sign_message(self, sequence, message, password):
         client = self.get_client()
