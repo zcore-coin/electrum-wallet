@@ -280,6 +280,19 @@ class MasternodeAnnounce(object):
                   'protocol_version': protocol_version, 'last_ping': last_ping}
         return cls(**kwargs)
 
+    def serialize_for_sig_raw(self, update_time=False):
+        """Serialize the message for signing."""
+        if update_time:
+            self.sig_time = int(time.time())
+
+        s = to_bytes(str(self.addr))
+        s += to_bytes(str(self.sig_time))
+        s += to_bytes(hash_encode(bitcoin.hash_160(bfh(self.collateral_key))), 'utf-8')
+        s += to_bytes(hash_encode(bitcoin.hash_160(bfh(self.masternode_pubkey))), 'utf-8')
+
+        s += to_bytes(str(self.protocol_version))
+        return s
+
     def serialize(self, vds=None):
         if not vds:
             vds = BCDataStream()
