@@ -44,6 +44,9 @@ if TYPE_CHECKING:
     from electrum_mona.gui.kivy.main_window import ElectrumWindow
 
 
+class MasternodeRecycleView(RecycleView):
+    pass
+
 class HistoryRecycleView(RecycleView):
     pass
 
@@ -111,6 +114,41 @@ TX_ICONS = [
     "clock5",
     "confirmed",
 ]
+
+class MasternodeScreen(CScreen):
+
+    tab = ObjectProperty(None)
+    kvname = 'masternode'
+    cards = {}
+
+    def __init__(self, **kwargs):
+        self.ra_dialog = None
+        super(MasternodeScreen, self).__init__(**kwargs)
+
+    def show_item(self, obj):
+        from .dialogs.masternode_dialog import MasternodeDialog
+        mn = self.app.masternode.get_masternode(obj.alias)
+        
+        self._masternodes_dialog = MasternodeDialog(self.app,mn)
+        self._masternodes_dialog.open()
+        
+    def update(self, see_all=False):
+        import operator
+        masternode = self.app.masternode
+        if masternode is None:
+            return
+        #history = sorted(wallet.get_full_history(self.app.fx).values(), key=lambda x: x.get('timestamp') or float('inf'), reverse=True)
+        masternode_card = self.screen.ids.masternode_container
+        masternode_card.data = []
+        icon_url = 'atlas://electrum_mona/gui/kivy/theming/light/'
+        for n in masternode.masternodes:
+            status = masternode.get_status(n.alias)
+            enabled = status == 'ENABLED'
+            icon = icon_url+ 'confirmed' if enabled else icon_url + 'important'
+            if status=='MISSING':
+              icon = icon_url+ 'close'
+            masternode_card.data.append({'alias':n.alias,'status':status,'enabled':enabled,'icon':icon,'screen':self})
+
 
 class HistoryScreen(CScreen):
 

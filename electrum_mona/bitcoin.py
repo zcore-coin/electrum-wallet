@@ -438,7 +438,6 @@ class EC_KEY(object):
                 self.verify_message(sig, message)
                 return sig
             except Exception as e:
-                print(e)
                 continue
         else:
             raise Exception("error: cannot sign message")
@@ -450,6 +449,7 @@ class EC_KEY(object):
         # check public key
         if point_to_ser(public_key.pubkey.point, compressed) != point_to_ser(self.pubkey.point, compressed):
             raise Exception("Bad signature")
+        print('>',public_key)
         # check message
         public_key.verify_digest(sig[1:], h, sigdecode = ecdsa.util.sigdecode_string)
 

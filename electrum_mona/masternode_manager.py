@@ -10,6 +10,8 @@ from .blockchain import hash_header
 from .masternode import MasternodeAnnounce, NetworkAddress
 from .util import AlreadyHaveAddress, print_error, bfh, print_msg, format_satoshis_plain
 
+from .wallet import Standard_Wallet
+
 BUDGET_FEE_CONFIRMATIONS = 6
 BUDGET_FEE_TX = 5 * bitcoin.COIN
 # From masternode.h
@@ -73,13 +75,61 @@ class MasternodeManager(object):
         """Load masternode from wallet storage."""
         masternodes = self.wallet.storage.get('masternodes', {})
         self.masternodes = [MasternodeAnnounce.from_dict(d) for d in masternodes.values()]
-        
+
+    def update_masternode_addr(self, alias, ipAddr):
+      if not isinstance(alias,str):
+        return
+      if not isinstance(ipAddr,str):
+        return
+      if len(ipAddr) > 64:
+        return
+      addr = ipAddr.split(':')
+      if len(addr) != 2:
+        return
+      addr = NetworkAddress(address=addr[0], port=int(addr[1]))
+      updated=False
+      for mn in self.masternodes:
+        if mn.alias == alias:
+          mn.addr = addr
+          self.save()
+          updated = True
+          break
+      return updated
+          
+    def update_masternode_alias(self, aliasOld, aliasNew):
+      if not isinstance(aliasOld,str):
+        return False
+      if not isinstance(aliasNew,str):
+        return False
+      if len(aliasNew) > 64:
+        return False
+      updated = False
+      for mn in self.masternodes:
+        if mn.alias == aliasOld:
+          mn.alias = aliasNew
+          self.save()
+          updated = True
+          break
+      return updated
+          
     def get_masternode(self, alias):
         """Get the masternode labelled as alias."""
         for mn in self.masternodes:
             if mn.alias == alias:
                 return mn
 
+    def get_status(self, alias):
+        """Get the masternode labelled as alias."""
+        print(self.masternode_statuses)
+        mx = self.get_masternode(alias)
+        if not mx:
+          return
+        status = self.masternode_statuses.get(mx.vin['prevout_hash'])
+        print('.................', status)
+        if not status:
+          return 'UNKNOWN'
+        return status
+              
     def get_masternode_by_hash(self, hash_):
         for mn in self.masternodes:
             if mn.get_hash() == hash_:
@@ -140,13 +190,21 @@ class MasternodeManager(object):
         # Return if it already has the information.
         if mn.collateral_key and mn.vin.get('address') and mn.vin.get('value') == MASTERNODE_COLLATERAL_VALUE:
             return
-
-        tx = self.wallet.transactions.get(txid)
-        if not tx:
+        if not self.wallet:
             return
+        addr = None
+        value = None
+        
+        if isinstance(self.wallet,Standard_Wallet):
+          tx = self.wallet.db.get_transaction(txid)
+        else:
+          tx = self.wallet.transactions.get(txid)
+          if not tx:
+              return
         if len(tx.outputs()) <= prevout_n:
-            return
+          return
         _, addr, value = tx.outputs()[prevout_n]
+          
         mn.vin['address'] = addr
         mn.vin['value'] = value
         mn.vin['scriptSig'] = ''
@@ -182,7 +240,7 @@ class MasternodeManager(object):
 
     def get_masternode_outputs_old(self, domain = None, exclude_frozen = True):
         """Get spendable coins that can be used as masternode collateral."""
-        coins = self.wallet.get_utxos(domain, exclude_frozen,
+        coins = self.wallet.get_utxos(domain, [], exclude_frozen,
                                       mature=True, confirmed_only=True)
 
         used_vins = map(lambda mn: '%s:%d' % (mn.vin.get('prevout_hash'), mn.vin.get('prevout_n', 0xffffffff)), self.masternodes)
@@ -205,12 +263,11 @@ class MasternodeManager(object):
     def check_can_sign_masternode(self, alias):
         """Raise an exception if alias can't be signed and announced to the network."""
         mn = self.get_masternode(alias)
+        
         if not mn:
             raise Exception('Nonexistent masternode')
-        if not mn.vin.get('prevout_hash'):
+        if not mn.vin.get('prevout_hash') and mn.collateral_key:
             raise Exception('Collateral TxId is not specified')
-        if not mn.collateral_key:
-            raise Exception('Could not allocate outpoint. Collateral TxId is not specified')
         if not mn.masternode_pubkey:
             raise Exception('Masternode delegate key is not specified')
         if not mn.addr.ip:
@@ -289,7 +346,8 @@ class MasternodeManager(object):
         header = blockchain.read_header(height)
         mn.last_ping.block_hash = hash_header(header)
         mn.last_ping.vin = mn.vin
-
+        if not mn.collateral_key and mn.vin:
+          mn.collateral_key = mn.vin['prevout_hash']
         # Sign ping with private key.
         self.wallet.sign_masternode_ping(mn.last_ping,mn.masternode_pubkey)
         
@@ -320,6 +378,7 @@ class MasternodeManager(object):
 
     def broadcast_announce_callback(self, alias, errmsg, r):
         """Callback for when a Masternode Announce message is broadcasted."""
+        print(r)
         try:
             self.on_broadcast_announce(alias, r)
         except Exception as e:

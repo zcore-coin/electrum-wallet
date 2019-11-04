@@ -615,6 +615,19 @@ class Abstract_Wallet(AddressSynchronizer):
         return item
 
     @profiler
+    def get_transactions(self, fx=None, *, onchain_domain=None, include_lightning=True):
+        transactions = OrderedDictWithIndex()
+        onchain_history = self.get_onchain_history(domain=onchain_domain)
+        for tx_item in onchain_history:
+            txid = tx_item['txid']
+            tx = self.db.get_transaction(txid)
+            tx_item['inputs'] = list(map(lambda x: dict((k, x[k]) for k in ('prevout_hash', 'prevout_n')), tx.inputs()))
+            tx_item['outputs'] = list(map(lambda x:{'address':x.address, 'value':Satoshis(x.value)},
+                                      tx.get_outputs_for_UI()))
+            transactions[txid] = tx_item
+        return transactions
+      
+    @profiler
     def get_full_history(self, fx=None, *, onchain_domain=None, include_lightning=True):
         transactions = OrderedDictWithIndex()
         onchain_history = self.get_onchain_history(domain=onchain_domain)

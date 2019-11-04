@@ -44,6 +44,7 @@ from .uix.dialogs import OutputList, OutputItem
 from .uix.dialogs import TopLabel, RefLabel
 from .uix.dialogs.question import Question
 
+from electrum_mona.masternode_manager import MasternodeManager 
 #from kivy.core.window import Window
 #Window.softinput_mode = 'below_target'
 
@@ -84,6 +85,7 @@ from electrum_mona.util import (base_units, NoDynamicFeeEstimates, decimal_point
 from .uix.dialogs.lightning_open_channel import LightningOpenChannelDialog
 from .uix.dialogs.lightning_channels import LightningChannelsDialog
 
+
 if TYPE_CHECKING:
     from . import ElectrumGui
     from electrum_mona.simple_config import SimpleConfig
@@ -108,7 +110,8 @@ class ElectrumWindow(App):
     fiat_balance = StringProperty('')
     is_fiat = BooleanProperty(False)
     blockchain_forkpoint = NumericProperty(0)
-
+    
+    masternode=None
     auto_connect = BooleanProperty(False)
     def on_auto_connect(self, instance, x):
         net_params = self.network.get_parameters()
@@ -363,6 +366,7 @@ class ElectrumWindow(App):
         self._password_dialog = None
         self._channels_dialog = None
         self._addresses_dialog = None
+        self._masternodes_dialog = None
         self.fee_status = self.electrum_config.get_fee_status()
         self.request_popup = None
 
@@ -419,7 +423,7 @@ class ElectrumWindow(App):
 
     @profiler
     def update_tabs(self):
-        for tab in ['invoices', 'send', 'history', 'receive', 'address']:
+        for tab in ['invoices', 'send', 'history', 'masternode','receive', 'address']:
             self.update_tab(tab)
 
     def switch_to(self, name):
@@ -669,6 +673,13 @@ class ElectrumWindow(App):
             #self.gui.main_gui.toggle_settings(self)
             return True
 
+    def masternodes_dialog(self):
+        from .uix.dialogs.masternodes import MasternodesDialog
+        if self._masternodes_dialog is None:
+            self._masternodes_dialog = MasternodesDialog(self)
+        self._masternodes_dialog.update()
+        self._masternodes_dialog.open()
+        
     def settings_dialog(self):
         from .uix.dialogs.settings import SettingsDialog
         if self._settings_dialog is None:
@@ -884,8 +895,13 @@ class ElectrumWindow(App):
     def update_wallet(self, *dt):
         self._trigger_update_status()
         if self.wallet and (self.wallet.up_to_date or not self.network or not self.network.is_connected()):
+            if not self.masternode:
+               self.masternode = MasternodeManager(self.wallet,self.config)
+               self.wallet.set_sync_masternode_manager(self.masternode)
+            else:
+               self.masternode.wallet =  self.wallet
+               self.wallet.set_sync_masternode_manager(self.masternode)
             self.update_tabs()
-
     def notify(self, message):
         try:
             global notification, os

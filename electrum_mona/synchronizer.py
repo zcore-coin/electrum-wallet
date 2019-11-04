@@ -169,7 +169,8 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
                     raise GracefulDisconnect(e, log_level=logging.ERROR) from e
                 raise
             self._requests_answered += 1
-            self.requested_mn.remove(collateral)
+            if collateral in self.requested_mn:
+               self.requested_mn.remove(collateral)
             
         while True:
             col = await self.add_mn_queue.get()

@@ -809,7 +809,7 @@ class AddressSynchronizer(Logger):
         if domain is None:
             domain = self.get_addresses()
         domain = set(domain)
-        if excluded_addresses:
+        if isinstance(excluded_addresses,list):
             domain = set(domain) - set(excluded_addresses)
         mempool_height = self.get_local_height() + 1  # height of next block
         for addr in domain:

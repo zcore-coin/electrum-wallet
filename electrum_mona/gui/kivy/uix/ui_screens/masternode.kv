@@ -1,0 +1,78 @@
+#:import _ electrum_mona.gui.kivy.i18n._
+#:import Factory kivy.factory.Factory
+#:set font_light 'electrum_mona/gui/kivy/data/fonts/Roboto-Condensed.ttf'
+#:set btc_symbol chr(171)
+#:set mbtc_symbol chr(187)
+
+
+
+<CardLabel@Label>
+    color: .7, .7, .7, 1
+    text_size: self.width, None
+    #height: self.texture_size[1]
+    halign: 'left'
+    valign: 'top'
+
+
+<MasternodeItem@CardItem>
+    icon: ''
+    alias: ''
+    status: ''
+    Image:
+        id: icon
+        source: root.icon
+        size_hint: None, 1
+        allow_stretch: True
+        width: self.height*1.5
+        mipmap: True
+    BoxLayout:
+        spacing: '8dp'
+        height: '32dp'
+        orientation: 'vertical'
+        Widget
+        CardLabel:
+            color: 0.95, 0.95, 0.95, 1
+            text: root.alias
+            shorten: True
+            shorten_from: 'right'
+            font_size: '15sp'
+        Widget
+    BoxLayout:
+        spacing: '8dp'
+        height: '32dp'
+        orientation: 'vertical'
+        Widget
+        CardLabel:
+            text: root.status
+            halign: 'right'
+            font_size: '15sp'
+        Widget
+
+<MasternodeRecycleView>:
+    viewclass: 'MasternodeItem'
+    RecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        size_hint: 1, None
+        height: self.minimum_height
+        orientation: 'vertical'
+
+
+MasternodeScreen:
+    name: 'masternode'
+    content: masternode_container
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            background_color: 0, 0, 0, 0
+            text: app.fiat_balance if app.is_fiat else app.balance
+            markup: True
+            color: .9, .9, .9, 1
+            font_size: '30dp'
+            bold: True
+            size_hint: 1, 0.25
+            on_release: app.is_fiat = not app.is_fiat if app.fx.is_enabled() else False
+        MasternodeRecycleView:
+            id: masternode_container
+            scroll_type: ['bars', 'content']
+            bar_width: '25dp'

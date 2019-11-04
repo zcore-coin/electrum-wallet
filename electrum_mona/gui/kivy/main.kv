@@ -383,6 +383,9 @@
         ReceiveScreen:
             id: receive_screen
             tab: receive_tab
+        MasternodeScreen:
+            id: masternode_screen
+            tab: masternode_tab
         CleanHeader:
             id: send_tab
             text: _('Send')
@@ -395,6 +398,10 @@
             id: receive_tab
             text: _('Receive')
             slide: 2
+        CleanHeader:
+            id: masternode_tab
+            text: _('Masternode')
+            slide: 3
 
 
 <ActionOvrButton@ActionButton>
@@ -443,6 +450,9 @@ BoxLayout:
                 ActionOvrButton:
                     name: 'about'
                     text: _('About')
+                ActionOvrButton:
+                    name: 'masternodes_dialog'
+                    text: _('Masternodes')
                 ActionOvrButton:
                     name: 'wallets'
                     text: _('Wallets')
