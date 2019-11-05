@@ -257,21 +257,22 @@ class AddMasternodeDialog(Factory.Popup):
         if not self.app.masternode:
           self.dismiss()
 
-    def update_and_save(self,key,value):
+    def update_and_save(self,key,value,item):
       self.masternode[key] = value
+      item.title = str(value)
       
     def set_ip(self,item,dt):
-      save = lambda v: self.update_and_save('ip',v)
+      save = lambda v: self.update_and_save('ip',v,item)
       d = LabelDialog(_('Enter VPS IP:PORT'), '', save)
       d.open()
     
-    def set_alias(self,item,dt):
-      save = lambda v: self.update_and_save('alias',v)
+    def set_alias(self,item,dt):      
+      save = lambda v: self.update_and_save('alias',v,item)
       d = LabelDialog(_('Enter Alias'), '', save)
       d.open()
       
     def set_genkey(self,item,dt):
-      save = lambda v: self.update_and_save('genkey',v)
+      save = lambda v: self.update_and_save('genkey',v,item)
       d = LabelDialog(_('Enter Masternode Genkey'), '', save)
       d.open()
     
@@ -282,7 +283,7 @@ class AddMasternodeDialog(Factory.Popup):
         o = val.get('prevout_hash')[:20]+'.../ '+str(val.get('prevout_n'))
         self.outputs[o] = val
         choices.append(o)
-      save = lambda v: self.update_and_save('collateral',v)
+      save = lambda v: self.update_and_save('collateral',v,item)
       d = ChoiceDialog(_('Select your masternode collateral/index'), choices, '', save)
       d.open()
     
@@ -318,7 +319,8 @@ class AddMasternodeDialog(Factory.Popup):
           if not self.app.masternode.wallet:
             self.app.masternode.wallet = self.app.wallet
           self.app.masternode.import_masternode_conf_lines(conf_line,None)
-          self.app.wallet.set_frozen_state_of_addresses([c['collateral']], True)
+          # self.app.wallet.set_frozen_state_of_addresses([c['collateral']], True)
+          self.app.wallet.set_frozen_state_of_addresses([c['address']], True)
           self.app.masternode.save()
           self.app.update_tabs()
           self.dismiss()
