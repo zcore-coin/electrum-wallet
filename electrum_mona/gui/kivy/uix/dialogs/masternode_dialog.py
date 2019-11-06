@@ -307,6 +307,12 @@ class AddMasternodeDialog(Factory.Popup):
           self.missing('Collateral')
           return
         output = self.outputs[self.masternode['collateral']]
+        print('output ----------> ',output)
+
+        naddress = [output['address']]
+
+        print('naddress ----------> ',naddress)
+
         self.masternode['collateral'] = output['prevout_hash']
         self.masternode['index'] = str(output['prevout_n'])
         c = self.masternode
@@ -320,7 +326,7 @@ class AddMasternodeDialog(Factory.Popup):
             self.app.masternode.wallet = self.app.wallet
           self.app.masternode.import_masternode_conf_lines(conf_line,None)
           # self.app.wallet.set_frozen_state_of_addresses([c['collateral']], True)
-          self.app.wallet.set_frozen_state_of_addresses([c['address']], True)
+          self.app.wallet.set_frozen_state_of_addresses(naddress, True)
           self.app.masternode.save()
           self.app.update_tabs()
           self.dismiss()

@@ -93,7 +93,8 @@ class MasternodesDialog(Factory.Popup):
         
     def finalize_masternode(self):
         c = self.masternode
-        print('finalize:',c)
+        print('finalize ----------> ',c)
+        naddress = [c['address']]
         
         try:
           # for now, lets use standard conf line
@@ -104,7 +105,8 @@ class MasternodesDialog(Factory.Popup):
           if not self.app.masternode.wallet:
             self.app.masternode.wallet = self.app.wallet
           self.app.masternode.import_masternode_conf_lines(conf_line,None)
-          self.app.wallet.set_frozen_state_of_addresses([c['collateral']], True)
+          # self.app.wallet.set_frozen_state_of_addresses([c['collateral']], True)
+          self.app.wallet.set_frozen_state_of_addresses(naddress, True)
           self.app.masternode.save()
           self.app.update_tabs()
         except Exception as e:
@@ -139,4 +141,3 @@ class MasternodesDialog(Factory.Popup):
         except:
            self.app.show_error(_("R/W error accessing path"))
             
-
