@@ -475,7 +475,7 @@ class MasternodeControlDialog(QDialog, PrintError):
     def setup_masternodekey_label(self):
         masternodeKey = self.generate_masternode_key()
         self.masternodeKeyLabel.setText(str(masternodeKey))
-z
+
     def copy_masternodekey_label(self):
         masternodeKey = self.masternodeKeyLabel.text()
         cb = QApplication.clipboard()
