@@ -166,8 +166,8 @@ class MasternodeManager(object):
         # Don't delete the delegate key if another masternode uses it too.
         if not any(i.alias != mn.alias and i.masternode_pubkey == mn.masternode_pubkey for i in self.masternodes):
             self.wallet.delete_masternode_delegate(mn.masternode_pubkey)
-
-        self.wallet.set_frozen_state_of_addresses([mn.vin.get('address')], False)
+        tx_coin = "{}:{}".format(mn.vin.get('prevout_hash'),mn.vin.get('prevout_n'))
+        self.wallet.set_frozen_state_of_coins([tx_coin], False)
         self.masternodes.remove(mn)
         if self.sync:
           collateral = mn.get_collateral_hash_str()
