@@ -466,7 +466,8 @@ class MasternodeControlDialog(QDialog, PrintError):
             masternode_pubkey = ''
 
         # Save masternode
-        self.manager.wallet.set_frozen_state_of_addresses([tx_addr], True)
+        tx_coin = "{}:{}".format(tx_hash,tx_prevout_n)
+        self.manager.wallet.set_frozen_state_of_coins([tx_coin], True)
         self.mapper.submit()
         self.manager.save()
         self.accept()
@@ -474,7 +475,7 @@ class MasternodeControlDialog(QDialog, PrintError):
     def setup_masternodekey_label(self):
         masternodeKey = self.generate_masternode_key()
         self.masternodeKeyLabel.setText(str(masternodeKey))
-
+z
     def copy_masternodekey_label(self):
         masternodeKey = self.masternodeKeyLabel.text()
         cb = QApplication.clipboard()
