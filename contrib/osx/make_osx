@@ -18,7 +18,7 @@ cd $src_dir/../..
 
 export PYTHONHASHSEED=22
 #VERSION=`git describe --tags --dirty --always`
-VERSION="v1.0.1"
+VERSION="v1.0.2"
 
 which brew > /dev/null 2>&1 || fail "Please install brew from https://brew.sh/ to continue"
 which xcodebuild > /dev/null 2>&1 || fail "Please install Xcode and xcode command line tools to continue"
