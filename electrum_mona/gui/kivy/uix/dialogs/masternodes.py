@@ -106,7 +106,7 @@ class MasternodesDialog(Factory.Popup):
             self.app.masternode.wallet = self.app.wallet
           self.app.masternode.import_masternode_conf_lines(conf_line,None)
           # self.app.wallet.set_frozen_state_of_addresses([c['collateral']], True)
-          self.app.wallet.set_frozen_state_of_addresses(naddress, True)
+          self.app.wallet.set_frozen_state_of_coins(['{}:{}'.format(c['collateral'],c['index'])], True)
           self.app.masternode.save()
           self.app.update_tabs()
         except Exception as e:
