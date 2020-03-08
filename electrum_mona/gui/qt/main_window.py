@@ -670,7 +670,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger):
         help_menu.addAction(_("&Official website"), lambda: webopen("https://zcore.cash"))
         help_menu.addSeparator()
         help_menu.addAction(_("&Documentation"), lambda: webopen("http://docs.zcore.cash")).setShortcut(QKeySequence.HelpContents)
-        help_menu.addAction(_("&Discord"), lambda: webopen("https://discord.gg/vWyjJ7r"))
         help_menu.addAction(_("&Report Bug"), self.show_report_bug)
         help_menu.addSeparator()
         help_menu.addAction(_("&Donate to server"), self.donate_to_server)
